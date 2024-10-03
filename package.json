@@ -1,0 +1,47 @@
+{
+  "name": "@mach-34/zimburse",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "scripts": {
+    "artifacts": "./scripts/artifacts.sh",
+    "postinstall": "yarn artifacts",
+    "test": "NODE_NO_WARNINGS=1 node --experimental-vm-modules $(yarn bin jest) --no-cache --runInBand --verbose",
+    "sandbox": "aztec start --sandbox"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.25.2",
+    "@babel/plugin-transform-runtime": "^7.25.4",
+    "@babel/preset-env": "^7.25.4",
+    "@babel/preset-typescript": "^7.24.7",
+    "@types/jest": "^29.5.13",
+    "@types/node": "^22.7.4",
+    "babel-jest": "^29.7.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.2.5",
+    "typescript": "^5.6.2"
+  },
+  "dependencies": {
+    "@aztec/accounts": "^0.56.0",
+    "@aztec/aztec.js": "^0.56.0",
+    "@aztec/noir-contracts.js": "^0.56.0",
+    "@jest/globals": "^29.7.0",
+    "@mach-34/zkemail-nr": "^1.0.5"
+  },
+  "jest": {
+    "preset": "ts-jest/presets/default-esm",
+    "transform": {
+      "^.+\\.tsx?$": [
+        "ts-jest",
+        {
+          "useESM": true
+        }
+      ]
+    },
+    "moduleNameMapper": {
+      "^(\\.{1,2}/.*)\\.js$": "$1"
+    },
+    "testRegex": "./tests/.*\\.test\\.ts$",
+    "rootDir": "./"
+  }
+}

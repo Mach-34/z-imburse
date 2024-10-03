@@ -1,0 +1,7 @@
+.env
+node_modules
+target
+codegenCache.json
+circuits/*/target
+tests/email_verifiers/test-data
+src/circuits

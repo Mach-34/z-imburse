@@ -1,0 +1,8 @@
+[package]
+name = "linode_email_verifier"
+type = "bin"
+authors = ["Mach-34"]
+compiler_version = ">=0.34.0"
+
+[dependencies]
+zimburse_verifiers = { path = "../../zimburse_verifiers" }

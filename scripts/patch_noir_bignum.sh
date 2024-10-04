@@ -23,7 +23,7 @@ else
   git checkout tags/v0.3.4 > /dev/null 2>&1
 fi
 
-  echo "\n\n\n##### IMPORTANT: This is actually using noir_bignumv0.3.4 labeled as noir_bignumv0.3.3 to circumvent an error #####\n\n\n"
+  echo "##### IMPORTANT: Applying patch to noir_bignumv0.3.3 to use v0.3.4 #####"
 
 cd $noir_gh_path/noir-bignumv0.3.3
 
@@ -36,8 +36,8 @@ case "$OSTYPE" in
         ;;
     *)
         # Linux
-        sed -i 's/“Zexe”/"Zexe"/' /src/fields/bls12_377Fq.nr
-        sed -i 's/“Zexe”/"Zexe"/' /src/fields/bls12_377Fr.nr
+        sed -i 's/“Zexe”/"Zexe"/' ./src/fields/bls12_377Fq.nr
+        sed -i 's/“Zexe”/"Zexe"/' ./src/fields/bls12_377Fr.nr
         ;;
 esac
 

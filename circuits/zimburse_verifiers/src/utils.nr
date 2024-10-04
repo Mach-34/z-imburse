@@ -115,8 +115,8 @@ pub fn extract_billed_amount(body: [u8; MAX_EMAIL_BODY_LENGTH], index: u32, amou
 //     println(extracted);
 // }
 
-#[test]
-fn test_payment_string_bytes() {
- let bytes = LINODE_BILLING_PAYMENT_TEXT.as_bytes();
- println(bytes);
-}
+// #[test]
+// fn test_payment_string_bytes() {
+//  let bytes = LINODE_BILLING_PAYMENT_TEXT.as_bytes();
+//  println(bytes);
+// }

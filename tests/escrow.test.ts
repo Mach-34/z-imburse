@@ -18,8 +18,8 @@ import {
 } from "@aztec/aztec.js";
 import { TokenContract } from "@aztec/noir-contracts.js";
 import { ZImburseContract } from "../src/artifacts/ZImburse";
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
+import { fileURLToPath } from "url";
+import { dirname } from "path";
 import { readFileSync } from "fs";
 import { formatRedeemLinode, makeLinodeInputs } from "../src/linode";
 import { join } from "path";
@@ -28,7 +28,9 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const emails = {
-  linode: readFileSync(join(__dirname, "./email_verifiers/test-data/linode.eml")),
+  linode: readFileSync(
+    join(__dirname, "./email_verifiers/test-data/linode.eml")
+  ),
 };
 
 const DEFAULT_PXE_URL = "http://localhost:8080";
@@ -56,8 +58,8 @@ jest.setTimeout(1000000);
 describe("Test deposit to zimburse", () => {
   let accounts: AccountWalletWithSecretKey[] = [];
   let pxe: PXE;
-  let usdc: TokenContract[] = [];
-  let zimburse: ZImburseContract[] = [];
+  let usdc: TokenContract;
+  let zimburse: ZImburseContract;
   beforeAll(async () => {
     // setup pxe connection
     pxe = await createPXEClient(DEFAULT_PXE_URL);
@@ -70,7 +72,7 @@ describe("Test deposit to zimburse", () => {
     console.log(`Alice: ${accounts[2].getAddress()}`);
     console.log(`Bob: ${accounts[3].getAddress()}\n`);
     // deploy usdc token
-    usdc.push(await TokenContract.deploy(
+    usdc = await TokenContract.deploy(
       accounts[0],
       accounts[0].getAddress(),
       "USDC",
@@ -78,23 +80,20 @@ describe("Test deposit to zimburse", () => {
       6n
     )
       .send()
-      .deployed());
-    // set interface for each wallet
-    for (let i = 1; i < accounts.length; i++) {
-      usdc.push(await TokenContract.at(usdc[0].address, accounts[i]));
-    }
-    console.log(`Deployed USDC token at ${usdc[0].address}\n`);
+      .deployed();
+    console.log(`Deployed USDC token at ${usdc.address}\n`);
     // mint usdc tokens to the z-imburse admin account
     const secret = Fr.random();
     let secretHash = computeSecretHash(secret);
     const amount = 100000n * 10n ** 6n;
-    const receipt = await usdc[0].methods
-      .mint_private(amount, secretHash)
+    const receipt = await usdc
+      .withWallet(accounts[0])
+      .methods.mint_private(amount, secretHash)
       .send()
       .wait();
     await addPendingShieldNoteToPXE(
       accounts[1],
-      usdc[0].address,
+      usdc.address,
       amount,
       secretHash,
       receipt.txHash
@@ -103,53 +102,108 @@ describe("Test deposit to zimburse", () => {
       `Privately minted ${amount} USDC to the Z-Imburse admin account\n`
     );
     // redeem the tokens to the z-imburse admin account
-    await usdc[1].methods
-      .redeem_shield(accounts[1].getAddress(), amount, secret)
+    await usdc
+      .withWallet(accounts[1])
+      .methods.redeem_shield(accounts[1].getAddress(), amount, secret)
       .send()
       .wait();
     console.log(`Redeemed ${amount} USDC to the Z-Imburse admin account\n`);
     // deploy Z-Imburse contract
-    zimburse.push(await ZImburseContract.deploy(
+    zimburse = await ZImburseContract.deploy(
       accounts[1],
-      usdc[1].address,
+      usdc.address,
       "Test Z-Imburse"
     )
       .send()
-      .deployed());
-    for (let i = 1; i < accounts.length; i++) {
-      zimburse.push(await ZImburseContract.at(zimburse[0].address, accounts[i]));
-    }
-    console.log(`Deployed Z-Imburse contract at ${zimburse[0].address}\n`);
+      .deployed();
+    console.log(`Deployed Z-Imburse contract at ${zimburse.address}\n`);
   });
 
   describe("Escrow", () => {
     it("Deposit", async () => {
       const amount = 100n * 10n ** 6n;
-      await usdc[1].methods
-        .unshield(accounts[1].getAddress(), zimburse[1].address, amount, 0)
+      await usdc
+        .withWallet(accounts[1])
+        .methods.unshield(accounts[1].getAddress(), zimburse.address, amount, 0)
         .send()
         .wait();
       // get balance
-      const balance = await usdc[1].methods.balance_of_public(zimburse[1].address).simulate();
+      const balance = await usdc.methods
+        .balance_of_public(zimburse.address)
+        .simulate();
       console.log("Balance: ", balance);
       expect(balance).toBe(amount);
     });
   });
-  it("Give entitlement", async () => {
-    // const npk_hash = accounts[2].getCompleteAddress().publicKeys.masterNullifierPublicKey.hash();
+
+  it("Give entitlement Linode", async () => {
+    // give entitlement of 10 usdc
     const amount = 10n * 10n ** 6n;
-    await zimburse[1].methods.give_entitlement(accounts[2].getAddress(), amount).send().wait();
+    await zimburse.withWallet(accounts[1]).methods.give_entitlement(accounts[2].getAddress(), amount).send().wait();
 
     // generate email inputs
     const inputs = await makeLinodeInputs(emails.linode);
     // transform inputs to contract friendly format
     const redeemLinodeInputs = formatRedeemLinode(inputs);
     // redeem entitlement
-    await zimburse[2].methods.redeem_linode_entitlement(...redeemLinodeInputs).send().wait();
-    // get balance
-    const balanceContract = await usdc[2].methods.balance_of_public(zimburse[2].address).simulate();
-    const balanceRecipient = await usdc[2].methods.balance_of_public(accounts[2].getAddress()).simulate();
-    console.log("Balance Contract: ", balanceContract);
-    console.log("Balance Recipient: ", balanceRecipient);
+    const secret = Fr.random();
+    const secretHash = computeSecretHash(secret);
+    const receipt = await zimburse.withWallet(accounts[2]).methods.redeem_linode_entitlement(...redeemLinodeInputs, secretHash).send().wait();
+    await addPendingShieldNoteToPXE(
+      accounts[2],
+      usdc.address,
+      amount,
+      secretHash,
+      receipt.txHash
+    );
+    // check that the balance has decremented from zimburse
+    const escrowBalance = await usdc.methods.balance_of_public(zimburse.address).simulate();
+    expect(escrowBalance).toBe(90n * 10n ** 6n);
+    // redeem the shielded USDC note
+    await usdc.withWallet(accounts[2]).methods.redeem_shield(accounts[2].getAddress(), amount, secret).send().wait();
+    // check that the balance has incremented for the recipient
+    const recipientBalance = await usdc.withWallet(accounts[2]).methods.balance_of_private(accounts[2].getAddress()).simulate();
+    expect(recipientBalance).toBe(10n * 10n ** 6n);
   })
+  // it("Give entitlement Test", async () => {
+  //   // give entitlement
+  //   const amount = 10n * 10n ** 6n;
+  //   await zimburse
+  //     .withWallet(accounts[1])
+  //     .methods.give_entitlement(accounts[2].getAddress(), amount)
+  //     .send()
+  //     .wait();
+  //   // build claim hash
+  //   const secret = Fr.random();
+  //   let secretHash = computeSecretHash(secret);
+  //   let receipt = await zimburse
+  //     .withWallet(accounts[2])
+  //     .methods.redeem_entitlement(secretHash)
+  //     .send()
+  //     .wait();
+  //   await addPendingShieldNoteToPXE(
+  //     accounts[2],
+  //     usdc.address,
+  //     amount,
+  //     secretHash,
+  //     receipt.txHash
+  //   );
+  //   // check that balance has decremented from zimburse
+  //   const escrowBalance = await usdc.methods
+  //     .balance_of_public(zimburse.address)
+  //     .simulate();
+  //   console.log("Escrow Balance: ", escrowBalance);
+  //   // redeem the shielded note
+  //   await usdc
+  //     .withWallet(accounts[2])
+  //     .methods.redeem_shield(accounts[2].getAddress(), amount, secret)
+  //     .send()
+  //     .wait();
+  //   // check that balance has incremented for recipient
+  //   const recipientBalance = await usdc
+  //     .withWallet(accounts[2])
+  //     .methods.balance_of_private(accounts[2].getAddress())
+  //     .simulate();
+  //   console.log("Recipient Balance: ", recipientBalance);
+  // });
 });

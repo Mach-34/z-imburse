@@ -34,7 +34,7 @@ import {
   type WrappedFieldLike,
 } from '@aztec/aztec.js';
 import ZImburseContractArtifactJson from './ZImburse.json' assert { type: 'json' };
-// @ts-ignore
+//@ts-ignore
 export const ZImburseContractArtifact = loadContractArtifact(ZImburseContractArtifactJson as NoirCompiledContract);
 
 
@@ -43,16 +43,16 @@ export const ZImburseContractArtifact = loadContractArtifact(ZImburseContractArt
  * Type-safe interface for contract ZImburse;
  */
 export class ZImburseContract extends ContractBase {
-
+  
   private constructor(
     instance: ContractInstanceWithAddress,
     wallet: Wallet,
   ) {
     super(instance, ZImburseContractArtifact, wallet);
   }
+  
 
-
-
+  
   /**
    * Creates a contract instance.
    * @param address - The deployed contract's address.
@@ -66,7 +66,7 @@ export class ZImburseContract extends ContractBase {
     return Contract.at(address, ZImburseContract.artifact, wallet) as Promise<ZImburseContract>;
   }
 
-
+  
   /**
    * Creates a tx to deploy a new instance of this contract.
    */
@@ -97,74 +97,74 @@ export class ZImburseContract extends ContractBase {
       opts.method ?? 'constructor',
     );
   }
+  
 
-
-
+  
   /**
    * Returns this contract's artifact.
    */
   public static get artifact(): ContractArtifact {
     return ZImburseContractArtifact;
   }
-
+  
 
   public static get storage(): ContractStorageLayout<'admin' | 'minters' | 'balances' | 'total_supply' | 'pending_shields' | 'public_balances' | 'symbol' | 'name' | 'decimals'> {
-    return {
-      admin: {
-        slot: new Fr(1n),
-      },
-      minters: {
-        slot: new Fr(2n),
-      },
-      balances: {
-        slot: new Fr(3n),
-      },
-      total_supply: {
-        slot: new Fr(4n),
-      },
-      pending_shields: {
-        slot: new Fr(5n),
-      },
-      public_balances: {
-        slot: new Fr(6n),
-      },
-      symbol: {
-        slot: new Fr(7n),
-      },
-      name: {
-        slot: new Fr(8n),
-      },
-      decimals: {
-        slot: new Fr(9n),
-      }
-    } as ContractStorageLayout<'admin' | 'minters' | 'balances' | 'total_supply' | 'pending_shields' | 'public_balances' | 'symbol' | 'name' | 'decimals'>;
-  }
-
+      return {
+        admin: {
+      slot: new Fr(1n),
+    },
+minters: {
+      slot: new Fr(2n),
+    },
+balances: {
+      slot: new Fr(3n),
+    },
+total_supply: {
+      slot: new Fr(4n),
+    },
+pending_shields: {
+      slot: new Fr(5n),
+    },
+public_balances: {
+      slot: new Fr(6n),
+    },
+symbol: {
+      slot: new Fr(7n),
+    },
+name: {
+      slot: new Fr(8n),
+    },
+decimals: {
+      slot: new Fr(9n),
+    }
+      } as ContractStorageLayout<'admin' | 'minters' | 'balances' | 'total_supply' | 'pending_shields' | 'public_balances' | 'symbol' | 'name' | 'decimals'>;
+    }
+    
 
   public static get notes(): ContractNotes<'AddressNote' | 'TransparentNote' | 'TokenNote' | 'RecurringEntitlementNote' | 'UintNote'> {
     return {
       AddressNote: {
-        id: new NoteSelector(2232136525),
-      },
-      TransparentNote: {
-        id: new NoteSelector(3193649735),
-      },
-      TokenNote: {
-        id: new NoteSelector(2350566847),
-      },
-      RecurringEntitlementNote: {
-        id: new NoteSelector(3639716131),
-      },
-      UintNote: {
-        id: new NoteSelector(202136239),
-      }
+          id: new NoteSelector(2232136525),
+        },
+TransparentNote: {
+          id: new NoteSelector(3193649735),
+        },
+TokenNote: {
+          id: new NoteSelector(2350566847),
+        },
+RecurringEntitlementNote: {
+          id: new NoteSelector(3639716131),
+        },
+UintNote: {
+          id: new NoteSelector(202136239),
+        }
     } as ContractNotes<'AddressNote' | 'TransparentNote' | 'TokenNote' | 'RecurringEntitlementNote' | 'UintNote'>;
   }
-
+  
 
   /** Type-safe wrappers for the public methods exposed by the contract. */
   public declare methods: {
-
+    
     /** compute_note_hash_and_optionally_a_nullifier(contract_address: struct, nonce: field, storage_slot: field, note_type_id: field, compute_nullifier: boolean, serialized_note: array) */
     compute_note_hash_and_optionally_a_nullifier: ((contract_address: AztecAddressLike, nonce: FieldLike, storage_slot: FieldLike, note_type_id: FieldLike, compute_nullifier: boolean, serialized_note: FieldLike[]) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
@@ -177,12 +177,9 @@ export class ZImburseContract extends ContractBase {
     /** give_entitlement(to: struct, amount: field) */
     give_entitlement: ((to: AztecAddressLike, amount: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
-    /** redeem_entitlement() */
-    redeem_entitlement: (() => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
-
-    /** redeem_linode_entitlement(body: array, body_hash_index: integer, body_length: integer, header: array, header_length: integer, pubkey: array, pubkey_redc: array, signature: array, from_index: integer, subject_index: integer, amount_index: integer, amount_length: integer, receipt_id_length: integer) */
-    redeem_linode_entitlement: ((body: (bigint | number)[], body_hash_index: (bigint | number), body_length: (bigint | number), header: (bigint | number)[], header_length: (bigint | number), pubkey: FieldLike[], pubkey_redc: FieldLike[], signature: FieldLike[], from_index: (bigint | number), subject_index: (bigint | number), amount_index: (bigint | number), amount_length: (bigint | number), receipt_id_length: (bigint | number)) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+    /** redeem_linode_entitlement(body: array, body_hash_index: integer, body_length: integer, header: array, header_length: integer, pubkey: array, pubkey_redc: array, signature: array, from_index: integer, subject_index: integer, amount_index: integer, amount_length: integer, receipt_id_length: integer, claim_secret_hash: field) */
+    redeem_linode_entitlement: ((body: (bigint | number)[], body_hash_index: (bigint | number), body_length: (bigint | number), header: (bigint | number)[], header_length: (bigint | number), pubkey: FieldLike[], pubkey_redc: FieldLike[], signature: FieldLike[], from_index: (bigint | number), subject_index: (bigint | number), amount_index: (bigint | number), amount_length: (bigint | number), receipt_id_length: (bigint | number), claim_secret_hash: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
   };
 
-
+  
 }

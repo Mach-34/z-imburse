@@ -177,11 +177,8 @@ UintNote: {
     /** give_entitlement(to: struct, amount: field) */
     give_entitlement: ((to: AztecAddressLike, amount: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
-    /** redeem_entitlement(secret_hash: field) */
-    redeem_entitlement: ((secret_hash: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
-
-    /** redeem_linode_entitlement(body: array, body_hash_index: integer, body_length: integer, header: array, header_length: integer, pubkey: array, pubkey_redc: array, signature: array, from_index: integer, subject_index: integer, amount_index: integer, amount_length: integer, receipt_id_length: integer) */
-    redeem_linode_entitlement: ((body: (bigint | number)[], body_hash_index: (bigint | number), body_length: (bigint | number), header: (bigint | number)[], header_length: (bigint | number), pubkey: FieldLike[], pubkey_redc: FieldLike[], signature: FieldLike[], from_index: (bigint | number), subject_index: (bigint | number), amount_index: (bigint | number), amount_length: (bigint | number), receipt_id_length: (bigint | number)) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+    /** redeem_linode_entitlement(body: array, body_hash_index: integer, body_length: integer, header: array, header_length: integer, pubkey: array, pubkey_redc: array, signature: array, from_index: integer, subject_index: integer, amount_index: integer, amount_length: integer, receipt_id_length: integer, claim_secret_hash: field) */
+    redeem_linode_entitlement: ((body: (bigint | number)[], body_hash_index: (bigint | number), body_length: (bigint | number), header: (bigint | number)[], header_length: (bigint | number), pubkey: FieldLike[], pubkey_redc: FieldLike[], signature: FieldLike[], from_index: (bigint | number), subject_index: (bigint | number), amount_index: (bigint | number), amount_length: (bigint | number), receipt_id_length: (bigint | number), claim_secret_hash: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
   };
 
   

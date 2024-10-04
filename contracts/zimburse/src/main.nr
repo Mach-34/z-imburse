@@ -53,7 +53,7 @@ contract ZImburse {
     }
 
     #[private]
-    fn redeem_entitlement() {
+    fn redeem_entitlement(secret_hash: Field) {
         // read note
         let notes = storage.entitlements.at(context.msg_sender()).pop_notes(
             NoteGetterOptions::new().set_limit(1)
@@ -66,7 +66,7 @@ contract ZImburse {
         let token_address = storage.definition.read_private().usdc;
         // transfer USDC to the user
         // todo: fix
-        // Token::at(token_address).transfer(note.owner, amount.to_field()).call(&mut context);
+        Token::at(token_address).shield(context.this_address(), amount.to_field(), secret_hash, 0).enqueue(&mut context);
     }
 
     #[private]
@@ -122,4 +122,36 @@ contract ZImburse {
     pub fn get_title() -> [u8; TITLE_LENGTH]{
         storage.definition.read_public().title_as_string()
     }
+
+    /// TESTS
+    use dep::aztec::test::helpers::test_environment::TestEnvironment;
+    use dep::aztec::oracle::unsafe_rand::unsafe_rand;
+
+    #[test]
+    unconstrained fn test_escrow() {
+        // set up env
+        let mut env = TestEnvironment::new();
+        let usdc_deployer = env.create_account();
+        let escrow_owner = env.create_account();
+        let recipient = env.create_account();
+        // deploy USDC
+        env.impersonate(usdc_deployer);
+        let usdc_initialize = Token::interface().constructor(usdc_deployer, "USDC                           ", "Aztec USDC                     ", 6);
+        let usdc_contract = env.deploy_self("Token").with_public_initializer(usdc_initialize);
+        let usdc_address = usdc_contract.to_address();
+        // mint to escrow owner
+        let secret = unsafe_rand();
+        let generator = 20;
+        let secretHash = std::hash::poseidon2::Poseidon2::hash([generator, secret], 2);
+        let amount_to_mint = 1000000000;
+        let mint_call_iface = Token::at(usdc_address).mint_private(amount_to_mint, secretHash);
+        // env.call_private_void(mint_call_iface);
+        // // deploy escrow
+        // env.impersonate(escrow_owner);
+        // let escrow_initialize = ZImburse::interface().constructor(usdc_address, "Test Escrow                                                 ");
+        // let escrow_contract = env.deploy_self("ZImburse").with_public_initializer(escrow_initialize);
+        // let escrow_address = escrow_contract.to_address();
+        // redeem 
+    }
 }
+

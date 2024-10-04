@@ -16,6 +16,7 @@ case "$OSTYPE" in
     darwin*)
         # macOS
         sed -i '' 's|target/z_imburse-ZImburse.json|./ZImburse.json|' ZImburse.ts
+        sed -i '' "/export const ZImburseContractArtifact = loadContractArtifact(ZImburseContractArtifactJson as NoirCompiledContract);/i \\/\/@ts-ignore" ZImburse.ts
         ;;
     *)
         # Linux

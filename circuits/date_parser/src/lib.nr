@@ -9,6 +9,9 @@ struct Datetime {
     subtract: bool
 }
 
+global DATETIME_LENGTH: u32 = 26;
+
+
 global months = [
     "Jan".as_bytes(),
     "Feb".as_bytes(),
@@ -42,10 +45,6 @@ global days_in_month = [
 pub fn parse_month(month: [u8; 3]) -> u8 {
     let mut index = 0;
     for i in 0..12 {
-        if (i == 8) {
-            println(month);
-            println(months[i]);
-        }
         if month == months[i] {
             index = i + 1;
         }
@@ -141,8 +140,7 @@ pub fn add_leap_day(year: u16, month: u8) -> bool {
     (leap_year * past_feb) as bool
 }
 
-pub fn parse_date_string(date_string: str<26>) -> Datetime {
-    let date_bytes = date_string.as_bytes();
+pub fn parse_date_string(date_bytes: [u8; DATETIME_LENGTH]) -> Datetime {
     // check day shift and set day
     let day_shift = if date_bytes[1] == 0x20 {
         (0, [0x30, date_bytes[0]])
@@ -195,6 +193,29 @@ pub fn parse_date_string(date_string: str<26>) -> Datetime {
     Datetime { year: year.0, leap_years: year.1, add_leap_day, month, day, time, offset: offset.0, subtract: offset.1 }
 }
 
+pub fn to_unix_month(datetime: Datetime) -> u32 {
+    // get number of days in complete years
+    let days_in_complete_years = (datetime.year - 1970) as u32 * 365 + datetime.leap_years as u32;
+    // get number of days in current year
+    let mut days_in_current_year = 0;
+    for i in 0..12 {
+        if i + 1 < datetime.month {
+            days_in_current_year += days_in_month[i];
+        }
+    }
+    days_in_current_year += datetime.add_leap_day as u32;
+    // total seconds since epoch
+    let mut seconds_since_epoch = (days_in_complete_years + days_in_current_year) * 86400 + datetime.time as u32;
+    // apply offset
+    if datetime.subtract {
+        seconds_since_epoch -= datetime.offset as u32;
+    } else {
+        seconds_since_epoch += datetime.offset as u32;
+    }
+    // return unix timestamp
+    seconds_since_epoch
+}
+
 pub fn to_unix(datetime: Datetime) -> u32 {
     // get number of days in complete years
     let days_in_complete_years = (datetime.year - 1970) as u32 * 365 + datetime.leap_years as u32;
@@ -218,17 +239,13 @@ pub fn to_unix(datetime: Datetime) -> u32 {
     seconds_since_epoch
 }
 
-fn main(date_string: str<26>) -> pub u32 {
-    let date = parse_date_string(date_string);
-    to_unix(date)
-}
-
 #[test]
 fn test_main() {
-    let date_string = "1 Sep 2024 23:22:12 +0400 "; // padded 1
+    let date_string = "1 Sep 2024 23:22:12 +0400 ".as_bytes(); // padded 1
     // its off a lil bit
     // should be 1725247332
     // should be 1725333732
-    let unix = main(date_string);
+    let date = parse_date_string(date_string);
+    let unix = to_unix(date);
     println(unix);
 }

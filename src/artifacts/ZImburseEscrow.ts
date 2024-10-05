@@ -33,22 +33,22 @@ import {
   type Wallet,
   type WrappedFieldLike,
 } from '@aztec/aztec.js';
-import ZImburseContractArtifactJson from './ZImburse.json' assert { type: 'json' };
+import ZImburseEscrowContractArtifactJson from './ZImburseEscrow.json' assert { type: 'json' };
 //@ts-ignore
-export const ZImburseContractArtifact = loadContractArtifact(ZImburseContractArtifactJson as NoirCompiledContract);
+export const ZImburseEscrowContractArtifact = loadContractArtifact(ZImburseEscrowContractArtifactJson as NoirCompiledContract);
 
 
 
 /**
- * Type-safe interface for contract ZImburse;
+ * Type-safe interface for contract ZImburseEscrow;
  */
-export class ZImburseContract extends ContractBase {
+export class ZImburseEscrowContract extends ContractBase {
   
   private constructor(
     instance: ContractInstanceWithAddress,
     wallet: Wallet,
   ) {
-    super(instance, ZImburseContractArtifact, wallet);
+    super(instance, ZImburseEscrowContractArtifact, wallet);
   }
   
 
@@ -63,7 +63,7 @@ export class ZImburseContract extends ContractBase {
     address: AztecAddress,
     wallet: Wallet,
   ) {
-    return Contract.at(address, ZImburseContract.artifact, wallet) as Promise<ZImburseContract>;
+    return Contract.at(address, ZImburseEscrowContract.artifact, wallet) as Promise<ZImburseEscrowContract>;
   }
 
   
@@ -71,28 +71,28 @@ export class ZImburseContract extends ContractBase {
    * Creates a tx to deploy a new instance of this contract.
    */
   public static deploy(wallet: Wallet, usdc_token: AztecAddressLike, title: string) {
-    return new DeployMethod<ZImburseContract>(Fr.ZERO, wallet, ZImburseContractArtifact, ZImburseContract.at, Array.from(arguments).slice(1));
+    return new DeployMethod<ZImburseEscrowContract>(Fr.ZERO, wallet, ZImburseEscrowContractArtifact, ZImburseEscrowContract.at, Array.from(arguments).slice(1));
   }
 
   /**
    * Creates a tx to deploy a new instance of this contract using the specified public keys hash to derive the address.
    */
   public static deployWithPublicKeysHash(publicKeysHash: Fr, wallet: Wallet, usdc_token: AztecAddressLike, title: string) {
-    return new DeployMethod<ZImburseContract>(publicKeysHash, wallet, ZImburseContractArtifact, ZImburseContract.at, Array.from(arguments).slice(2));
+    return new DeployMethod<ZImburseEscrowContract>(publicKeysHash, wallet, ZImburseEscrowContractArtifact, ZImburseEscrowContract.at, Array.from(arguments).slice(2));
   }
 
   /**
    * Creates a tx to deploy a new instance of this contract using the specified constructor method.
    */
-  public static deployWithOpts<M extends keyof ZImburseContract['methods']>(
+  public static deployWithOpts<M extends keyof ZImburseEscrowContract['methods']>(
     opts: { publicKeysHash?: Fr; method?: M; wallet: Wallet },
-    ...args: Parameters<ZImburseContract['methods'][M]>
+    ...args: Parameters<ZImburseEscrowContract['methods'][M]>
   ) {
-    return new DeployMethod<ZImburseContract>(
+    return new DeployMethod<ZImburseEscrowContract>(
       opts.publicKeysHash ?? Fr.ZERO,
       opts.wallet,
-      ZImburseContractArtifact,
-      ZImburseContract.at,
+      ZImburseEscrowContractArtifact,
+      ZImburseEscrowContract.at,
       Array.from(arguments).slice(1),
       opts.method ?? 'constructor',
     );
@@ -104,7 +104,7 @@ export class ZImburseContract extends ContractBase {
    * Returns this contract's artifact.
    */
   public static get artifact(): ContractArtifact {
-    return ZImburseContractArtifact;
+    return ZImburseEscrowContractArtifact;
   }
   
 
@@ -177,8 +177,8 @@ UintNote: {
     /** give_entitlement(to: struct, amount: field) */
     give_entitlement: ((to: AztecAddressLike, amount: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
-    /** redeem_linode_entitlement(body: array, body_hash_index: integer, body_length: integer, header: array, header_length: integer, pubkey: array, pubkey_redc: array, signature: array, from_index: integer, subject_index: integer, amount_index: integer, amount_length: integer, receipt_id_length: integer, claim_secret_hash: field) */
-    redeem_linode_entitlement: ((body: (bigint | number)[], body_hash_index: (bigint | number), body_length: (bigint | number), header: (bigint | number)[], header_length: (bigint | number), pubkey: FieldLike[], pubkey_redc: FieldLike[], signature: FieldLike[], from_index: (bigint | number), subject_index: (bigint | number), amount_index: (bigint | number), amount_length: (bigint | number), receipt_id_length: (bigint | number), claim_secret_hash: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+    /** redeem_linode_entitlement(body: array, body_hash_index: integer, body_length: integer, header: array, header_length: integer, pubkey: array, pubkey_redc: array, signature: array, from_index: integer, subject_index: integer, amount_index: integer, amount_length: integer, date_index: integer, receipt_id_length: integer, claim_secret_hash: field) */
+    redeem_linode_entitlement: ((body: (bigint | number)[], body_hash_index: (bigint | number), body_length: (bigint | number), header: (bigint | number)[], header_length: (bigint | number), pubkey: FieldLike[], pubkey_redc: FieldLike[], signature: FieldLike[], from_index: (bigint | number), subject_index: (bigint | number), amount_index: (bigint | number), amount_length: (bigint | number), date_index: (bigint | number), receipt_id_length: (bigint | number), claim_secret_hash: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
   };
 
   

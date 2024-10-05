@@ -2,10 +2,9 @@ use dep::aztec::macros::aztec;
 
 mod constants;
 mod types;
-// mod date_parser;
 
 #[aztec]
-contract ZImburse {
+contract ZImburseEscrow {
     use dep::aztec::prelude::{AztecAddress, PrivateImmutable, PrivateSet, SharedImmutable, Map};
     use dep::aztec::encrypted_logs::encrypted_note_emission::encode_and_encrypt_note;
     use dep::aztec::macros::{storage::storage, functions::{private, public, view, initializer}};
@@ -13,7 +12,7 @@ contract ZImburse {
     use dep::address_note::address_note::AddressNote;
     use dep::aztec::note::note_getter_options::NoteGetterOptions;
     use dep::zimburse_verifiers::{
-        constants::{MAX_EMAIL_BODY_LENGTH, MAX_EMAIL_HEADER_LENGTH},
+        constants::{MAX_LINODE_EMAIL_BODY_LENGTH, MAX_LINODE_EMAIL_HEADER_LENGTH},
         linode::verify_linode_billing_receipt,
         zkemail::KEY_LIMBS_2048
     };
@@ -55,10 +54,10 @@ contract ZImburse {
     #[private]
     fn redeem_linode_entitlement(
         // email inputs
-        body: [u8; MAX_EMAIL_BODY_LENGTH],
+        body: [u8; MAX_LINODE_EMAIL_BODY_LENGTH],
         body_hash_index: u32,
         body_length: u32,
-        header: [u8; MAX_EMAIL_HEADER_LENGTH],
+        header: [u8; MAX_LINODE_EMAIL_HEADER_LENGTH],
         header_length: u32,
         pubkey: [Field; KEY_LIMBS_2048],
         pubkey_redc: [Field; KEY_LIMBS_2048],
@@ -67,6 +66,7 @@ contract ZImburse {
         subject_index: u32,
         amount_index: u32,
         amount_length: u32,
+        date_index: u32,
         receipt_id_length: u32,
         // claim hash
         claim_secret_hash: Field,
@@ -80,16 +80,14 @@ contract ZImburse {
         let note = notes.get_unchecked(0);
         assert(note.owner == context.msg_sender(), "Entitlement does not belong to the sender");
 
-        // verify linode billing receipt and extract amount
-        // todo: return date and nullify for the month
-        // todo: return dkim key and check against hash
-        let mut billed_amount = U128::from_integer(verify_linode_billing_receipt(
-            body, body_hash_index, body_length, header, header_length, pubkey, pubkey_redc, signature, from_index, subject_index, amount_index, amount_length, receipt_id_length
-        ));
-        // let mut billed_amount = U128::from_integer(2200);
-
+        // verify linode billing receipt and extract amount, date, keyhash
+        let linode_receipt_result = verify_linode_billing_receipt(
+            body, body_hash_index, body_length, header, header_length, pubkey, pubkey_redc, signature, from_index, subject_index, amount_index, amount_length, date_index, receipt_id_length
+        );
+        let dkim_key_hash = linode_receipt_result[0];
+        let datetime = linode_receipt_result[1];
         // billed amount returns 2 decimals, so multiply billed_amount by 10,000
-        billed_amount = billed_amount * U128::from_integer(10000);
+        let billed_amount = U128::from_integer(linode_receipt_result[2] * 10000);
 
         // determine the amount to reimburse
         let amount_to_reimburse = if note.max_value >= billed_amount {
@@ -113,35 +111,5 @@ contract ZImburse {
         storage.definition.read_public().title_as_string()
     }
 
-    // /// TESTS
-    // use dep::aztec::test::helpers::test_environment::TestEnvironment;
-    // use dep::aztec::oracle::unsafe_rand::unsafe_rand;
-
-    // #[test]
-    // unconstrained fn test_escrow() {
-    //     // set up env
-    //     let mut env = TestEnvironment::new();
-    //     let usdc_deployer = env.create_account();
-    //     let escrow_owner = env.create_account();
-    //     let recipient = env.create_account();
-    //     // deploy USDC
-    //     env.impersonate(usdc_deployer);
-    //     let usdc_initialize = Token::interface().constructor(usdc_deployer, "USDC                           ", "Aztec USDC                     ", 6);
-    //     let usdc_contract = env.deploy_self("Token").with_public_initializer(usdc_initialize);
-    //     let usdc_address = usdc_contract.to_address();
-    //     // mint to escrow owner
-    //     let secret = unsafe_rand();
-    //     let generator = 20;
-    //     let secretHash = std::hash::poseidon2::Poseidon2::hash([generator, secret], 2);
-    //     let amount_to_mint = 1000000000;
-    //     let mint_call_iface = Token::at(usdc_address).mint_private(amount_to_mint, secretHash);
-    //     // env.call_private_void(mint_call_iface);
-    //     // // deploy escrow
-    //     // env.impersonate(escrow_owner);
-    //     // let escrow_initialize = ZImburse::interface().constructor(usdc_address, "Test Escrow                                                 ");
-    //     // let escrow_contract = env.deploy_self("ZImburse").with_public_initializer(escrow_initialize);
-    //     // let escrow_address = escrow_contract.to_address();
-    //     // redeem 
-    // }
 }
 

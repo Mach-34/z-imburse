@@ -1,13 +1,14 @@
 {
   "name": "@mach-34/zimburse",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "dist",
+  "types": "dist",
   "license": "MIT",
   "scripts": {
     "compile:contracts": "./scripts/artifacts.sh",
     "compile:circuits": "cd scripts && ./compile_testers.sh",
     "postinstall": "yarn compile:contracts && yarn compile:circuits",
-    "test": "NODE_NO_WARNINGS=1 node --experimental-vm-modules $(yarn bin jest) --no-cache --runInBand --verbose",
+    "test": "NODE_NO_WARNINGS=1 node --experimental-vm-modules $(yarn bin jest) --config jest.integration.config.json --no-cache --runInBand --verbose",
     "sandbox": "aztec start --sandbox"
   },
   "devDependencies": {
@@ -20,6 +21,7 @@
     "babel-jest": "^29.7.0",
     "jest": "^29.7.0",
     "ts-jest": "^29.2.5",
+    "ts-node": "^10.9.2",
     "typescript": "^5.6.2"
   },
   "dependencies": {

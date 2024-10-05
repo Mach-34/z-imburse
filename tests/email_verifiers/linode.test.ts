@@ -1,16 +1,12 @@
 import { describe, expect, jest } from "@jest/globals";
 
-import {
-    BarretenbergBackend,
-    CompiledCircuit,
-    UltraHonkBackend,
-} from "@noir-lang/backend_barretenberg";
-import { Noir } from "@noir-lang/noir_js";
+import { ZKEmailProver } from "@mach-34/zkemail-nr/dist/prover"
 import { readFileSync } from 'fs'
 import { BarretenbergSync } from "@aztec/bb.js";
 import { join } from 'path';
 import { makeLinodeInputs } from '../../src/linode';
-import { LinodeCircuit } from '../../src/circuits';
+import LinodeCircuit from '../../src/circuits/linode_email_verifier.json';
+import { toBigIntBE } from '../../src/utils';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 
@@ -22,63 +18,50 @@ const emails = {
     linode: readFileSync(join(__dirname, "test-data/linode.eml")),
 };
 
-
-type Prover = {
-    noir: Noir;
-    barretenberg: BarretenbergBackend;
-    ultraHonk: UltraHonkBackend;
-};
-
-function makeProver(circuit: CompiledCircuit): Prover {
-    return {
-        noir: new Noir(circuit),
-        barretenberg: new BarretenbergBackend(circuit),
-        ultraHonk: new UltraHonkBackend(circuit),
-    };
-}
-
 describe("Linode Billing Receipt Test", () => {
-    let prover: Prover;
+    let prover: ZKEmailProver;
     jest.setTimeout(1000000);
     beforeAll(async () => {
-        prover = makeProver(LinodeCircuit as CompiledCircuit);
-        await BarretenbergSync.initSingleton();
+        //@ts-ignore
+        prover = new ZKEmailProver(LinodeCircuit, 'all');
     });
     afterAll(async () => {
-        prover.barretenberg.destroy();
-        prover.ultraHonk.destroy();
+        await prover.destroy();
     })
+
+    describe("Simulated", () => {
+        it("Linode::September2024", async () => {
+            // build inputs
+            const inputs = await makeLinodeInputs(emails.linode);
+            // simulate witness
+            const { returnValue } = await prover.simulateWitness({ params: inputs });
+            // check the returned values
+            const values = (returnValue as string[]).map(x => toBigIntBE(new Uint8Array(Buffer.from(x.slice(2), 'hex'))));
+            expect(values[2]).toEqual(2200n);
+            // todo: check expected date matches
+            console.log(new Date(Number(values[1]) * 1000))
+        })
+    })
+
     describe("Proving", () => {
         it("Linode::Honk", async () => {
             // make inputs from email
             const inputs = await makeLinodeInputs(emails.linode);
-            inputs.body = inputs.body.slice(0, Number(inputs.body_length));
-            // execute witness
-            const { witness } = await prover.noir.execute({ params: inputs });
-            // prove with witness
-            const proof = await prover.ultraHonk.generateProof(witness);
+            // generate proof
+            const proof = await prover.fullProve({ params: inputs }, 'honk');
             // verify proof
-            const result = await prover.ultraHonk.verifyProof(proof);
-            expect(result).toBeTruthy();
-
-            expect(BigInt(proof.publicInputs[0])).toEqual(2200n)
+            const result = await prover.verify(proof, 'honk');
 
         });
 
         it("Linode::Plonk", async () => {
             // make inputs from email
             const inputs = await makeLinodeInputs(emails.linode);
-            inputs.body = inputs.body.slice(0, Number(inputs.body_length));
-            // execute witness
-            const { witness } = await prover.noir.execute({ params: inputs });
-            expect(witness).toBeInstanceOf(Uint8Array)
-            // prove with witness
-            // const proof = await prover.barretenberg.generateProof(witness);
-            // // verify proof
-            // const result = await prover.barretenberg.verifyProof(proof);
-            // expect(result).toBeTruthy();
-
-            // expect(BigInt(proof.publicInputs[0])).toEqual(2200n)
+            // generate proof
+            const proof = await prover.fullProve({ params: inputs }, 'plonk');
+            // verify proof
+            const result = await prover.verify(proof, 'honk');
+            expect(result).toBeTruthy();
         });
     })
 })

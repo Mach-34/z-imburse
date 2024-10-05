@@ -1,7 +1,7 @@
 import {
     verifyDKIMSignature,
 } from "@zk-email/helpers/dist/dkim/index.js";
-import { generateEmailVerifierInputsFromDKIMResult, toNoirInputs } from '@mach-34/zkemail-nr';
+import { generateEmailVerifierInputsFromDKIMResult } from '@mach-34/zkemail-nr';
 
 /**
  * Given an email, generate the inputs for the ownership proof
@@ -9,13 +9,12 @@ import { generateEmailVerifierInputsFromDKIMResult, toNoirInputs } from '@mach-3
  */
 export const makeHerokuInputs = async (email: Buffer) => {
     const dkimResult = await verifyDKIMSignature(email);
-    const unformattedInputs = generateEmailVerifierInputsFromDKIMResult(
+    const baseInputs = generateEmailVerifierInputsFromDKIMResult(
         dkimResult,
         {
             maxBodyLength: 12224,
             // maxHeadersLength: 960,
         }
     );
-    const baseInputs = toNoirInputs(unformattedInputs);
     return baseInputs
 }

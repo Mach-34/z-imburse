@@ -14,7 +14,7 @@ global LB_FROM_LEN = 22;
 global LINODE_BILLING_FROM: str<22> = "rom:billing@linode.com";
 
 // expected start of "Date" field in an email header
-global DATE_HEADER_FIELD_START: [u8; 4] = "ate:";
+global DATE_HEADER_FIELD_START: [u8; 4] = "ate:".as_bytes();
 // max length of a "Date" field in an email header
 global DATE_HEADER_FIELD_MAX_LENGTH: u32 = 42;
 // if index 11 = " " then length is 41, else 42
@@ -49,5 +49,6 @@ struct LinodeBillingParams {
     subject_index: u32,
     amount_index: u32,
     amount_length: u32,
+    date_index: u32,
     receipt_id_length: u32
 }

@@ -222,11 +222,11 @@ pub fn to_unix(datetime: Datetime) -> u32 {
 
 #[test]
 fn test_main() {
-    let date_string = "1 Sep 2024 23:22:12 +0400 ".to_bytes(); // padded 1
+    let date_string = "1 Sep 2024 23:22:12 +0400 ".as_bytes(); // padded 1
     // its off a lil bit
     // should be 1725247332
     // should be 1725333732
     let date = parse_date_string(date_string);
-    let unix = to_unix(date)
+    let unix = to_unix(date);
     println(unix);
 }

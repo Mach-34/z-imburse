@@ -93,9 +93,9 @@ pub fn extract_datetime(header: [u8; MAX_EMAIL_HEADER_LENGTH], index: u32) -> u3
         DATE_HEADER_FIELD_MAX_LENGTH
     };
     // constrain the header field to be a single and full header field
-    constrain_header_field(header, index, length);
+    constrain_header_field::<DATE_HEADER_FIELD_MAX_LENGTH>(header, index, length);
     // check the header field starts with "Date: "
-    let first_byte = (header[index] == 0x44) as u1 & (header[index] == 0x64) as u1;
+    let first_byte = (header[index] == 0x44) as u1 | (header[index] == 0x64) as u1;
     assert(first_byte as bool, "Invalid date field: [D/d]");
     for i in 0..DATE_HEADER_FIELD_START.len() {
         assert(header[index + i + 1] == DATE_HEADER_FIELD_START[i], "Invalid date field");

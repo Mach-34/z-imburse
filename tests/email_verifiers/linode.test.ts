@@ -6,6 +6,7 @@ import { BarretenbergSync } from "@aztec/bb.js";
 import { join } from 'path';
 import { makeLinodeInputs } from '../../src/linode';
 import LinodeCircuit from '../../src/circuits/linode_email_verifier.json';
+import { toBigIntBE } from '../../src/utils';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 
@@ -30,70 +31,37 @@ describe("Linode Billing Receipt Test", () => {
 
     describe("Simulated", () => {
         it("Linode::September2024", async () => {
+            // build inputs
             const inputs = await makeLinodeInputs(emails.linode);
-            let dateField = inputs.header.map((x: string) => parseInt(x));
-            console.log("HEader ", JSON.stringify(dateField));
-            // const { witness, returnValue } = await prover.simulateWitness({ params: inputs });
-            // console.log(returnValue);
+            // simulate witness
+            const { returnValue } = await prover.simulateWitness({ params: inputs });
+            // check the returned values
+            const values = (returnValue as string[]).map(x => toBigIntBE(new Uint8Array(Buffer.from(x.slice(2), 'hex'))));
+            expect(values[2]).toEqual(2200n);
+            // todo: check expected date matches
+            console.log(new Date(Number(values[1]) * 1000))
         })
     })
 
-    xdescribe("Proving", () => {
+    describe("Proving", () => {
         it("Linode::Honk", async () => {
             // make inputs from email
             const inputs = await makeLinodeInputs(emails.linode);
             // generate proof
-            const proof = await prover.fullProve(inputs, 'honk');
+            const proof = await prover.fullProve({ params: inputs }, 'honk');
             // verify proof
-            const result = await prover.verify(proof);
-            expect(result).toBeTruthy();
-            
+            const result = await prover.verify(proof, 'honk');
+
         });
 
         it("Linode::Plonk", async () => {
             // make inputs from email
             const inputs = await makeLinodeInputs(emails.linode);
             // generate proof
-            const proof = await prover.fullProve(inputs, 'plonk');
+            const proof = await prover.fullProve({ params: inputs }, 'plonk');
             // verify proof
-            const result = await prover.verify(proof);
+            const result = await prover.verify(proof, 'honk');
             expect(result).toBeTruthy();
-            expect(BigInt(proof.publicInputs[0])).toEqual(2200n);
-             // todo: date parser output test
-            // todo: match expected key
         });
     })
-
-    // describe("Proving", () => {
-    //     it("Linode::Honk", async () => {
-    //         // make inputs from email
-    //         const inputs = await makeLinodeInputs(emails.linode);
-    //         // execute witness
-    //         const { witness } = await prover.noir.execute({ params: inputs });
-    //         // prove with witness
-    //         const proof = await prover.ultraHonk.generateProof(witness);
-    //         // verify proof
-    //         const result = await prover.ultraHonk.verifyProof(proof);
-    //         expect(result).toBeTruthy();
-
-    //         // expect(BigInt(proof.publicInputs[0])).toEqual(2200n)
-    //         // todo: date parser output test
-    //         // todo: match expected key
-    //     });
-
-    //     xit("Linode::Plonk", async () => {
-    //         // make inputs from email
-    //         const inputs = await makeLinodeInputs(emails.linode);
-    //         inputs.body = inputs.body.slice(0, Number(inputs.body_length));
-    //         // execute witness
-    //         const { witness } = await prover.noir.execute({ params: inputs });
-    //         // prove with witness
-    //         const proof = await prover.barretenberg.generateProof(witness);
-    //         // verify proof
-    //         const result = await prover.barretenberg.verifyProof(proof);
-    //         expect(result).toBeTruthy();
-
-    //         expect(BigInt(proof.publicInputs[0])).toEqual(2200n)
-    //     });
-    // })
 })

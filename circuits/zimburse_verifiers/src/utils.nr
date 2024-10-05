@@ -1,14 +1,14 @@
 use crate::constants::{
    LB_FROM_LEN, LB_PAYMENT_TEXT_LEN, LB_SUBJECT_FIXED_END_LEN, LB_SUBJECT_FIXED_START_LEN, LINODE_BILLING_FROM, LINODE_BILLING_PAYMENT_TEXT,
-   LINODE_BILLING_SUBJECT_FIXED_END, LINODE_BILLING_SUBJECT_FIXED_START, MAX_BILLED_AMOUNT, MAX_EMAIL_BODY_LENGTH,
-    MAX_EMAIL_HEADER_LENGTH, DATE_HEADER_FIELD_MAX_LENGTH, DATE_LENGTH_DETERMINATION_INDEX, DATE_HEADER_FIELD_START
+   LINODE_BILLING_SUBJECT_FIXED_END, LINODE_BILLING_SUBJECT_FIXED_START, MAX_BILLED_AMOUNT, MAX_LINODE_EMAIL_BODY_LENGTH,
+    MAX_LINODE_EMAIL_HEADER_LENGTH, DATE_HEADER_FIELD_MAX_LENGTH, DATE_LENGTH_DETERMINATION_INDEX, DATE_HEADER_FIELD_START
 };
 use dep::date_parser::{parse_date_string, to_unix, DATETIME_LENGTH};
 
 /**
 * Check that email is from linode billing address
 */
-pub fn check_from_linode_billing(index: u32, header: [u8; MAX_EMAIL_HEADER_LENGTH]) {
+pub fn check_from_linode_billing(index: u32, header: [u8; MAX_LINODE_EMAIL_HEADER_LENGTH]) {
     // check the first char is "f" or "F"
     assert((header[index] == 0x66) | (header[index] != 0x46), "Email sender not found.");
 
@@ -26,7 +26,7 @@ pub fn check_from_linode_billing(index: u32, header: [u8; MAX_EMAIL_HEADER_LENGT
 /**
 * Check that email subject is linode billing receipt
 */
-pub fn check_subject_billing_receipt(index: u32, header: [u8; MAX_EMAIL_HEADER_LENGTH], receipt_id_length: u32) {
+pub fn check_subject_billing_receipt(index: u32, header: [u8; MAX_LINODE_EMAIL_HEADER_LENGTH], receipt_id_length: u32) {
     // check the first char is "s" or "S"
     assert((header[index] == 0x73) | (header[index] == 0x53), "Email subject not found");
 
@@ -53,7 +53,7 @@ pub fn check_subject_billing_receipt(index: u32, header: [u8; MAX_EMAIL_HEADER_L
  * @param length: the length of the header field
  */
 pub fn constrain_header_field<let MAX_HEADER_LENGTH: u32>(
-    header: [u8; MAX_EMAIL_HEADER_LENGTH],
+    header: [u8; MAX_LINODE_EMAIL_HEADER_LENGTH],
     index: u32,
     length: u32
 ) {
@@ -84,7 +84,7 @@ pub fn constrain_header_field<let MAX_HEADER_LENGTH: u32>(
  * @param index: the index that the date header field begins at
  * @return the parsed unix timestamp
  */
-pub fn extract_datetime(header: [u8; MAX_EMAIL_HEADER_LENGTH], index: u32) -> u32 {
+pub fn extract_datetime(header: [u8; MAX_LINODE_EMAIL_HEADER_LENGTH], index: u32) -> u32 {
     // determine the index of the selector that chooses the length of the date field
     let length_decider = index + DATE_LENGTH_DETERMINATION_INDEX;
     let length = if header[length_decider] == 0x20 {
@@ -107,9 +107,11 @@ pub fn extract_datetime(header: [u8; MAX_EMAIL_HEADER_LENGTH], index: u32) -> u3
     for i in 0..DATETIME_LENGTH {
         datetime_string[i] = header[start_index];
     }
-    // parse the datetime into unix
-    let parsed = parse_date_string(datetime_string);
-    to_unix(parsed)
+    // println(datetime_string);
+    // // parse the datetime into unix
+    // let parsed = parse_date_string(datetime_string);
+    // to_unix(parsed)
+    0
 }
 
 pub fn serialize_bytes<let LIMBS: u32, let SEQUENCE_LENGTH: u32>(sequence: [u8; SEQUENCE_LENGTH]) -> [Field; LIMBS] {
@@ -137,7 +139,7 @@ pub fn is_number_constraint(num: u8) {
 /**
 * Extract the amount billed by Linode as a u32
 */
-pub fn extract_billed_amount(body: [u8; MAX_EMAIL_BODY_LENGTH], index: u32, amount_length: u32) -> u32 {
+pub fn extract_billed_amount(body: [u8; MAX_LINODE_EMAIL_BODY_LENGTH], index: u32, amount_length: u32) -> u32 {
 
     // ensure billed amount follows valid payment text sequence
     let payment_text_bytes = LINODE_BILLING_PAYMENT_TEXT.as_bytes();
@@ -174,7 +176,7 @@ pub fn extract_billed_amount(body: [u8; MAX_EMAIL_BODY_LENGTH], index: u32, amou
 // #[test]
 // fn value_extraction() {
 //     let index = 0;
-//     let mut body: [u8; MAX_EMAIL_BODY_LENGTH] = [0; MAX_EMAIL_BODY_LENGTH];
+//     let mut body: [u8; MAX_LINODE_EMAIL_BODY_LENGTH] = [0; MAX_LINODE_EMAIL_BODY_LENGTH];
 //     let val = "$4,123.00";
 //     let bytes = val.as_bytes();
 //     for i in 0..bytes.len() {

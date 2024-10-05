@@ -1,23 +1,13 @@
-
-export type NoirInputs = {
-    body_hash_index: string;
-    header: string[];
-    body: string[];
-    body_length: string;
-    header_length: string;
-    pubkey: string[];
-    pubkey_redc: string[];
-    signature: string[];
-}
-
+import { CircuitInput } from "@mach-34/zkemail-nr";
 
 export type LinodeInputs = {
     amount_index: number;
     amount_length: number;
     from_index: number;
     subject_index: number;
+    date_index: number
     receipt_id_length: number;
-} & NoirInputs
+} & CircuitInput
 
 // tuple type of redeem linode contract function params
 export type RedeemLinodeInputs = [number[], number, number, number[], number, bigint[], bigint[], bigint[], number, number, number, number, number];

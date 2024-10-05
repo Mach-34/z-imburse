@@ -3,8 +3,10 @@
   "version": "1.0.0",
   "main": "index.js",
   "license": "MIT",
+  "type": "module",
   "scripts": {
     "artifacts": "./scripts/artifacts.sh",
+    "deploy": "node --no-warnings=ExperimentalWarning --loader ts-node/esm scripts/deploy_aztec_contracts.ts",
     "postinstall": "yarn artifacts",
     "test": "NODE_NO_WARNINGS=1 node --experimental-vm-modules $(yarn bin jest) --no-cache --runInBand --verbose",
     "sandbox": "aztec start --sandbox"
@@ -19,6 +21,7 @@
     "babel-jest": "^29.7.0",
     "jest": "^29.7.0",
     "ts-jest": "^29.2.5",
+    "ts-node": "^10.9.2",
     "typescript": "^5.6.2"
   },
   "dependencies": {

@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "main": "index.js",
   "license": "MIT",
-  "type": "module",
   "scripts": {
     "artifacts": "./scripts/artifacts.sh",
     "deploy": "node --no-warnings=ExperimentalWarning --loader ts-node/esm scripts/deploy_aztec_contracts.ts",

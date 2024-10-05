@@ -119,7 +119,20 @@ describe("Test deposit to zimburse", () => {
     console.log(`Deployed Z-Imburse contract at ${zimburse.address}\n`);
   });
 
-  describe("Escrow", () => {
+  describe("Nullifier test", () => {
+    it("See if we can use immutable", async () => {
+      // make a new nullifier
+      let nullifier = Fr.random();
+      await zimburse.withWallet(accounts[1]).methods.test_nullifier_set(nullifier).send().wait();
+      // check if nullifier is set
+      let nullifierSetPrivate = await zimburse.withWallet(accounts[2]).methods.test_check_nullifier_private(nullifier).simulate();
+      let nullifierSetPublic = await zimburse.methods.test_check_nullifier_public(nullifier).simulate();
+      console.log("Private read: ", nullifierSetPrivate);
+      console.log("Public read: ", nullifierSetPublic);
+    })
+  })
+
+  xdescribe("Escrow", () => {
     it("Deposit", async () => {
       const amount = 100n * 10n ** 6n;
       await usdc

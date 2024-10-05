@@ -179,6 +179,15 @@ UintNote: {
 
     /** redeem_linode_entitlement(body: array, body_hash_index: integer, body_length: integer, header: array, header_length: integer, pubkey: array, pubkey_redc: array, signature: array, from_index: integer, subject_index: integer, amount_index: integer, amount_length: integer, date_index: integer, receipt_id_length: integer, claim_secret_hash: field) */
     redeem_linode_entitlement: ((body: (bigint | number)[], body_hash_index: (bigint | number), body_length: (bigint | number), header: (bigint | number)[], header_length: (bigint | number), pubkey: FieldLike[], pubkey_redc: FieldLike[], signature: FieldLike[], from_index: (bigint | number), subject_index: (bigint | number), amount_index: (bigint | number), amount_length: (bigint | number), date_index: (bigint | number), receipt_id_length: (bigint | number), claim_secret_hash: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+
+    /** test_check_nullifier_private(nullifier: field) */
+    test_check_nullifier_private: ((nullifier: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+
+    /** test_check_nullifier_public(nullifier: field) */
+    test_check_nullifier_public: ((nullifier: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+
+    /** test_nullifier_set(nullifier: field) */
+    test_nullifier_set: ((nullifier: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
   };
 
   

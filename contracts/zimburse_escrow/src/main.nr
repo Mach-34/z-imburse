@@ -25,7 +25,8 @@ contract ZImburseEscrow {
     #[storage]
     struct Storage<Context> {
         definition: SharedImmutable<Definition, Context>,
-        entitlements: Map<AztecAddress, PrivateSet<RecurringEntitlementNote, Context>, Context>
+        entitlements: Map<AztecAddress, PrivateSet<RecurringEntitlementNote, Context>, Context>,
+        nullifiers: Map<Field, SharedImmutable<bool, Context>, Context>
     }
 
 
@@ -100,6 +101,23 @@ contract ZImburseEscrow {
         // todo: event should notify how much was reimbursed
         let token_address = storage.definition.read_private().usdc;
         Token::at(token_address).shield(context.this_address(), amount_to_reimburse.to_field(), claim_secret_hash, 0).enqueue(&mut context);
+    }
+
+    #[public]
+    pub fn test_nullifier_set(nullifier: Field) {
+        storage.nullifiers.at(nullifier).initialize(true);
+    }
+
+    #[public]
+    #[view]
+    pub fn test_check_nullifier_public(nullifier: Field) -> bool {
+        storage.nullifiers.at(nullifier).read_public()
+    }
+
+    #[private]
+    #[view]
+    pub fn test_check_nullifier_private(nullifier: Field) -> bool {
+        storage.nullifiers.at(nullifier).read_private()
     }
 
     /**

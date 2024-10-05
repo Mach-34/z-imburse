@@ -1,8 +1,9 @@
 use crate::constants::{
    LB_FROM_LEN, LB_PAYMENT_TEXT_LEN, LB_SUBJECT_FIXED_END_LEN, LB_SUBJECT_FIXED_START_LEN, LINODE_BILLING_FROM, LINODE_BILLING_PAYMENT_TEXT,
    LINODE_BILLING_SUBJECT_FIXED_END, LINODE_BILLING_SUBJECT_FIXED_START, MAX_BILLED_AMOUNT, MAX_EMAIL_BODY_LENGTH,
-    MAX_EMAIL_HEADER_LENGTH
+    MAX_EMAIL_HEADER_LENGTH, DATE_HEADER_FIELD_MAX_LENGTH, DATE_LENGTH_DETERMINATION_INDEX, DATE_HEADER_FIELD_START
 };
+use dep::date_parser::{parse_date_string, to_unix, DATETIME_LENGTH};
 
 /**
 * Check that email is from linode billing address
@@ -41,6 +42,74 @@ pub fn check_subject_billing_receipt(index: u32, header: [u8; MAX_EMAIL_HEADER_L
         let headerIndex = i + index + receipt_id_length + LB_SUBJECT_FIXED_START_LEN;
         assert(header[headerIndex] == fixed_end_bytes[i], "Email subject is not Linode billing receipt");
     }
+}
+
+/**
+ * Constrains a span to be a full header field
+ *
+ * @param MAX_HEADER_LENGTH: the maximum possible length of the header
+ * @param header: the header of the email
+ * @param index: the index that the header field begins at
+ * @param length: the length of the header field
+ */
+pub fn constrain_header_field<let MAX_HEADER_LENGTH: u32>(
+    header: [u8; MAX_EMAIL_HEADER_LENGTH],
+    index: u32,
+    length: u32
+) {
+    // check that the field does not lie outside of the max 
+    assert(index + length <= header.len(), "Header field out of bounds");
+    // if not the first field in the header, ensure the header field is preceded by a CRLF
+    if (index != 0) {
+        assert(header[index - 2] == 0x0D, "Missing prefix CR in field constraint");
+        assert(header[index - 1] == 0x0A, "Missing prefix LF in field constraint");
+    }
+    // check that the following two chars are the crlf
+    if (index + length < header.len()) {
+        assert(header[index + length] == 0x0D, "Missing suffix CR in field constraint");
+        assert(header[index + length + 1] == 0x0A, "Missing suffix LF field constraint");
+    }
+    // check that the field does not contain any CRLF
+    for i in 0..MAX_HEADER_LENGTH {
+        if (i < length) {
+            assert(header[index + i] != 0x0D, "CR in field constraint Field");
+        }
+    }
+}
+
+/**
+ * Extracts the datetime from the email header
+ *
+ * @param header: the header of the email
+ * @param index: the index that the date header field begins at
+ * @return the parsed unix timestamp
+ */
+pub fn extract_datetime(header: [u8; MAX_EMAIL_HEADER_LENGTH], index: u32) -> u32 {
+    // determine the index of the selector that chooses the length of the date field
+    let length_decider = index + DATE_LENGTH_DETERMINATION_INDEX;
+    let length = if header[length_decider] == 0x20 {
+        DATE_HEADER_FIELD_MAX_LENGTH - 1
+    } else {
+        DATE_HEADER_FIELD_MAX_LENGTH
+    };
+    // constrain the header field to be a single and full header field
+    constrain_header_field(header, index, length);
+    // check the header field starts with "Date: "
+    let first_byte = (header[index] == 0x44) as u1 & (header[index] == 0x64) as u1;
+    assert(first_byte as bool, "Invalid date field: [D/d]");
+    for i in 0..DATE_HEADER_FIELD_START.len() {
+        assert(header[index + i + 1] == DATE_HEADER_FIELD_START[i], "Invalid date field");
+    }
+    // extract the date string
+    let mut datetime_string: [u8; DATETIME_LENGTH] = [0; DATETIME_LENGTH];
+    // todo: make const (and also put all this shit in zkemail.nr)
+    let start_index = index + 10;
+    for i in 0..DATETIME_LENGTH {
+        datetime_string[i] = header[start_index];
+    }
+    // parse the datetime into unix
+    let parsed = parse_date_string(datetime_string);
+    to_unix(parsed)
 }
 
 pub fn serialize_bytes<let LIMBS: u32, let SEQUENCE_LENGTH: u32>(sequence: [u8; SEQUENCE_LENGTH]) -> [Field; LIMBS] {

@@ -26,7 +26,9 @@ contract ZImburse {
     #[storage]
     struct Storage<Context> {
         definition: SharedImmutable<Definition, Context>,
-        entitlements: Map<AztecAddress, PrivateSet<RecurringEntitlementNote, Context>, Context>
+        entitlements: Map<AztecAddress, PrivateSet<RecurringEntitlementNote, Context>, Context>.
+        dkim_registry: Map<Field, SharedImmutable<Field, Context>, Context,
+        nullified_entitlements: Map<Field, SharedImmutable<bool, Context>, Context>
     }
 
 
@@ -113,35 +115,5 @@ contract ZImburse {
         storage.definition.read_public().title_as_string()
     }
 
-    // /// TESTS
-    // use dep::aztec::test::helpers::test_environment::TestEnvironment;
-    // use dep::aztec::oracle::unsafe_rand::unsafe_rand;
-
-    // #[test]
-    // unconstrained fn test_escrow() {
-    //     // set up env
-    //     let mut env = TestEnvironment::new();
-    //     let usdc_deployer = env.create_account();
-    //     let escrow_owner = env.create_account();
-    //     let recipient = env.create_account();
-    //     // deploy USDC
-    //     env.impersonate(usdc_deployer);
-    //     let usdc_initialize = Token::interface().constructor(usdc_deployer, "USDC                           ", "Aztec USDC                     ", 6);
-    //     let usdc_contract = env.deploy_self("Token").with_public_initializer(usdc_initialize);
-    //     let usdc_address = usdc_contract.to_address();
-    //     // mint to escrow owner
-    //     let secret = unsafe_rand();
-    //     let generator = 20;
-    //     let secretHash = std::hash::poseidon2::Poseidon2::hash([generator, secret], 2);
-    //     let amount_to_mint = 1000000000;
-    //     let mint_call_iface = Token::at(usdc_address).mint_private(amount_to_mint, secretHash);
-    //     // env.call_private_void(mint_call_iface);
-    //     // // deploy escrow
-    //     // env.impersonate(escrow_owner);
-    //     // let escrow_initialize = ZImburse::interface().constructor(usdc_address, "Test Escrow                                                 ");
-    //     // let escrow_contract = env.deploy_self("ZImburse").with_public_initializer(escrow_initialize);
-    //     // let escrow_address = escrow_contract.to_address();
-    //     // redeem 
-    // }
 }
 

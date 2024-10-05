@@ -1,0 +1,5 @@
+[package]
+name = "date_parser"
+type = "lib"
+authors = ["Mach-34"]
+compiler_version = ">=0.34.0"

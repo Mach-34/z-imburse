@@ -1,5 +1,5 @@
 [package]
-name = "z_imburse"
+name = "zimburse_escrow"
 type = "contract"
 authors = ["Mach-34"]
 compiler_version = ">=0.34.0"

@@ -13,6 +13,13 @@ global MAX_EMAIL_HEADER_LENGTH: u32 = 1024;
 global LB_FROM_LEN = 22;
 global LINODE_BILLING_FROM: str<22> = "rom:billing@linode.com";
 
+// expected start of "Date" field in an email header
+global DATE_HEADER_FIELD_START: [u8; 4] = "ate:";
+// max length of a "Date" field in an email header
+global DATE_HEADER_FIELD_MAX_LENGTH: u32 = 42;
+// if index 11 = " " then length is 41, else 42
+global DATE_LENGTH_DETERMINATION_INDEX = 11;
+
 // expected sequence in the subject of an email header for Linode billing receipt
 // "S/s" is omitted to facilitate case insensitivity
 // "ubject: Linode.com: Payment Receipt"

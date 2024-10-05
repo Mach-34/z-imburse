@@ -63,6 +63,7 @@ export const makeLinodeInputs = async (email: Buffer): Promise<LinodeInputs> => 
     if (subjectParams === null)
         throw new Error("No 'subject' field found in email");
     const body = dkimResult.body.toString();
+    console.log(dkimResult.headers.toString())
     const billMatch = body.match(Regexes.linodeBilledAmount);
     if (billMatch === null) {
         throw Error("No 'amount' could be extracted from body")

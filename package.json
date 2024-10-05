@@ -4,9 +4,9 @@
   "main": "index.js",
   "license": "MIT",
   "scripts": {
-    "artifacts": "./scripts/artifacts.sh",
+    "compile:contracts": "./scripts/artifacts.sh",
     "compile:circuits": "cd scripts && ./compile_testers.sh",
-    "postinstall": "yarn artifacts",
+    "postinstall": "yarn compile:contracts && yarn compile:circuits",
     "test": "NODE_NO_WARNINGS=1 node --experimental-vm-modules $(yarn bin jest) --no-cache --runInBand --verbose",
     "sandbox": "aztec start --sandbox"
   },
@@ -27,7 +27,7 @@
     "@aztec/aztec.js": "^0.56.0",
     "@aztec/noir-contracts.js": "^0.56.0",
     "@jest/globals": "^29.7.0",
-    "@mach-34/zkemail-nr": "^1.1.2"
+    "@mach-34/zkemail-nr": "^1.1.1"
   },
   "jest": {
     "preset": "ts-jest/presets/default-esm",

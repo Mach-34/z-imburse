@@ -17,7 +17,7 @@ import {
   createPXEClient,
 } from "@aztec/aztec.js";
 import { TokenContract } from "@aztec/noir-contracts.js";
-import { ZImburseContract } from "../src/artifacts/ZImburse";
+import { ZImburseEscrowContract } from "../src/artifacts/ZImburseEscrow";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
 import { readFileSync } from "fs";
@@ -59,7 +59,7 @@ describe("Test deposit to zimburse", () => {
   let accounts: AccountWalletWithSecretKey[] = [];
   let pxe: PXE;
   let usdc: TokenContract;
-  let zimburse: ZImburseContract;
+  let zimburse: ZImburseEscrowContract;
   beforeAll(async () => {
     // setup pxe connection
     pxe = await createPXEClient(DEFAULT_PXE_URL);
@@ -109,7 +109,7 @@ describe("Test deposit to zimburse", () => {
       .wait();
     console.log(`Redeemed ${amount} USDC to the Z-Imburse admin account\n`);
     // deploy Z-Imburse contract
-    zimburse = await ZImburseContract.deploy(
+    zimburse = await ZImburseEscrowContract.deploy(
       accounts[1],
       usdc.address,
       "Test Z-Imburse"
@@ -165,45 +165,4 @@ describe("Test deposit to zimburse", () => {
     const recipientBalance = await usdc.withWallet(accounts[2]).methods.balance_of_private(accounts[2].getAddress()).simulate();
     expect(recipientBalance).toBe(10n * 10n ** 6n);
   })
-  // it("Give entitlement Test", async () => {
-  //   // give entitlement
-  //   const amount = 10n * 10n ** 6n;
-  //   await zimburse
-  //     .withWallet(accounts[1])
-  //     .methods.give_entitlement(accounts[2].getAddress(), amount)
-  //     .send()
-  //     .wait();
-  //   // build claim hash
-  //   const secret = Fr.random();
-  //   let secretHash = computeSecretHash(secret);
-  //   let receipt = await zimburse
-  //     .withWallet(accounts[2])
-  //     .methods.redeem_entitlement(secretHash)
-  //     .send()
-  //     .wait();
-  //   await addPendingShieldNoteToPXE(
-  //     accounts[2],
-  //     usdc.address,
-  //     amount,
-  //     secretHash,
-  //     receipt.txHash
-  //   );
-  //   // check that balance has decremented from zimburse
-  //   const escrowBalance = await usdc.methods
-  //     .balance_of_public(zimburse.address)
-  //     .simulate();
-  //   console.log("Escrow Balance: ", escrowBalance);
-  //   // redeem the shielded note
-  //   await usdc
-  //     .withWallet(accounts[2])
-  //     .methods.redeem_shield(accounts[2].getAddress(), amount, secret)
-  //     .send()
-  //     .wait();
-  //   // check that balance has incremented for recipient
-  //   const recipientBalance = await usdc
-  //     .withWallet(accounts[2])
-  //     .methods.balance_of_private(accounts[2].getAddress())
-  //     .simulate();
-  //   console.log("Recipient Balance: ", recipientBalance);
-  // });
 });

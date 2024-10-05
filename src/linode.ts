@@ -46,6 +46,7 @@ export const formatRedeemLinode = (
     inputs.subject_index,
     inputs.amount_index,
     inputs.amount_length,
+    inputs.date_index,
     inputs.receipt_id_length,
   ];
 };

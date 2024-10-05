@@ -1,2 +1,5 @@
 [workspace]
-members = ["zimburse_router", "zimburse_escrow"]
+members = [
+    # "zimburse_router",
+    "zimburse_escrow"
+]

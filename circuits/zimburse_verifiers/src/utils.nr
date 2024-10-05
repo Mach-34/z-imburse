@@ -3,7 +3,7 @@ use crate::constants::{
    LINODE_BILLING_SUBJECT_FIXED_END, LINODE_BILLING_SUBJECT_FIXED_START, MAX_BILLED_AMOUNT, MAX_LINODE_EMAIL_BODY_LENGTH,
     MAX_LINODE_EMAIL_HEADER_LENGTH, DATE_HEADER_FIELD_MAX_LENGTH, DATE_LENGTH_DETERMINATION_INDEX, DATE_HEADER_FIELD_START
 };
-use dep::date_parser::{parse_date_string, to_unix, DATETIME_LENGTH};
+use dep::date_parser::{parse_date_string, to_unix_month, DATETIME_LENGTH};
 
 /**
 * Check that email is from linode billing address
@@ -109,7 +109,7 @@ pub fn extract_datetime(header: [u8; MAX_LINODE_EMAIL_HEADER_LENGTH], index: u32
     }
     // parse the datetime into unix
     let parsed = parse_date_string(datetime_string);
-    to_unix(parsed)
+    to_unix_month(parsed)
 }
 
 pub fn serialize_bytes<let LIMBS: u32, let SEQUENCE_LENGTH: u32>(sequence: [u8; SEQUENCE_LENGTH]) -> [Field; LIMBS] {
@@ -169,36 +169,6 @@ pub fn extract_billed_amount(body: [u8; MAX_LINODE_EMAIL_BODY_LENGTH], index: u3
         }
     }
     amount as u32
-}
-
-
-#[test]
-fn test_date_parser() {
-    let index = 0;
-    let header = [100,97,116,101,58,83,117,110,44,32,49,32,83,101,112,32,50,48,50,52,32,50,51,58,50,50,58,49,50,32,45,48,52,48,48,32,40,69,68,84,41,13,10,102,114,111,109,58,98,105,108,108,105,110,103,64,108,105,110,111,100,101,46,99,111,109,13,10,116,111,58,106,112,52,103,64,109,97,99,104,51,52,46,115,112,97,99,101,13,10,115,117,98,106,101,99,116,58,76,105,110,111,100,101,46,99,111,109,58,32,80,97,121,109,101,110,116,32,82,101,99,101,105,112,116,32,91,49,55,52,49,49,57,48,52,93,13,10,100,107,105,109,45,115,105,103,110,97,116,117,114,101,58,118,61,49,59,32,97,61,114,115,97,45,115,104,97,50,53,54,59,32,99,61,114,101,108,97,120,101,100,47,115,105,109,112,108,101,59,32,100,61,108,105,110,111,100,101,46,99,111,109,59,32,115,61,107,49,59,32,116,61,49,55,50,53,50,52,55,51,51,50,59,32,98,104,61,78,83,105,109,77,105,76,122,72,85,78,68,108,109,50,81,98,53,107,52,49,73,109,52,50,104,47,51,120,80,89,87,106,112,110,100,113,120,79,66,111,118,103,61,59,32,104,61,68,97,116,101,58,70,114,111,109,58,84,111,58,83,117,98,106,101,99,116,58,70,114,111,109,59,32,98,61,128,0,0,0,0,0,0,0,0,0,0,0,0,0,9,128,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
-    let length_decider = index + DATE_LENGTH_DETERMINATION_INDEX;
-    let length = if header[length_decider] == 0x20 {
-        DATE_HEADER_FIELD_MAX_LENGTH - 1
-    } else {
-        DATE_HEADER_FIELD_MAX_LENGTH
-    };
-    // constrain the header field to be a single and full header field
-    constrain_header_field::<DATE_HEADER_FIELD_MAX_LENGTH>(header, index, length);
-    // check the header field starts with "Date: "
-    let first_byte = (header[index] == 0x44) as u1 | (header[index] == 0x64) as u1;
-    assert(first_byte as bool, "Invalid date field: [D/d]");
-    for i in 0..DATE_HEADER_FIELD_START.len() {
-        assert(header[index + i + 1] == DATE_HEADER_FIELD_START[i], "Invalid date field");
-    }
-    // extract the date string
-    let mut datetime_string: [u8; DATETIME_LENGTH] = [0; DATETIME_LENGTH];
-    // todo: make const (and also put all this shit in zkemail.nr)
-    let start_index = index + 10;
-    for i in 0..DATETIME_LENGTH {
-        datetime_string[i] = header[start_index + i];
-    }
-    println("extracted datetime string");
-    println(datetime_string);
 }
 
 // #[test]

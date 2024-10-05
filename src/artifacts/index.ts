@@ -1,8 +1,8 @@
-import ZImburseContractArtifactJson from "./ZImburse.json" assert { type: "json" };
-import { ZImburseContract, ZImburseContractArtifact } from "./ZImburse.js";
+import ZImburseEscrowContractArtifactJson from "./ZImburseEscrow.json" assert { type: "json" };
+import { ZImburseEscrowContract, ZImburseEscrowContractArtifact } from "./ZImburseEscrow.js";
 
 export {
-  ZImburseContractArtifactJson as ZImburseJsonArtifact,
-  ZImburseContract,
-  ZImburseContractArtifact
+  ZImburseEscrowContractArtifactJson as ZImburseEscrowJsonArtifact,
+  ZImburseEscrowContract,
+  ZImburseEscrowContractArtifact
 };

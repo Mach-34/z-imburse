@@ -33,7 +33,7 @@ global LINODE_BILLING_SUBJECT_FIXED_END: str<LB_SUBJECT_FIXED_END_LEN> = "]\r\n"
 global LB_PAYMENT_TEXT_LEN = 76;
 global LINODE_BILLING_PAYMENT_TEXT: str<LB_PAYMENT_TEXT_LEN> = "This is your receipt of payment against your credit card in the \r\namount of ";
 
-// assuming a unlikely max billed amount of "$1,000,000.00"
+// assuming a unlikely max billed amount of "$9,999,999.99"
 global MAX_BILLED_AMOUNT = 13;
 
 struct LinodeBillingParams {

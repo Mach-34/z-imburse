@@ -1,13 +1,14 @@
 {
   "name": "@mach-34/zimburse",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "dist",
+  "types": "dist",
   "license": "MIT",
   "scripts": {
     "artifacts": "./scripts/artifacts.sh",
     "deploy": "node --no-warnings=ExperimentalWarning --loader ts-node/esm scripts/deploy_aztec_contracts.ts",
     "postinstall": "yarn artifacts",
-    "test": "NODE_NO_WARNINGS=1 node --experimental-vm-modules $(yarn bin jest) --no-cache --runInBand --verbose",
+    "test": "NODE_NO_WARNINGS=1 node --experimental-vm-modules $(yarn bin jest) --config jest.integration.config.json --no-cache --runInBand --verbose",
     "sandbox": "aztec start --sandbox"
   },
   "devDependencies": {

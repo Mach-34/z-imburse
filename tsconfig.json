@@ -11,8 +11,8 @@
             "es2017.object"
         ],
         "types": ["jest", "node"],
-        "module": "NodeNext",
-        "moduleResolution": "NodeNext",
+        "module": "ESNext",
+        "moduleResolution": "node",
         "strict": true,
         "declaration": true,
         "allowSyntheticDefaultImports": true,
@@ -23,12 +23,8 @@
         "importHelpers": true,
         "resolveJsonModule": true,
         "skipLibCheck": true,
+        "outDir": "dist",
 
     },
-    "include": [
-        "src",
-        "tests",
-        "jest.config.ts",
-        ".babelrc"
-    ],
+    "include": ["src"],
 }

@@ -6,3 +6,4 @@ circuits/*/target
 tests/email_verifiers/test-data
 *.eml
 src/circuits
+dist

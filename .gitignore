@@ -3,7 +3,7 @@ node_modules
 target
 codegenCache.json
 circuits/*/target
-tests/test-data
+*/test-data
 *.eml
 src/circuits
 dist

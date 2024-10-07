@@ -24,12 +24,15 @@ import {
   ZImburseEscrowContract,
   ZImburseContractRegistryContract,
 } from "../../src/artifacts/contracts/index";
-import { convertUSDCDecimals } from "../../src/utils";
+import { toUSDCDecimals, fromUSDCDecimals } from "../../src/utils";
 import {
   formatRedeemLinode,
   makeLinodeInputs,
 } from "../../src/email_inputs/linode";
 import { setup, mintToEscrow, addContractsToPXE } from "../utils/index";
+import { emails } from "../utils/fs";
+import { parseStringBytes } from "../../src/utils";
+import { addPendingShieldNoteToPXE } from "../../src/contract_drivers/notes";
 
 const DEFAULT_PXE_URL = "http://localhost";
 
@@ -50,7 +53,9 @@ describe("Test deposit to zimburse", () => {
     const sandboxPXE = await createPXEClient(`${DEFAULT_PXE_URL}:8080`);
     const pxe1 = await createPXEClient(`${DEFAULT_PXE_URL}:8081`);
     const pxe2 = await createPXEClient(`${DEFAULT_PXE_URL}:8082`);
-    console.log(`Connected to Sandbox & 3 PXE's at "${DEFAULT_PXE_URL}:[8080-8082]"\n`);
+    console.log(
+      `Connected to Sandbox & 3 PXE's at "${DEFAULT_PXE_URL}:[8080-8082]"\n`
+    );
 
     // deploy test accounts
     let accounts = await createAccounts(sandboxPXE, 2);
@@ -82,7 +87,7 @@ describe("Test deposit to zimburse", () => {
     ({ usdc, registry, escrows } = await setup(externalDeployer, [
       escrowAdmin,
     ]));
-    
+
     // register contracts for alice and bob
     await addContractsToPXE(alice, usdc, registry, escrows);
     await addContractsToPXE(bob, usdc, registry, escrows);
@@ -93,7 +98,7 @@ describe("Test deposit to zimburse", () => {
         usdc,
         escrow.address,
         externalDeployer,
-        convertUSDCDecimals(10000n)
+        toUSDCDecimals(10000n)
       );
     }
   });
@@ -113,12 +118,13 @@ describe("Test deposit to zimburse", () => {
       expect(isRegistered).toBeTruthy();
 
       // check escrow is first return
-      const managedEscrows = await registry.methods.get_managed_escrows(escrowAdmin.getAddress(), 0).simulate();
-      expect(AztecAddress.fromString(managedEscrows[0][0])).toEqual(escrows[0].address);
-      const zero = AztecAddress.fromField(Fr.ZERO);
+      const managedEscrows = await registry.methods
+        .get_managed_escrows(escrowAdmin.getAddress(), 0)
+        .simulate();
+      expect(managedEscrows[0][0]).toEqual(escrows[0].address);
       // check the rest of the fields are zero
       for (let i = 1; i < 10; i++)
-        expect(AztecAddress.fromField(managedEscrows[0][i])).toEqual(zero);
+        expect(managedEscrows[0][i]).toEqual(AztecAddress.ZERO);
       // check pagination status = over
       expect(managedEscrows[1]).toBeTruthy();
     });
@@ -130,7 +136,6 @@ describe("Test deposit to zimburse", () => {
         .methods.check_and_register_participant(
           alice.getAddress(),
           "Alice\0",
-          escrowAdmin.getAddress(),
           escrows[0].address
         )
         .send()
@@ -140,31 +145,48 @@ describe("Test deposit to zimburse", () => {
         .methods.check_and_register_participant(
           bob.getAddress(),
           "Bob\0",
-          escrowAdmin.getAddress(),
           escrows[0].address
         )
         .send()
         .wait();
       // check participants from escrow admin perspective
-      // todo: paginate until done
       const participants = await registry
         .withWallet(escrowAdmin)
         .methods.get_participants(escrows[0].address, 0)
         .simulate();
-      console.log("Participants: ", participants);
+      expect(participants[0][0]).toEqual(alice.getAddress());
+      expect(parseStringBytes(participants[1][0])).toEqual("Alice");
+      expect(participants[0][1]).toEqual(bob.getAddress());
+      expect(parseStringBytes(participants[1][1])).toEqual("Bob");
+      // check the rest of the fields are zero
+      for (let i = 2; i < 10; i++)
+        expect(participants[0][i]).toEqual(AztecAddress.ZERO);
+      // check pagination status = over
+      expect(participants[2]).toBeTruthy();
 
-      // check enrolled status from participant perspective
-      const aliceEnrolled = await registry
+      // check enrolled status from participant perspective as alice
+      const aliceEscrows = await registry
         .withWallet(alice)
         .methods.get_participant_escrows(alice.getAddress(), 0)
         .simulate();
-      console.log("Alice enrolled: ", aliceEnrolled);
+      expect(aliceEscrows[0][0]).toEqual(escrows[0].address);
+      // check the rest of the fields are zero
+      for (let i = 1; i < 10; i++)
+        expect(aliceEscrows[0][i]).toEqual(AztecAddress.ZERO);
+      // check pagination status = over
+      expect(aliceEscrows[1]).toBeTruthy();
 
-      const bobEnrolled = await registry
+      // check enrolled status from participant perspective as bob
+      const bobEscrows = await registry
         .withWallet(bob)
         .methods.get_participant_escrows(bob.getAddress(), 0)
         .simulate();
-      console.log("Bob enrolled: ", bobEnrolled);
+      bobEscrows[0][0] = escrows[0].address;
+      // check the rest of the fields are zero
+      for (let i = 1; i < 10; i++)
+        expect(bobEscrows[0][i]).toEqual(AztecAddress.ZERO);
+      // check pagination status = over
+      expect(bobEscrows[1]).toBeTruthy();
     });
 
     it.todo("Paginated managed escrow retrieval");
@@ -194,62 +216,49 @@ describe("Test deposit to zimburse", () => {
     describe("Linode", () => {
       it("Give linode recurring entitlement", async () => {
         // give entitlement of 10 usdc
-        //   const amount = 10n * 10n ** 6n;
-        //   await zimburse.withWallet(accounts[1]).methods.give_entitlement(accounts[2].getAddress(), amount).send().wait();
-        //   // generate email inputs
-        //   const inputs = await makeLinodeInputs(emails.linode);
-        //   // transform inputs to contract friendly format
-        //   const redeemLinodeInputs = formatRedeemLinode(inputs);
-        //   // redeem entitlement
-        //   const secret = Fr.random();
-        //   const secretHash = computeSecretHash(secret);
-        //   const receipt = await zimburse.withWallet(accounts[2]).methods.redeem_linode_entitlement(...redeemLinodeInputs, secretHash).send().wait();
-        //   await addPendingShieldNoteToPXE(
-        //     accounts[2],
-        //     usdc.address,
-        //     amount,
-        //     secretHash,
-        //     receipt.txHash
-        //   );
-        //   // check that the balance has decremented from zimburse
-        //   const escrowBalance = await usdc.methods.balance_of_public(zimburse.address).simulate();
-        //   expect(escrowBalance).toBe(90n * 10n ** 6n);
-        //   // redeem the shielded USDC note
-        //   await usdc.withWallet(accounts[2]).methods.redeem_shield(accounts[2].getAddress(), amount, secret).send().wait();
-        //   // check that the balance has incremented for the recipient
-        //   const recipientBalance = await usdc.withWallet(accounts[2]).methods.balance_of_private(accounts[2].getAddress()).simulate();
-        //   expect(recipientBalance).toBe(10n * 10n ** 6n);
+        const amount = toUSDCDecimals(10n);
+        await escrows[0]
+          .withWallet(escrowAdmin)
+          .methods.give_entitlement(alice.getAddress(), amount)
+          .send()
+          .wait();
+        // generate email inputs
+        const inputs = await makeLinodeInputs(emails.linode_sep);
+        // transform inputs to contract friendly format
+        const redeemLinodeInputs = formatRedeemLinode(inputs);
+        // redeem entitlement
+        const secret = Fr.random();
+        const secretHash = computeSecretHash(secret);
+        const receipt = await escrows[0]
+          .withWallet(alice)
+          .methods.redeem_linode_entitlement(...redeemLinodeInputs, secretHash)
+          .send()
+          .wait();
+        await addPendingShieldNoteToPXE(
+          alice,
+          usdc.address,
+          amount,
+          secretHash,
+          receipt.txHash
+        );
+        // check that the balance has decremented from zimburse
+        const escrowBalance = await usdc.methods
+          .balance_of_public(escrows[0])
+          .simulate();
+        expect(escrowBalance).toBe(toUSDCDecimals(9990n));
+        // redeem the shielded USDC note
+        await usdc
+          .withWallet(alice)
+          .methods.redeem_shield(alice.getAddress(), amount, secret)
+          .send()
+          .wait();
+        // check that the balance has incremented for the recipient
+        const recipientBalance = await usdc
+          .withWallet(alice)
+          .methods.balance_of_private(alice.getAddress())
+          .simulate();
+        expect(recipientBalance).toBe(toUSDCDecimals(10n));
       });
     });
   });
-
-  // it("Give entitlement Linode", async () => {
-  //   // give entitlement of 10 usdc
-  //   const amount = 10n * 10n ** 6n;
-  //   await zimburse.withWallet(accounts[1]).methods.give_entitlement(accounts[2].getAddress(), amount).send().wait();
-
-  //   // generate email inputs
-  //   const inputs = await makeLinodeInputs(emails.linode);
-  //   // transform inputs to contract friendly format
-  //   const redeemLinodeInputs = formatRedeemLinode(inputs);
-  //   // redeem entitlement
-  //   const secret = Fr.random();
-  //   const secretHash = computeSecretHash(secret);
-  //   const receipt = await zimburse.withWallet(accounts[2]).methods.redeem_linode_entitlement(...redeemLinodeInputs, secretHash).send().wait();
-  //   await addPendingShieldNoteToPXE(
-  //     accounts[2],
-  //     usdc.address,
-  //     amount,
-  //     secretHash,
-  //     receipt.txHash
-  //   );
-  //   // check that the balance has decremented from zimburse
-  //   const escrowBalance = await usdc.methods.balance_of_public(zimburse.address).simulate();
-  //   expect(escrowBalance).toBe(90n * 10n ** 6n);
-  //   // redeem the shielded USDC note
-  //   await usdc.withWallet(accounts[2]).methods.redeem_shield(accounts[2].getAddress(), amount, secret).send().wait();
-  //   // check that the balance has incremented for the recipient
-  //   const recipientBalance = await usdc.withWallet(accounts[2]).methods.balance_of_private(accounts[2].getAddress()).simulate();
-  //   expect(recipientBalance).toBe(10n * 10n ** 6n);
-  // })
 });

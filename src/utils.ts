@@ -23,7 +23,15 @@ export function toBufferBE(value: bigint, byteLength = 32) {
 }
 
 /** Multiplies amount by USDC decimals */
-export const convertUSDCDecimals = (amount: bigint) => amount * 10n ** BigInt(USDC_TOKEN.decimals);
+export const toUSDCDecimals = (amount: bigint) => amount * 10n ** BigInt(USDC_TOKEN.decimals);
 
 /** Divides amount by USDC decimals */
-export const formatUSDCDecimals = (amount: bigint) => amount / 10n ** BigInt(USDC_TOKEN.decimals);
+export const fromUSDCDecimals = (amount: bigint) => amount / 10n ** BigInt(USDC_TOKEN.decimals);
+
+/** parses a string  */
+export const parseStringBytes = (bytes: bigint[]): string => {
+  const index0 = bytes.findIndex(byte => byte === 0n);
+  const length = index0 === -1 ? bytes.length : index0;
+  const buffer = new Uint8Array(bytes.map(byte => Number(byte)));
+  return String.fromCharCode(...buffer.slice(0, length));
+}

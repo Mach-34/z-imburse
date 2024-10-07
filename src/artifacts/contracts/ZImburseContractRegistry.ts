@@ -108,44 +108,65 @@ export class ZImburseContractRegistryContract extends ContractBase {
   }
   
 
-  public static get storage(): ContractStorageLayout<'escrow_contract_id' | 'managed_escrows' | 'participants' | 'participant_escrows' | 'contract_registration'> {
+  public static get storage(): ContractStorageLayout<'admin' | 'minters' | 'balances' | 'total_supply' | 'pending_shields' | 'public_balances' | 'symbol' | 'name' | 'decimals'> {
       return {
-        escrow_contract_id: {
+        admin: {
       slot: new Fr(1n),
     },
-managed_escrows: {
+minters: {
       slot: new Fr(2n),
     },
-participants: {
+balances: {
       slot: new Fr(3n),
     },
-participant_escrows: {
+total_supply: {
       slot: new Fr(4n),
     },
-contract_registration: {
+pending_shields: {
       slot: new Fr(5n),
+    },
+public_balances: {
+      slot: new Fr(6n),
+    },
+symbol: {
+      slot: new Fr(7n),
+    },
+name: {
+      slot: new Fr(8n),
+    },
+decimals: {
+      slot: new Fr(9n),
     }
-      } as ContractStorageLayout<'escrow_contract_id' | 'managed_escrows' | 'participants' | 'participant_escrows' | 'contract_registration'>;
+      } as ContractStorageLayout<'admin' | 'minters' | 'balances' | 'total_supply' | 'pending_shields' | 'public_balances' | 'symbol' | 'name' | 'decimals'>;
     }
     
 
-  public static get notes(): ContractNotes<'AddressNote' | 'ParticipantNote'> {
+  public static get notes(): ContractNotes<'AddressNote' | 'TransparentNote' | 'TokenNote' | 'RecurringEntitlementNote' | 'ParticipantNote'> {
     return {
       AddressNote: {
           id: new NoteSelector(2232136525),
         },
+TransparentNote: {
+          id: new NoteSelector(3193649735),
+        },
+TokenNote: {
+          id: new NoteSelector(2350566847),
+        },
+RecurringEntitlementNote: {
+          id: new NoteSelector(3639716131),
+        },
 ParticipantNote: {
           id: new NoteSelector(3017618054),
         }
-    } as ContractNotes<'AddressNote' | 'ParticipantNote'>;
+    } as ContractNotes<'AddressNote' | 'TransparentNote' | 'TokenNote' | 'RecurringEntitlementNote' | 'ParticipantNote'>;
   }
   
 
   /** Type-safe wrappers for the public methods exposed by the contract. */
   public declare methods: {
     
-    /** check_and_register_participant(participant: struct, participant_name: string, admin: struct, escrow: struct) */
-    check_and_register_participant: ((participant: AztecAddressLike, participant_name: string, admin: AztecAddressLike, escrow: AztecAddressLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+    /** check_and_register_participant(participant: struct, participant_name: string, escrow: struct) */
+    check_and_register_participant: ((participant: AztecAddressLike, participant_name: string, escrow: AztecAddressLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
     /** compute_note_hash_and_optionally_a_nullifier(contract_address: struct, nonce: field, storage_slot: field, note_type_id: field, compute_nullifier: boolean, serialized_note: array) */
     compute_note_hash_and_optionally_a_nullifier: ((contract_address: AztecAddressLike, nonce: FieldLike, storage_slot: FieldLike, note_type_id: FieldLike, compute_nullifier: boolean, serialized_note: FieldLike[]) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;

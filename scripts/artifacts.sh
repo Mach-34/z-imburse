@@ -1,30 +1,82 @@
 #!/bin/bash
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 
-sh scripts/patch_noir_bignum.sh
-## Compile z-imburse
-cd contracts
-aztec-nargo compile --force --silence-warnings
+# check_versions() {
 
-# if downloading github apply patch
-aztec codegen ./target/zimburse_escrow-ZImburseEscrow.json -o .
+# }
 
-## Update the import
-case "$OSTYPE" in
+## Compile a contract artifact
+## $1: the directory/ contract name in snake case
+compile_artifact() {
+
+    pushd "$project" >/dev/null
+    ### determine if the project is a contract
+    [[ -f Nargo.toml ]] || { popd >/dev/null; return 1; }
+    grep -q 'type = "contract"' "Nargo.toml" || { popd >/dev/null; return 1; }
+
+    ### get pascal case for project name from snake case
+    case "$OSTYPE" in
     darwin*)
         # macOS
-        sed -i '' 's|target/zimburse_escrow-ZImburseEscrow.json|./ZImburseEscrow.json|' ZImburseEscrow.ts
-        sed -i '' "/export const ZImburseEscrowContractArtifact = loadContractArtifact(ZImburseEscrowContractArtifactJson as NoirCompiledContract);/i \\/\/@ts-ignore" ZImburseEscrow.ts
+        contract_name=$(echo "$project" | awk -F'_' '{for(i=1;i<=NF;i++){printf toupper(substr($i,1,1)) substr($i,2)}}')
         ;;
     *)
         # Linux
-        sed -i 's|target/zimburse_escrow-ZImburseEscrow.json|./ZImburseEscrow.json|' ZImburseEscrow.ts
-        sed -i "/export const ZImburseEscrowContractArtifact = loadContractArtifact(ZImburseEscrowContractArtifactJson as NoirCompiledContract);/i \\/\/@ts-ignore" ZImburseEscrow.ts
-esac
+        contract_name=$(echo "$project" | sed 's/_\([a-z]\)/\U\1/g' | sed 's/^\([a-z]\)/\U\1/')
+        ;;
+    esac
 
-## Move artifacts
-mv ZImburseEscrow.ts ../src/artifacts
-mv target/zimburse_escrow-ZImburseEscrow.json ../src/artifacts/ZImburseEscrow.json
+    ### Compile the contract
+    aztec-nargo compile --silence-warnings
 
-cd ../..
-# clear
-echo "Compiled ZImburse bytecode and typescript bindings"
+    ### Generate typescript bindings
+    aztec codegen ./target/$project-$contract_name.json -o .
+
+    echo "Compiled $contract_name bytecode and typescript bindings"
+
+    ## Update the imports in the generated typescript bindings
+    case "$OSTYPE" in
+    darwin*)
+        # macOS
+        sed -i '' "s|target/${project}-${contract_name}.json|./${contract_name}.json|" $contract_name.ts
+        # do not align last line as it adds extra whitespace
+        sed -i '' '
+/export const '"${contract_name}"'ContractArtifact = loadContractArtifact('"${contract_name}"'ContractArtifactJson as NoirCompiledContract);/ {
+    i\
+//@ts-ignore
+}
+' "${contract_name}.ts"
+        ;;
+    *)
+        # Linux
+        contract_name=$(echo "$project" | sed 's/_\([a-z]\)/\U\1/g' | sed 's/^\([a-z]\)/\U\1/')
+        sed -i "s|target/${project}-${contract_name}.json|./${contract_name}.json|" $contract_name.ts
+        sed -i "/export const ${contract_name}ContractArtifact = loadContractArtifact(${contract_name}ContractArtifactJson as NoirCompiledContract);/i \\/\/@ts-ignore" $contract_name.ts
+        ;;
+    esac
+
+    ## Move artifacts
+    mv $contract_name.ts ../../src/artifacts/contracts
+    mv target/$project-$contract_name.json ../../src/artifacts/contracts/$contract_name.json
+    popd >/dev/null
+}
+
+### MAIN
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
+
+### Check the versions of aztec dependencies
+
+### Patch noir bignum to work with aztec-nargo
+### TODO: remove with 0.35.0 release
+sh $SCRIPT_DIR/patch_noir_bignum.sh
+
+### Compile the ZImburse workspace
+cd $SCRIPT_DIR/../contracts
+
+for project in *; do
+    if [ -d "$project" ]; then
+        compile_artifact "$project"
+    fi
+done
+
+echo "Z-Imburse Artifact Compilation Complete!"

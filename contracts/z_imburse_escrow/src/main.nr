@@ -32,12 +32,14 @@ contract ZImburseEscrow {
     /**
      * Initialize the Z-Imburse contract by setting the owner and USDC token.
      *
+     * @param registry The address of the Z-Imburse contract registry
      * @param usdc_token The address of the USDC token
+     * @param title The title of the contract as a string of max length 60
      */
     #[public]
     #[initializer]
-    fn constructor(usdc_token: AztecAddress, title: str<TITLE_LENGTH>) {
-        let definition = Definition::new(context.msg_sender(), usdc_token, title);
+    fn constructor(registry: AztecAddress, usdc_token: AztecAddress, title: str<TITLE_LENGTH>) {
+        let definition = Definition::new(registry, context.msg_sender(), usdc_token, title);
         storage.definition.initialize(definition);
     }
 
@@ -109,6 +111,18 @@ contract ZImburseEscrow {
     #[view]
     pub fn get_title() -> [u8; TITLE_LENGTH]{
         storage.definition.read_public().title_as_string()
+    }
+
+
+    /**
+     * Privately get the admin of the ZImburse escrow contract
+     *
+     * @return the admin of the ZImburse escrow contract
+     */
+    #[private]
+    #[view]
+    pub fn get_admin_private() -> AztecAddress {
+        storage.definition.read_private().admin
     }
 
 }

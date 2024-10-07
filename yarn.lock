@@ -70,7 +70,7 @@
     lodash.times "^4.3.2"
     tslib "^2.5.0"
 
-"@aztec/circuits.js@0.56.0":
+"@aztec/circuits.js@0.56.0", "@aztec/circuits.js@^0.56.0":
   version "0.56.0"
   resolved "https://registry.yarnpkg.com/@aztec/circuits.js/-/circuits.js-0.56.0.tgz#296386570e790dc93d2265fcddb6c498349c9abd"
   integrity sha512-Xbb9tRsJMmtzpswnED3PU2qmRaDCBcxCvsk0FGqCCjGR01IEMl3UVfbqLC/3okalCtWSubaC1KRKSf8F9qoSNQ==

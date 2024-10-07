@@ -1,8 +1,8 @@
 import { verifyDKIMSignature } from "@zk-email/helpers/dist/dkim";
 import { generateEmailVerifierInputsFromDKIMResult } from "@mach-34/zkemail-nr";
 import { getSequenceParams } from "./location";
-import { Regexes } from "./constants";
-import { LinodeInputs, RedeemLinodeInputs } from "./types";
+import { Regexes } from "../constants";
+import { LinodeInputs, RedeemLinodeInputs } from "../types";
 
 const LINODE_MAX_HEADER_LENGTH = 640;
 const LINODE_MAX_BODY_LENGTH = 832;

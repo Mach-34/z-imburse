@@ -5,11 +5,14 @@
   "types": "dist",
   "license": "MIT",
   "scripts": {
+    "compile": "yarn compile:circuits && yarn compile:contracts",
     "compile:contracts": "./scripts/artifacts.sh",
     "compile:circuits": "cd scripts && ./compile_testers.sh",
     "postinstall": "yarn compile:contracts && yarn compile:circuits",
     "test": "NODE_NO_WARNINGS=1 node --experimental-vm-modules $(yarn bin jest) --config jest.integration.config.json --no-cache --runInBand --verbose",
-    "sandbox": "aztec start --sandbox"
+    "test:circuits": "yarn test tests/circuits",
+    "test:contracts": "yarn test tests/contracts",
+    "sandbox": "docker compose up"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
@@ -27,6 +30,7 @@
   "dependencies": {
     "@aztec/accounts": "^0.56.0",
     "@aztec/aztec.js": "^0.56.0",
+    "@aztec/circuits.js": "^0.56.0",
     "@aztec/noir-contracts.js": "^0.56.0",
     "@jest/globals": "^29.7.0",
     "@mach-34/zkemail-nr": "^1.1.1"

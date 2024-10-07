@@ -12,7 +12,7 @@
         ],
         "types": ["jest", "node"],
         "module": "ESNext",
-        "moduleResolution": "node",
+        "moduleResolution": "Bundler",
         "strict": true,
         "declaration": true,
         "allowSyntheticDefaultImports": true,
@@ -24,7 +24,9 @@
         "resolveJsonModule": true,
         "skipLibCheck": true,
         "outDir": "dist",
-
+        "paths": {
+            "@mach-34/z-imburse/*": ["./src/*"]
+        }
     },
-    "include": ["src"],
+    "include": ["src", ".babelrc", "jest.config.js"],
 }

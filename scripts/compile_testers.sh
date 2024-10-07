@@ -10,7 +10,7 @@ compile() {
     # Run the compile command
     nargo compile --force --silence-warnings
     
-    cp ./target/$project.json ../../../src/circuits/$project.json
+    cp ./target/$project.json ../../../src/artifacts/circuits/$project.json
     # Use popd to return to the previous directory
     popd > /dev/null
 }

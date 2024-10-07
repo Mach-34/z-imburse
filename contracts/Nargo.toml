@@ -1,5 +1,6 @@
 [workspace]
 members = [
-    # "zimburse_router",
-    "zimburse_escrow"
+    "address_note",
+    "z_imburse_contract_registry",
+    "z_imburse_escrow"
 ]

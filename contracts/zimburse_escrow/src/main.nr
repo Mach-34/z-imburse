@@ -111,5 +111,17 @@ contract ZImburseEscrow {
         storage.definition.read_public().title_as_string()
     }
 
+
+    /**
+     * Privately get the admin of the ZImburse escrow contract
+     *
+     * @return the admin of the ZImburse escrow contract
+     */
+    #[private]
+    #[view]
+    pub fn get_admin_private() -> AztecAddress {
+        storage.definition.read_private().admin
+    }
+
 }
 

@@ -10,3 +10,4 @@ address_note = { git="https://github.com/AztecProtocol/aztec-packages/", tag="az
 compressed_string = { git="https://github.com/AztecProtocol/aztec-packages/", tag="aztec-packages-v0.56.0", directory="noir-projects/aztec-nr/compressed-string" }
 token = { git="https://github.com/AztecProtocol/aztec-packages/", tag="aztec-packages-v0.56.0", directory="noir-projects/noir-contracts/contracts/token_contract" }
 zimburse_verifiers = { path = "../../circuits/zimburse_verifiers" }
+zimburse_contract_registry = { path = "../zimburse_contract_registry" }

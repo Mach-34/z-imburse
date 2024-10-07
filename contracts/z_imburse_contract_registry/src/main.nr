@@ -6,7 +6,10 @@ mod types;
 contract ZImburseContractRegistry {
     use dep::aztec::prelude::{AztecAddress, PrivateImmutable, PrivateSet, SharedImmutable, Map};
     use dep::aztec::macros::{storage::storage, functions::{private, public, view, initializer}};
-    use dep::aztec::note::{note_viewer_options::NoteViewerOptions, note_getter_options::NoteGetterOptions, note_getter::{get_notes, view_notes}, constants::MAX_NOTES_PER_PAGE};
+    use dep::aztec::note::{
+        note_viewer_options::NoteViewerOptions, note_getter_options::NoteGetterOptions,
+        note_getter::{get_notes, view_notes}, constants::MAX_NOTES_PER_PAGE
+    };
     use dep::aztec::oracle::{get_contract_instance::get_contract_instance, header::get_header_at_oracle};
     use dep::aztec::keys::getters::get_public_keys;
     use dep::aztec::utils::comparison::Comparator;
@@ -64,7 +67,7 @@ contract ZImburseContractRegistry {
         // privately add the escrow contract to the list of managed escrows
         let npk_m_hash = get_public_keys(context.msg_sender()).npk_m.hash();
         let mut escrow_note = AddressNote::new(escrow_contract, npk_m_hash);
-        storage.managed_escrows.insert(&mut escrow_note);
+        storage.managed_escrows.insert(&mut escrow_note).emit(encode_and_encrypt_note(&mut context, context.msg_sender(), context.msg_sender()));
 
         // publicly add the escrow contract to the list of participant escrows
         ZImburseContractRegistry::at(context.this_address()).set_contract_registered(escrow_contract).enqueue(&mut context);
@@ -82,19 +85,12 @@ contract ZImburseContractRegistry {
     }
 
     #[private]
-   fn check_and_register_participant(
-        participant: AztecAddress,
-        participant_name: str<60>,
-        admin: AztecAddress,
-        escrow: AztecAddress
-    ) {
+    fn check_and_register_participant(participant: AztecAddress, participant_name: str<60>, admin: AztecAddress, escrow: AztecAddress) {
         // check that the escrow address is registered
         let registration_status = storage.contract_registration.at(escrow).read_private();
         assert(registration_status, "Escrow contract has not been registered");
         // check if the participant has already been registered
-        let options = NoteGetterOptions::new()
-            .select(AddressNote::properties().address, Comparator.EQ, participant)
-            .set_limit(1);
+        let options = NoteGetterOptions::new().select(AddressNote::properties().address, Comparator.EQ, participant).set_limit(1);
         let participant_exists = storage.participants.at(escrow).get_notes(options).len() == 0;
         // if the participant has not been registered, enqueue a private call to register the participant
         // do this instead of if statement here to make adding first time expensive but cheap if already registered
@@ -103,25 +99,25 @@ contract ZImburseContractRegistry {
         }
     }
 
-       #[private]
-       #[interal]
-       fn register_participant(
-            participant: AztecAddress,
-            participant_name: str<60>,
-            admin: AztecAddress,
-            escrow: AztecAddress
-        ) {
-            // add escrow to the participant's set of escrows
-            let mut escrow_note = AddressNote::new(escrow, get_public_keys(participant).npk_m.hash());
-            storage.participant_escrows.insert(&mut escrow_note).emit(
-                encode_and_encrypt_note(&mut context, admin, participant)
-            );
-            // add the participant to the admin set of participants
-            let mut participant_note = ParticipantNote::new(participant, participant_name, get_public_keys(participant).npk_m.hash());
-            storage.participants.at(escrow).insert(&mut participant_note).emit(
-                encode_and_encrypt_note(&mut context, admin, admin)
-            )
-       }
+    #[private]
+    #[interal]
+    fn register_participant(
+        participant: AztecAddress,
+        participant_name: str<60>,
+        admin: AztecAddress,
+        escrow: AztecAddress
+    ) {
+        // add escrow to the participant's set of escrows
+        let mut escrow_note = AddressNote::new(escrow, get_public_keys(participant).npk_m.hash());
+        storage.participant_escrows.insert(&mut escrow_note).emit(encode_and_encrypt_note(&mut context, admin, participant));
+        // add the participant to the admin set of participants
+        let mut participant_note = ParticipantNote::new(
+            participant,
+            participant_name,
+            get_public_keys(participant).npk_m.hash()
+        );
+        storage.participants.at(escrow).insert(&mut participant_note).emit(encode_and_encrypt_note(&mut context, admin, admin))
+    }
 
     // todo: add ability to remove participant
     // todo: add ability to remove participant escrows by looking up nullifications
@@ -151,18 +147,18 @@ contract ZImburseContractRegistry {
     unconstrained fn get_managed_escrows(
         admin: AztecAddress,
         page_index: u32
-    ) -> pub ([AztecAddress; MAX_NOTES_PER_PAGE], bool) {
+    ) -> pub ([AztecAddress; MAX_NOTES_PER_PAGE], bool, u32) {
         let offset = page_index * MAX_NOTES_PER_PAGE;
         let mut options = NoteViewerOptions::new();
-        let notes = storage.managed_escrows.view_notes(options.set_offset(offset));
+        let notes = storage.managed_escrows.view_notes(options);
         let mut managed_escrows: [AztecAddress; MAX_NOTES_PER_PAGE] = [AztecAddress::from_field(0); MAX_NOTES_PER_PAGE];
         for i in 0..notes.len() {
             if i < notes.len() {
                 managed_escrows[i] = notes.get_unchecked(i).address;
             }
         }
-        let page_limit_reached = notes.len() == options.limit;
-        (managed_escrows, page_limit_reached)
+        let page_limit_reached = notes.len() != options.limit;
+        (managed_escrows, page_limit_reached, notes.len())
     }
 
     /**
@@ -176,18 +172,18 @@ contract ZImburseContractRegistry {
     unconstrained fn get_participant_escrows(
         participant: AztecAddress,
         page_index: u32
-    ) -> pub ([AztecAddress; MAX_NOTES_PER_PAGE], bool) {
+    ) -> pub ([AztecAddress; MAX_NOTES_PER_PAGE], bool, u32) {
         let offset = page_index * MAX_NOTES_PER_PAGE;
         let mut options = NoteViewerOptions::new();
-        let notes = storage.managed_escrows.view_notes(options.set_offset(offset));
+        let notes = storage.participant_escrows.view_notes(options);
         let mut participant_escrows: [AztecAddress; MAX_NOTES_PER_PAGE] = [AztecAddress::from_field(0); MAX_NOTES_PER_PAGE];
         for i in 0..notes.len() {
             if i < notes.len() {
                 participant_escrows[i] = notes.get_unchecked(i).address;
             }
         }
-        let page_limit_reached = notes.len() == options.limit;
-        (participant_escrows, page_limit_reached)
+        let page_limit_reached = notes.len() != options.limit;
+        (participant_escrows, page_limit_reached, notes.len())
     }
 
     /**
@@ -201,11 +197,11 @@ contract ZImburseContractRegistry {
     unconstrained fn get_participants(
         escrow: AztecAddress,
         page_index: u32
-    ) -> pub ([AztecAddress; MAX_NOTES_PER_PAGE], [[u8; NAME_LENGTH]; MAX_NOTES_PER_PAGE], bool) {
+    ) -> pub ([AztecAddress; MAX_NOTES_PER_PAGE], [[u8; NAME_LENGTH]; MAX_NOTES_PER_PAGE], bool, u32) {
         let offset = page_index * MAX_NOTES_PER_PAGE;
         let mut options = NoteViewerOptions::new();
-        let notes = storage.participants.at(escrow).view_notes(options.set_offset(offset));
-        let mut participants: [AztecAddress; MAX_NOTES_PER_PAGE] = [AztecAddress::from_field(0); MAX_NOTES_PER_PAGE];
+        let notes = storage.participants.at(escrow).view_notes(options);
+        let mut participants: [AztecAddress; MAX_NOTES_PER_PAGE] = [AztecAddress::from_field(6); MAX_NOTES_PER_PAGE];
         let mut participant_names: [[u8; NAME_LENGTH]; MAX_NOTES_PER_PAGE] = [[0; NAME_LENGTH]; MAX_NOTES_PER_PAGE];
         for i in 0..notes.len() {
             if i < notes.len() {
@@ -214,8 +210,8 @@ contract ZImburseContractRegistry {
                 participant_names[i] = participant_note.get_name();
             }
         }
-        let page_limit_reached = notes.len() == options.limit;
-        (participants, participant_names, page_limit_reached)
+        let page_limit_reached = notes.len() != options.limit;
+        (participants, participant_names, page_limit_reached, notes.len())
     }
 }
 

@@ -13,7 +13,6 @@ compile_artifact() {
     ### determine if the project is a contract
     [[ -f Nargo.toml ]] || { popd >/dev/null; return 1; }
     grep -q 'type = "contract"' "Nargo.toml" || { popd >/dev/null; return 1; }
-    set -e
 
     ### get pascal case for project name from snake case
     case "$OSTYPE" in
@@ -68,8 +67,6 @@ sh $SCRIPT_DIR/patch_noir_bignum.sh
 
 ### Compile the ZImburse workspace
 cd $SCRIPT_DIR/../contracts
-ls
-echo "Compiled Z-Imburse Contracts"
 
 for project in *; do
     if [ -d "$project" ]; then
@@ -77,4 +74,4 @@ for project in *; do
     fi
 done
 
-echo Z-Imburse Artifact Compilation Complete!
+echo "Z-Imburse Artifact Compilation Complete!"

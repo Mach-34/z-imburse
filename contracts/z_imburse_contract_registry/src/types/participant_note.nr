@@ -1,5 +1,8 @@
 use dep::aztec::{
-    protocol_types::{address::AztecAddress, constants::GENERATOR_INDEX__NOTE_NULLIFIER, hash::poseidon2_hash_with_separator, traits::{Serialize, Deserialize}},
+    protocol_types::{
+    address::AztecAddress, constants::GENERATOR_INDEX__NOTE_NULLIFIER,
+    hash::poseidon2_hash_with_separator, traits::{Serialize, Deserialize}
+},
     note::{note_header::NoteHeader, note_interface::NullifiableNote, utils::compute_note_hash_for_nullify},
     oracle::unsafe_rand::unsafe_rand, keys::getters::get_nsk_app, context::PrivateContext,
     macros::notes::note
@@ -17,7 +20,6 @@ pub struct ParticipantNote {
     npk_m_hash: Field,
     randomness: Field,
 }
-
 
 impl NullifiableNote for ParticipantNote {
 
@@ -58,7 +60,7 @@ impl ParticipantNote {
         let name_serialized: CompressedString<NAME_SERIALIZED_LENGTH, NAME_LENGTH> = CompressedString::from_string(name);
         ParticipantNote { address, name: name_serialized.value, npk_m_hash, randomness, header: NoteHeader::empty() }
     }
-    
+
     pub fn get_name(self) -> [u8; NAME_LENGTH] {
         CompressedString::<NAME_SERIALIZED_LENGTH, NAME_LENGTH> { value: self.name }.to_bytes()
     }

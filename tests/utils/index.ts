@@ -1,6 +1,7 @@
 import {
   AccountWalletWithSecretKey,
   AztecAddress,
+  ContractInstanceWithAddress,
   Fr,
   computeSecretHash,
 } from "@aztec/aztec.js";
@@ -27,8 +28,8 @@ export async function setup(
   verbose = true
 ): Promise<{
   usdc: TokenContract;
-  // registry: ZImburseContractRegistryContract;
-  // escrows: ZImburseEscrowContract[];
+  registry: ZImburseContractRegistryContract;
+  escrows: ZImburseEscrowContract[];
 }> {
   if (numEscrows != escrowDeployer.length) {
     throw new Error(
@@ -45,37 +46,73 @@ export async function setup(
     .send()
     .deployed();
   if (verbose) console.log(`Deployed USDC token at ${usdc.address}`);
-  // // deploy registry contract
-  // const escrowClassId = getEscrowContractClassID();
-  // const registry = await ZImburseContractRegistryContract.deploy(
-  //   externalDeployer,
-  //   escrowClassId
-  // )
-  //   .send()
-  //   .deployed();
-  // if (verbose)
-  //   console.log(`Deployed Z-Imburse Registry at ${registry.address}`);
-  // // deploy escrow contracts
-  // const escrows: ZImburseEscrowContract[] = [];
-  // for (let i = 0; i < numEscrows; i++) {
-  //   const escrow = await ZImburseEscrowContract.deploy(
-  //     escrowDeployer[i],
-  //     registry.address,
-  //     usdc.address,
-  //     `Escrow ${i}`
-  //   )
-  //     .send()
-  //     .deployed();
-  //   escrows.push(escrow);
-  //   if (verbose)
-  //     console.log(`Deployed Z-Imburse Escrow ${i} at ${escrow.address}`);
-  // }
+  // deploy registry contract
+  const escrowClassId = getEscrowContractClassID();
+  const registry = await ZImburseContractRegistryContract.deploy(
+    externalDeployer,
+    escrowClassId
+  )
+    .send()
+    .deployed();
+  if (verbose)
+    console.log(`Deployed Z-Imburse Registry at ${registry.address}`);
+  // deploy escrow contracts
+  const escrows: ZImburseEscrowContract[] = [];
+  for (let i = 0; i < numEscrows; i++) {
+    const escrow = await ZImburseEscrowContract.deploy(
+      escrowDeployer[i],
+      registry.address,
+      usdc.address,
+      `Escrow ${i}`
+    )
+      .send()
+      .deployed();
+    escrows.push(escrow);
+    if (verbose)
+      console.log(`Deployed Z-Imburse Escrow ${i} at ${escrow.address}`);
+  }
 
   return {
     usdc,
-    // registry,
-    // escrows,
+    registry,
+    escrows,
   };
+}
+
+/**
+ * Add contracts to a PXE
+ *
+ * @param account - the account connected to the PXE to add the contracts to
+ * @param usdc - the USDC token contract instance
+ * @param registry - the Z-Imburse registry contract instance
+ * @param escrows - the Z-Imburse escrow contract instance
+ */
+export async function addContractsToPXE(
+  account: AccountWalletWithSecretKey,
+  usdc?: TokenContract,
+  registry?: ZImburseContractRegistryContract,
+  escrows?: ZImburseEscrowContract[]
+) {
+  if (usdc) {
+    await account.registerContract({
+      instance: usdc.instance,
+      artifact: usdc.artifact,
+    });
+  }
+  if (registry) {
+    await account.registerContract({
+      instance: registry.instance,
+      artifact: registry.artifact,
+    });
+  }
+  if (escrows) {
+    for (const escrow of escrows) {
+      await account.registerContract({
+        instance: escrow.instance,
+        artifact: escrow.artifact,
+      });
+    }
+  }
 }
 
 /**

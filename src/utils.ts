@@ -1,3 +1,4 @@
+import { USDC_TOKEN } from './constants';
 // re-exported from bb.js/bigint-array
 export function toBigIntBE(bytes: Uint8Array) {
   // A Buffer in node, *is* a Uint8Array. We can't refuse it's type.
@@ -20,3 +21,9 @@ export function toBufferBE(value: bigint, byteLength = 32) {
   }
   return bytes;
 }
+
+/** Multiplies amount by USDC decimals */
+export const convertUSDCDecimals = (amount: bigint) => amount * 10n ** BigInt(USDC_TOKEN.decimals);
+
+/** Divides amount by USDC decimals */
+export const formatUSDCDecimals = (amount: bigint) => amount / 10n ** BigInt(USDC_TOKEN.decimals);

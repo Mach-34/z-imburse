@@ -126,6 +126,20 @@ contract ZImburseContractRegistry {
     // todo: add ability to remove participant
     // todo: add ability to remove participant escrows by looking up nullifications
 
+    /** Get the class ID that all escrow contracts must match */
+    #[public]
+    #[view]
+    fn get_escrow_class_id() -> pub Field {
+        storage.escrow_contract_id.read_public()
+    }
+
+    /** Get the registration status of an escrow contract */
+    #[public]
+    #[view]
+    fn get_contract_registration_status(escrow_contract: AztecAddress) -> pub bool {
+        storage.contract_registration.at(escrow_contract).read_public()
+    }
+
     /**
      * Get a page of the list of escrows administrated by a given address (private)
      *
@@ -186,7 +200,6 @@ contract ZImburseContractRegistry {
      */
     unconstrained fn get_participants(
         escrow: AztecAddress,
-        participant: AztecAddress,
         page_index: u32
     ) -> pub ([AztecAddress; MAX_NOTES_PER_PAGE], [[u8; NAME_LENGTH]; MAX_NOTES_PER_PAGE], bool) {
         let offset = page_index * MAX_NOTES_PER_PAGE;

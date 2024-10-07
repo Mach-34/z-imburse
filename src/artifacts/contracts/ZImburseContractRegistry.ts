@@ -153,14 +153,20 @@ ParticipantNote: {
     /** constructor(contract_class_id: field) */
     constructor: ((contract_class_id: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
+    /** get_contract_registration_status(escrow_contract: struct) */
+    get_contract_registration_status: ((escrow_contract: AztecAddressLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+
+    /** get_escrow_class_id() */
+    get_escrow_class_id: (() => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+
     /** get_managed_escrows(admin: struct, page_index: integer) */
     get_managed_escrows: ((admin: AztecAddressLike, page_index: (bigint | number)) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
     /** get_participant_escrows(participant: struct, page_index: integer) */
     get_participant_escrows: ((participant: AztecAddressLike, page_index: (bigint | number)) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
-    /** get_participants(escrow: struct, participant: struct, page_index: integer) */
-    get_participants: ((escrow: AztecAddressLike, participant: AztecAddressLike, page_index: (bigint | number)) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+    /** get_participants(escrow: struct, page_index: integer) */
+    get_participants: ((escrow: AztecAddressLike, page_index: (bigint | number)) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
     /** register_escrow(escrow_contract: struct) */
     register_escrow: ((escrow_contract: AztecAddressLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;

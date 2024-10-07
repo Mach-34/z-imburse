@@ -1,5 +1,4 @@
 #!/bin/bash
-
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 
 # check_versions() {
@@ -10,9 +9,11 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 ## $1: the directory/ contract name in snake case
 compile_artifact() {
 
+    pushd "$project" >/dev/null
     ### determine if the project is a contract
-    [[ -f $1/Nargo.toml ]] || return 1
-    grep -q 'type = "contract"' "$project/Nargo.toml" || return 1
+    [[ -f Nargo.toml ]] || { popd >/dev/null; return 1; }
+    grep -q 'type = "contract"' "Nargo.toml" || { popd >/dev/null; return 1; }
+    set -e
 
     ### get pascal case for project name from snake case
     case "$OSTYPE" in
@@ -26,6 +27,9 @@ compile_artifact() {
         ;;
     esac
 
+    ### Compile the contract
+    aztec-nargo compile --silence-warnings
+
     ### Generate typescript bindings
     aztec codegen ./target/$project-$contract_name.json -o .
 
@@ -37,7 +41,7 @@ compile_artifact() {
         # macOS
         sed -i '' "s|target/${project}-${contract_name}.json|./${contract_name}.json|" $contract_name.ts
         sed -i '' "export const ${contract_name}ContractArtifact = loadContractArtifact(${contract_name}ContractArtifactJson as NoirCompiledContract);/i \\/\/@ts-ignore" $contract_name.ts
-    
+
         ;;
     *)
         # Linux
@@ -48,8 +52,9 @@ compile_artifact() {
     esac
 
     ## Move artifacts
-    mv $contract_name.ts ../src/artifacts
-    mv target/$project-$contract_name.json ../src/artifacts/$contract_name.json
+    mv $contract_name.ts ../../src/artifacts/contracts
+    mv target/$project-$contract_name.json ../../src/artifacts/contracts/$contract_name.json
+    popd >/dev/null
 }
 
 ### MAIN
@@ -63,8 +68,7 @@ sh $SCRIPT_DIR/patch_noir_bignum.sh
 
 ### Compile the ZImburse workspace
 cd $SCRIPT_DIR/../contracts
-aztec-nargo compile --force --silence-warnings
-echo "###NOTE: If the above error is 'could not read z_imburse_contract_registry', ignore###"
+ls
 echo "Compiled Z-Imburse Contracts"
 
 for project in *; do

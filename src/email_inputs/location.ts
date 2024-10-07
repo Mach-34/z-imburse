@@ -1,4 +1,4 @@
-import { SequenceParams } from "./types";
+import { SequenceParams } from "../types";
 
 /**
  * Get the sequence parameters for a given span in the header

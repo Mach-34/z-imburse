@@ -1,3 +1,9 @@
+export const USDC_TOKEN = {
+    symbol: "USDC",
+    name: "Aztec USDC",
+    decimals: 6
+}
+
 export const Regexes = {
     from: /[Ff]rom:.*<.*?>\r?\n|[Ff]rom:.*@[^\r\n]+\r?\n/,
     to: /[Tt]o:.*?<([^>]+)>|[Tt]o:.*?([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/,

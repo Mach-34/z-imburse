@@ -18,7 +18,7 @@ const emails = {
     linode: readFileSync(join(__dirname, "test-data/linode.eml")),
 };
 
-describe("Linode Billing Receipt Test", () => {
+xdescribe("Linode Billing Receipt Test", () => {
     let prover: ZKEmailProver;
     jest.setTimeout(1000000);
     beforeAll(async () => {

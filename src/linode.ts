@@ -53,7 +53,7 @@ export const formatRedeemLinode = (
 
 /**
  * Given an email, generate the inputs for the Linode billing receipt proof
- * @param email - the email to generate the billing receipt for
+ * @param email - the email to generate the inputs
  */
 export const makeLinodeInputs = async (
   email: Buffer

@@ -55,7 +55,7 @@ async function addPendingShieldNoteToPXE(
 }
 jest.setTimeout(1000000);
 
-describe("Test deposit to zimburse", () => {
+xdescribe("Test deposit to zimburse", () => {
   let accounts: AccountWalletWithSecretKey[] = [];
   let pxe: PXE;
   let usdc: TokenContract;

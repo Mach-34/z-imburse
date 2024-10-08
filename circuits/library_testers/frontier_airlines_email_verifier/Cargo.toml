@@ -1,0 +1,6 @@
+[package]
+name = "frontier_airlines_email_verifier"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]

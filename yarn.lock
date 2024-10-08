@@ -55,6 +55,16 @@
     debug "^4.3.4"
     tslib "^2.4.0"
 
+"@aztec/bb.js@^0.57.0":
+  version "0.57.0"
+  resolved "https://registry.yarnpkg.com/@aztec/bb.js/-/bb.js-0.57.0.tgz#0d3238aee14d0bd873e88405b577399595899354"
+  integrity sha512-6chgqPKfD21HCWkHLo/nsOAZ5t+IQh2jBqiVJZQazLO7UMZuTX5V6tFOCOpbbiroLriQqvB6D40+U6kRYGK0Ww==
+  dependencies:
+    comlink "^4.4.1"
+    commander "^10.0.1"
+    debug "^4.3.4"
+    tslib "^2.4.0"
+
 "@aztec/circuit-types@0.56.0":
   version "0.56.0"
   resolved "https://registry.yarnpkg.com/@aztec/circuit-types/-/circuit-types-0.56.0.tgz#96488b90f35160f7672c2cc12bfc6cd3029be880"
@@ -2057,6 +2067,13 @@
     expect "^29.0.0"
     pretty-format "^29.0.0"
 
+"@types/node-forge@^1.3.11":
+  version "1.3.11"
+  resolved "https://registry.yarnpkg.com/@types/node-forge/-/node-forge-1.3.11.tgz#0972ea538ddb0f4d9c2fa0ec5db5724773a604da"
+  integrity sha512-FQx220y22OKNTqaByeBGqHWYz4cl94tpcxeFdvBo3wjG6XPBuZ0BNgNZRV5J5TFmmcsJ4IzsLkmGRiQbnYsBEQ==
+  dependencies:
+    "@types/node" "*"
+
 "@types/node@*", "@types/node@^22.7.4":
   version "22.7.4"
   resolved "https://registry.yarnpkg.com/@types/node/-/node-22.7.4.tgz#e35d6f48dca3255ce44256ddc05dee1c23353fcc"
@@ -2090,6 +2107,21 @@
   version "6.1.5"
   resolved "https://registry.yarnpkg.com/@zk-email/helpers/-/helpers-6.1.5.tgz#f777f5cd9b96a55fa18e8520e104d4ef84a3d5b0"
   integrity sha512-DaUQPdQKxI38QOIuce88kiEoQHZ/bEej34wUofmGqB0XlXVky1oFvvmF2MjJdDjuNScSL86QVR2WP06IIaLeJg==
+  dependencies:
+    addressparser "^1.0.1"
+    atob "^2.1.2"
+    circomlibjs "^0.1.7"
+    libmime "^5.2.1"
+    localforage "^1.10.0"
+    node-forge "^1.3.1"
+    pako "^2.1.0"
+    psl "^1.9.0"
+    snarkjs "https://github.com/sampritipanda/snarkjs.git#fef81fc51d17a734637555c6edbd585ecda02d9e"
+
+"@zk-email/helpers@^6.1.6":
+  version "6.1.6"
+  resolved "https://registry.yarnpkg.com/@zk-email/helpers/-/helpers-6.1.6.tgz#5cb06a8973ebe6bb31ece2f0bfb175fe8bdc62f8"
+  integrity sha512-qR8ZN+iebIa8Rm03nJFfSRhZgmaltaoNaBgquMzkWsXIUzFOCN/96qbkdVo7C5FztZ2tIlJs56k1cXKlL6+VYA==
   dependencies:
     addressparser "^1.0.1"
     atob "^2.1.2"

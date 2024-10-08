@@ -110,6 +110,7 @@ contract ZImburseContractRegistry {
         admin: AztecAddress,
         escrow: AztecAddress
     ) {
+        let res = std::verify_proof([0; 114], [0; 93], [0; 1], 0);
         // add escrow to the participant's set of escrows
         let mut escrow_note = AddressNote::new(escrow, get_public_keys(participant).npk_m.hash());
         storage.participant_escrows.insert(&mut escrow_note).emit(encode_and_encrypt_note(&mut context, admin, participant));

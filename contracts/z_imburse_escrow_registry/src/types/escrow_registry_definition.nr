@@ -1,6 +1,6 @@
 use dep::aztec::protocol_types::{address::AztecAddress, traits::{Serialize, Deserialize}};
 
-global ESCROW_REGISTRY_DEFINITION_LENGTH: u32 = 3;
+global ESCROW_REGISTRY_DEFINITION_LENGTH: u32 = 4;
 
 pub struct EscrowRegistryDefinition {
     admin: AztecAddress,
@@ -9,15 +9,15 @@ pub struct EscrowRegistryDefinition {
     escrow_contract_id: Field
 }
 
-impl Serialize<DEFINITION_LENGTH> for Definition {
-    fn serialize(self: Self) -> [Field; DEFINITION_LENGTH] {
+impl Serialize<ESCROW_REGISTRY_DEFINITION_LENGTH> for EscrowRegistryDefinition {
+    fn serialize(self: Self) -> [Field; ESCROW_REGISTRY_DEFINITION_LENGTH] {
         [self.admin.to_field(), self.dkim_registry.to_field(), self.usdc.to_field(), self.escrow_contract_id]
     }
 }
 
-impl Deserialize<DEFINITION_LENGTH> for Definition {
-    fn deserialize(fields: [Field; DEFINITION_LENGTH]) -> Self {
-        Definition {
+impl Deserialize<ESCROW_REGISTRY_DEFINITION_LENGTH> for EscrowRegistryDefinition {
+    fn deserialize(fields: [Field; ESCROW_REGISTRY_DEFINITION_LENGTH]) -> Self {
+        EscrowRegistryDefinition {
             admin: AztecAddress::from_field(fields[0]),
             dkim_registry: AztecAddress::from_field(fields[1]),
             usdc: AztecAddress::from_field(fields[2]),
@@ -26,7 +26,7 @@ impl Deserialize<DEFINITION_LENGTH> for Definition {
     }
 }
 
-impl Definition {
+impl EscrowRegistryDefinition {
     /**
      * Create a new definition for a Z-Imburse escrow registry contract
      *

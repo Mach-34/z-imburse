@@ -2,8 +2,20 @@ use dep::aztec::macros::aztec;
 
 pub global BULK_KEY_LENGTH: u32 = 50;
 
+mod verifier_id {
+    pub global AWS: Field = 1;
+    pub global LINODE: Field = 2;
+    pub global HEROKU: Field = 3;
+    pub global FRONTIER_AIRLINES: Field = 4;
+    pub global UNITED_AIRLINES: Field = 5;
+    pub global AMERICAN_AIRLINES: Field = 6;
+    pub global DELTA_AIRLINES: Field = 7;
+    pub global UBER: Field = 8;
+    pub global LYFT: Field = 9;
+}
+
 #[aztec]
-contract ZImburseDKIMRegistry {
+contract ZImburseDkimRegistry {
     use std::meta::derive;
     use dep::aztec::prelude::{AztecAddress, SharedImmutable, Map};
     use dep::aztec::macros::{storage::storage, events::event, functions::{private, public, view, initializer}};

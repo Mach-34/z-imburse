@@ -1,5 +1,5 @@
 use dep::aztec::protocol_types::{address::AztecAddress, traits::{Serialize, Deserialize}, constants::GENERATOR_INDEX__NOTE_NULLIFIER, hash::poseidon2_hash_with_separator};
-use dep::aztec::{note::utils::compute_note_hash_for_nullify, oracle::unsafe_rand::unsafe_rand};
+use dep::aztec::{note::utils::compute_note_hash_for_nullify, oracle::random::random};
 use dep::compressed_string::CompressedString;
 use dep::aztec::macros::notes::note;
 use dep::aztec::prelude::{NoteHeader, NullifiableNote, PrivateContext};
@@ -110,7 +110,7 @@ impl OwnedNote for RecurringEntitlementNote {
             owner,
             npk_m_hash,
             max_value,
-            randomness: unsafe { unsafe_rand() },
+            randomness: unsafe { random() },
             header: NoteHeader::empty()
         }
     }

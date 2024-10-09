@@ -46,10 +46,15 @@ contract ZImburseEscrow {
 
     #[private]
     fn give_entitlement(to: AztecAddress, amount: Field) {
-        let recipient = get_public_keys(to);
-        let mut entitlement: RecurringEntitlementNote = RecurringEntitlementNote::new(to, recipient.npk_m.hash(), U128::from_integer(amount));
+        let recipient_keys = get_public_keys(to);
+        let admin_keys = get_public_keys(context.msg_sender());
+        let mut entitlement: RecurringEntitlementNote = RecurringEntitlementNote::new(
+            to,
+            recipient_keys.npk_m.hash(),
+            U128::from_integer(amount)
+        );
         storage.entitlements.at(to).insert(&mut entitlement).emit(
-            encode_and_encrypt_note(&mut context, context.msg_sender(), to)
+            encode_and_encrypt_note(&mut context, admin_keys.ovpk_m, recipient_keys.ivpk_m, to)
         );
     }
 

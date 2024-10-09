@@ -108,36 +108,15 @@ export class ZImburseEscrowContract extends ContractBase {
   }
   
 
-  public static get storage(): ContractStorageLayout<'admin' | 'minters' | 'balances' | 'total_supply' | 'pending_shields' | 'public_balances' | 'symbol' | 'name' | 'decimals'> {
+  public static get storage(): ContractStorageLayout<'definition' | 'entitlements'> {
       return {
-        admin: {
+        definition: {
       slot: new Fr(1n),
     },
-minters: {
-      slot: new Fr(2n),
-    },
-balances: {
-      slot: new Fr(3n),
-    },
-total_supply: {
-      slot: new Fr(4n),
-    },
-pending_shields: {
-      slot: new Fr(5n),
-    },
-public_balances: {
+entitlements: {
       slot: new Fr(6n),
-    },
-symbol: {
-      slot: new Fr(7n),
-    },
-name: {
-      slot: new Fr(8n),
-    },
-decimals: {
-      slot: new Fr(9n),
     }
-      } as ContractStorageLayout<'admin' | 'minters' | 'balances' | 'total_supply' | 'pending_shields' | 'public_balances' | 'symbol' | 'name' | 'decimals'>;
+      } as ContractStorageLayout<'definition' | 'entitlements'>;
     }
     
 
@@ -176,6 +155,9 @@ RecurringEntitlementNote: {
 
     /** give_entitlement(to: struct, amount: field) */
     give_entitlement: ((to: AztecAddressLike, amount: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+
+    /** public_dispatch(selector: field) */
+    public_dispatch: ((selector: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
     /** redeem_linode_entitlement(body: array, body_hash_index: integer, body_length: integer, header: array, header_length: integer, pubkey: array, pubkey_redc: array, signature: array, from_index: integer, subject_index: integer, amount_index: integer, amount_length: integer, date_index: integer, receipt_id_length: integer, claim_secret_hash: field) */
     redeem_linode_entitlement: ((body: (bigint | number)[], body_hash_index: (bigint | number), body_length: (bigint | number), header: (bigint | number)[], header_length: (bigint | number), pubkey: FieldLike[], pubkey_redc: FieldLike[], signature: FieldLike[], from_index: (bigint | number), subject_index: (bigint | number), amount_index: (bigint | number), amount_length: (bigint | number), date_index: (bigint | number), receipt_id_length: (bigint | number), claim_secret_hash: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;

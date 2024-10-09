@@ -1,4 +1,4 @@
-import { computeContractClassId, getContractClassFromArtifact } from '@aztec/circuits.js';
+import { computeContractClassId, getContractClassFromArtifact } from '@aztec/circuits.js/contract';
 import { ZImburseEscrowContract } from "../artifacts/contracts";
 
 /** Returns the Class ID of the Escrow contract */

@@ -18,12 +18,12 @@ import {
 /**
  * Deploys the contracts needed for the tests
  *
- * @param externalDeployer The deployer account for non-user contracts
- * @param escrowDeployer The deployer account for escrow contracts
+ * @param superuser The admin account for usdc, registry contracts
+ * @param escrowAdmin The deployer account for escrow contracts
  */
 export async function setup(
-  externalDeployer: AccountWalletWithSecretKey,
-  escrowDeployer: AccountWalletWithSecretKey[],
+  superuser: AccountWalletWithSecretKey,
+  escrowAdmin: AccountWalletWithSecretKey[],
   numEscrows: number = 1,
   verbose = true
 ): Promise<{
@@ -31,14 +31,14 @@ export async function setup(
   registry: ZImburseContractRegistryContract;
   escrows: ZImburseEscrowContract[];
 }> {
-  if (numEscrows != escrowDeployer.length) {
+  if (numEscrows != escrowAdmin.length) {
     throw new Error(
       "Number of escrow deployers must match the number of escrows"
     );
   }
   const usdc = await TokenContract.deploy(
-    externalDeployer,
-    externalDeployer.getAddress(),
+    superuser,
+    superuser.getAddress(),
     USDC_TOKEN.symbol,
     USDC_TOKEN.name,
     USDC_TOKEN.decimals
@@ -49,7 +49,7 @@ export async function setup(
   // deploy registry contract
   const escrowClassId = getEscrowContractClassID();
   const registry = await ZImburseContractRegistryContract.deploy(
-    externalDeployer,
+    superuser,
     escrowClassId
   )
     .send()
@@ -60,7 +60,7 @@ export async function setup(
   const escrows: ZImburseEscrowContract[] = [];
   for (let i = 0; i < numEscrows; i++) {
     const escrow = await ZImburseEscrowContract.deploy(
-      escrowDeployer[i],
+      escrowAdmin[i],
       registry.address,
       usdc.address,
       `Escrow ${i}`

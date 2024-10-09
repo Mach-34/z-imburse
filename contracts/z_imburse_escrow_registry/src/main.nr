@@ -3,7 +3,7 @@ use dep::aztec::macros::aztec;
 mod types;
 
 #[aztec]
-contract ZImburseContractRegistry {
+contract ZImburseEscrowRegistry {
     use dep::aztec::prelude::{AztecAddress, PrivateImmutable, PrivateSet, SharedImmutable, Map};
     use dep::aztec::macros::{storage::storage, functions::{private, public, view, initializer}};
     use dep::aztec::note::{
@@ -15,9 +15,12 @@ contract ZImburseContractRegistry {
     use dep::aztec::utils::comparison::Comparator;
     use dep::aztec::encrypted_logs::encrypted_note_emission::{encode_and_encrypt_note_unconstrained, encode_and_encrypt_note};
     use dep::address_note::address_note::AddressNote;
-    use crate::types::participant_note::{EscrowRegistryDefinition, ParticipantNote, NAME_LENGTH};
     use dep::z_imburse_escrow::ZImburseEscrow;
-    use dep::z_imburse_dkim_registry    ::{ZImburseDKIMRegistry, BULK_KEY_LENGTH};
+    use dep::z_imburse_dkim_registry::{ZImburseDkimRegistry, BULK_KEY_LENGTH};
+    use crate::types::{
+        escrow_registry_definition::EscrowRegistryDefinition,
+        participant_note::{ParticipantNote, NAME_LENGTH}
+    };
 
     #[storage]
     struct Storage<Context> {
@@ -45,12 +48,12 @@ contract ZImburseContractRegistry {
     ) {
         let definition = EscrowRegistryDefinition::new(
             context.msg_sender(),
-            dkim_regiistry,
+            dkim_registry,
             usdc,
             escrow_contract_id
-        )
+        );
         storage.definition.initialize(definition);
-        ZImburseDKIMRegistry::at(dkim_registry).register_dkim_bulk(dkim_verifier_ids, dkim_key_hashes).enqueue(&mut context);
+        ZImburseDkimRegistry::at(dkim_registry).register_dkim_bulk(dkim_verifier_ids, dkim_key_hashes).call(&mut context);
     }
 
     /**
@@ -65,9 +68,13 @@ contract ZImburseContractRegistry {
         dkim_verifier_ids: [Field; BULK_KEY_LENGTH],
         dkim_key_hashes: [Field; BULK_KEY_LENGTH]
     ) {
+        // check admin is sender
         let definition = storage.definition.read_public();
-        assert(context.msg_sender() == definition.admin, "Only admin can update dkim")
-        ZImburseDKIMRegistry::at(dkim_registry).register_dkim_bulk(dkim_verifier_ids, dkim_key_hashes).enqueue(&mut context);
+        assert(context.msg_sender() == definition.admin, "Only admin can update dkim");
+        // forward call to DKIM registry
+        ZImburseDkimRegistry::at(definition.dkim_registry)
+            .register_dkim_bulk(dkim_verifier_ids, dkim_key_hashes)
+            .call(&mut context);
     }
 
     /**
@@ -78,16 +85,21 @@ contract ZImburseContractRegistry {
      * @param dkim_key_hash - the hash of the DKIM key
      */
     #[public]
-    register_dkim(dkim_verifier_id: Field, dkim_key_hash: Field) {
+    fn register_dkim(dkim_verifier_id: Field, dkim_key_hash: Field) {
+        // check admin is sender
         let definition = storage.definition.read_public();
-        assert(context.msg_sender() == definition.admin, "Only admin can update dkim")
-        ZImburseDKIMRegistry::at(dkim_registry).register_dkim(dkim_verifier, dkim_key_hash).enqueue(&mut context);
+        assert(context.msg_sender() == definition.admin, "Only admin can update dkim");
+        // forward call to DKIM registry
+        ZImburseDkimRegistry::at(definition.dkim_registry)
+            .register_dkim(dkim_verifier_id, dkim_key_hash)
+            .call(&mut context);
     }
 
     /**
      * Check the authenticity and deployment status of an escrow contract and register it in the Z-Imburse registry
      * @dev the header will not include the contract address and the contract 
      *
+     * @param escrow_contract - the address of the escrow contract to register
      */
     #[private]
     fn register_escrow(escrow_contract: AztecAddress) {
@@ -106,18 +118,21 @@ contract ZImburseContractRegistry {
         // check the contract class ID
         // THIS IS NOT CONSTRAINED THE ORACLE CAN JUST LIE ://////
         let contract_class_id = get_contract_instance(escrow_contract).contract_class_id.to_field();
-        let expected_class_id = storage.escrow_contract_id.read_private();
+        let expected_class_id = storage.definition.read_private().escrow_contract_id;
         assert(
             contract_class_id == expected_class_id, "Escrow contract class ID does not match expected class ID"
         );
 
         // privately add the escrow contract to the list of managed escrows
-        let npk_m_hash = get_public_keys(context.msg_sender()).npk_m.hash();
-        let mut escrow_note = AddressNote::new(escrow_contract, npk_m_hash);
-        storage.managed_escrows.insert(&mut escrow_note).emit(encode_and_encrypt_note(&mut context, context.msg_sender(), context.msg_sender()));
+        let admin_keys = get_public_keys(context.msg_sender());
+        let mut escrow_note = AddressNote::new(escrow_contract, admin_keys.npk_m.hash());
+        // use unconstrained - why would you lie here
+        storage.managed_escrows.insert(&mut escrow_note).emit(
+            encode_and_encrypt_note_unconstrained(&mut context, admin_keys.ovpk_m, admin_keys.ivpk_m, context.msg_sender())
+        );
 
         // publicly add the escrow contract to the list of participant escrows
-        ZImburseContractRegistry::at(context.this_address()).set_contract_registered(escrow_contract).enqueue(&mut context);
+        ZImburseEscrowRegistry::at(context.this_address()).set_contract_registered(escrow_contract).enqueue(&mut context);
     }
 
     /**
@@ -145,7 +160,7 @@ contract ZImburseContractRegistry {
         // if the participant has not been registered, enqueue a private call to register the participant
         // do this instead of if statement here to make adding first time expensive but cheap if already registered
         if participant_exists {
-            ZImburseContractRegistry::at(context.this_address()).register_participant(participant, participant_name, context.msg_sender(), escrow).call(&mut context);
+            ZImburseEscrowRegistry::at(context.this_address()).register_participant(participant, participant_name, context.msg_sender(), escrow).call(&mut context);
         }
     }
 
@@ -157,16 +172,32 @@ contract ZImburseContractRegistry {
         admin: AztecAddress,
         escrow: AztecAddress
     ) {
+        let admin_keys = get_public_keys(admin);
+        let participant_keys = get_public_keys(participant);
         // add escrow to the participant's set of escrows
-        let mut escrow_note = AddressNote::new(escrow, get_public_keys(participant).npk_m.hash());
-        storage.participant_escrows.insert(&mut escrow_note).emit(encode_and_encrypt_note(&mut context, admin, participant));
+        let mut escrow_note = AddressNote::new(escrow, participant_keys.npk_m.hash());
+        storage.participant_escrows.insert(&mut escrow_note).emit(
+            encode_and_encrypt_note(
+                &mut context,
+                admin_keys.ovpk_m,
+                participant_keys.ivpk_m,
+                participant
+            )
+        );
         // add the participant to the admin set of participants
         let mut participant_note = ParticipantNote::new(
             participant,
             participant_name,
-            get_public_keys(admin).npk_m.hash()
+            admin_keys.npk_m.hash()
         );
-        storage.participants.at(escrow).insert(&mut participant_note).emit(encode_and_encrypt_note_unconstrained(&mut context, admin, admin))
+        storage.participants.at(escrow).insert(&mut participant_note).emit(
+            encode_and_encrypt_note_unconstrained(
+                &mut context,
+                admin_keys.ovpk_m,
+                admin_keys.ivpk_m,
+                admin
+            )
+        );
     }
 
     // todo: add ability to remove participant
@@ -175,14 +206,14 @@ contract ZImburseContractRegistry {
     /** Get the class ID that all escrow contracts must match */
     #[public]
     #[view]
-    fn get_escrow_class_id() -> pub Field {
-        storage.escrow_contract_id.read_public()
+    fn get_escrow_class_id() -> Field {
+        storage.definition.read_public().escrow_contract_id
     }
 
     /** Get the registration status of an escrow contract */
     #[public]
     #[view]
-    fn get_contract_registration_status(escrow_contract: AztecAddress) -> pub bool {
+    fn get_contract_registration_status(escrow_contract: AztecAddress) -> bool {
         storage.contract_registration.at(escrow_contract).read_public()
     }
 

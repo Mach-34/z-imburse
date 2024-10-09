@@ -1,6 +1,6 @@
 use dep::zkemail::{KEY_LIMBS_2048, dkim::verify_dkim_2048, get_body_hash_by_index, base64::body_hash_base64_decode};
 use crate::constants::{LinodeBillingParams, MAX_LINODE_EMAIL_BODY_LENGTH, MAX_LINODE_EMAIL_HEADER_LENGTH};
-use crate::utils::{check_from_linode_billing, check_subject_billing_receipt, extract_billed_amount, extract_datetime};
+use crate::utils::{check_from_linode_billing, check_subject_linode_billing_receipt, extract_billed_amount, extract_datetime};
 use std::hash::pedersen_hash;
 
 /// USE UNTIL WE HAVE AZTEC-NARGO v0.35.0
@@ -46,7 +46,7 @@ pub fn verify_linode_billing_receipt(
     check_from_linode_billing(from_index, header);
 
     // assert this is a billing receipt email from Linode
-    check_subject_billing_receipt(subject_index, header, receipt_id_length);
+    check_subject_linode_billing_receipt(subject_index, header, receipt_id_length);
 
     // extract billed amount
     // note: the billed amount has 2 decimals

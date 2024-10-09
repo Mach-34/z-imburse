@@ -7,7 +7,7 @@ const UBER_MAX_BODY_LENGTH = 832;
 
 /**
  * Given an email, generate the inputs for the Uber receipt proof
- * @param email - the email to generate the inputs for
+ * @param email - the Uber ride receipt email to generate the inputs for
  */
 export const makeUberInputs = async (
     email: Buffer

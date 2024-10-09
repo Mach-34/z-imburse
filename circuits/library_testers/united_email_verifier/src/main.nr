@@ -1,5 +1,5 @@
 use dep::zimburse_verifiers::{
-    constants::{MAX_UNITED_EMAIL_BODY_LENGTH, MAX_UNITED_EMAIL_HEADER_LENGTH},
+    constants::{MAX_UNITED_EMAIL_BODY_LENGTH, MAX_UNITED_EMAIL_HEADER_LENGTH, UNITED_PURCHASE_SUMMARY_INDICE_LEN},
     united::verify_united_flight_receipt,
     zkemail::KEY_LIMBS_2048,
 };
@@ -14,8 +14,10 @@ fn main(
     pubkey_redc: [Field; KEY_LIMBS_2048],
     signature: [Field; KEY_LIMBS_2048],
     from_index: u32,
-    subject_index: u32
-) {
+    subject_index: u32,
+    purchase_summary_indices: [u32; UNITED_PURCHASE_SUMMARY_INDICE_LEN]
+) -> pub [Field; 2] {
+
     verify_united_flight_receipt(
         body, 
         body_hash_index, 
@@ -26,6 +28,7 @@ fn main(
         pubkey_redc, 
         signature,
         from_index,
-        subject_index
-    );
+        subject_index,
+        purchase_summary_indices
+    )
 }

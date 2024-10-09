@@ -43,57 +43,53 @@ contract ZImburseEscrowRegistry {
         dkim_registry: AztecAddress,
         usdc: AztecAddress,
         escrow_contract_id: Field,
-        dkim_verifier_ids: [Field; BULK_KEY_LENGTH],
-        dkim_key_hashes: [Field; BULK_KEY_LENGTH]
     ) {
         let definition = EscrowRegistryDefinition::new(
-            context.msg_sender(),
             dkim_registry,
             usdc,
             escrow_contract_id
         );
         storage.definition.initialize(definition);
-        ZImburseDkimRegistry::at(dkim_registry).register_dkim_bulk(dkim_verifier_ids, dkim_key_hashes).call(&mut context);
     }
 
-    /**
-     * Entrypoint for registering a DKIM key in bulk in the DKIM registry
-     * @dev the DKIM registry is separate from escrow registry so both can import it
-     *
-     * @param dkim_verifier_ids - the verifier IDs to register the DKIM keys to
-     * @param dkim_key_hashes - the hashes of the DKIM keys
-     */
-    #[public]
-    fn register_dkim_bulk(
-        dkim_verifier_ids: [Field; BULK_KEY_LENGTH],
-        dkim_key_hashes: [Field; BULK_KEY_LENGTH]
-    ) {
-        // check admin is sender
-        let definition = storage.definition.read_public();
-        assert(context.msg_sender() == definition.admin, "Only admin can update dkim");
-        // forward call to DKIM registry
-        ZImburseDkimRegistry::at(definition.dkim_registry)
-            .register_dkim_bulk(dkim_verifier_ids, dkim_key_hashes)
-            .call(&mut context);
-    }
+    // /**
+    //  * Entrypoint for registering a DKIM key in bulk in the DKIM registry
+    //  * @dev the DKIM registry is separate from escrow registry so both can import it
+    //  *
+    //  * @param dkim_verifier_ids - the verifier IDs to register the DKIM keys to
+    //  * @param dkim_key_hashes - the hashes of the DKIM keys
+    //  */
+    // #[public]
+    // fn register_dkim_bulk(
+    //     dkim_verifier_ids: [Field; BULK_KEY_LENGTH],
+    //     dkim_key_hashes: [Field; BULK_KEY_LENGTH]
+    // ) {
+    //     // check admin is sender
+    //     let definition = storage.definition.read_public();
+    //     assert(context.msg_sender() == definition.admin, "Only admin can update dkim");
+    //     // forward call to DKIM registry
+    //     ZImburseDkimRegistry::at(definition.dkim_registry)
+    //         .register_dkim_bulk(dkim_verifier_ids, dkim_key_hashes)
+    //         .call(&mut context);
+    // }
 
-    /**
-     * Entrypoint for registering a DKIM key in the DKIM registry
-     * @dev the DKIM registry is separate from escrow registry so both can import it
-     *
-     * @param dkim_verifier_id - the verifier ID to register the DKIM key to
-     * @param dkim_key_hash - the hash of the DKIM key
-     */
-    #[public]
-    fn register_dkim(dkim_verifier_id: Field, dkim_key_hash: Field) {
-        // check admin is sender
-        let definition = storage.definition.read_public();
-        assert(context.msg_sender() == definition.admin, "Only admin can update dkim");
-        // forward call to DKIM registry
-        ZImburseDkimRegistry::at(definition.dkim_registry)
-            .register_dkim(dkim_verifier_id, dkim_key_hash)
-            .call(&mut context);
-    }
+    // /**
+    //  * Entrypoint for registering a DKIM key in the DKIM registry
+    //  * @dev the DKIM registry is separate from escrow registry so both can import it
+    //  *
+    //  * @param dkim_verifier_id - the verifier ID to register the DKIM key to
+    //  * @param dkim_key_hash - the hash of the DKIM key
+    //  */
+    // #[public]
+    // fn register_dkim(dkim_verifier_id: Field, dkim_key_hash: Field) {
+    //     // check admin is sender
+    //     let definition = storage.definition.read_public();
+    //     assert(context.msg_sender() == definition.admin, "Only admin can update dkim");
+    //     // forward call to DKIM registry
+    //     ZImburseDkimRegistry::at(definition.dkim_registry)
+    //         .register_dkim(dkim_verifier_id, dkim_key_hash)
+    //         .call(&mut context);
+    // }
 
     /**
      * Check the authenticity and deployment status of an escrow contract and register it in the Z-Imburse registry
@@ -110,6 +106,7 @@ contract ZImburseEscrowRegistry {
         // check that the contract admin is the sender of the message
         let escrow_admin = ZImburseEscrow::at(escrow_contract).get_admin_private().view(&mut context);
         assert(escrow_admin == context.msg_sender(), "Escrow contract admin does not match sender of message");
+        // todo: check that dkim registry matches
 
         // check that the contract has been deployed
         let header = context.historical_header;

@@ -1,6 +1,6 @@
 use dep::aztec::macros::aztec;
 
-pub global BULK_KEY_LENGTH: u32 = 50;
+pub global BULK_KEY_LENGTH: u32 = 4;
 
 mod verifier_id {
     pub global AWS: Field = 1;
@@ -25,7 +25,7 @@ contract ZImburseDkimRegistry {
 
     #[storage]
     struct Storage<Context> {
-        contract_registry: SharedImmutable<AztecAddress, Context>,
+        admin: SharedImmutable<AztecAddress, Context>,
         dkim_registry: Map<Field, SharedImmutable<Field, Context>, Context>,
     }
 
@@ -43,8 +43,24 @@ contract ZImburseDkimRegistry {
      */
     #[public]
     #[initializer]
-    fn constructor(registry: AztecAddress) {
-        storage.contract_registry.initialize(registry);
+    fn constructor(
+        verifier_ids: [Field; BULK_KEY_LENGTH],
+        dkim_key_hashes: [Field; BULK_KEY_LENGTH]
+    ) {
+        storage.admin.initialize(context.msg_sender());
+        // bulk insert up to 8 dkim key hashes at initialization (max unencrypted logs per tx)
+        for i in 0..BULK_KEY_LENGTH {
+            if (verifier_ids[i] != 0) {
+                // ensure that the dkim key has not already been registered
+                let stored_id = storage.dkim_registry.at(dkim_key_hashes[i]).read_public();
+                assert(stored_id == 0, "DKIM key has already been registered");
+                storage.dkim_registry.at(dkim_key_hashes[i]).initialize(verifier_ids[i]);
+                emit(&mut context, DKIMKeyRegistered {
+                    dkim_key_hash: dkim_key_hashes[i],
+                    verifier_id: verifier_ids[i]
+                });
+            }
+        }
     }
 
     /**
@@ -55,9 +71,9 @@ contract ZImburseDkimRegistry {
      */
     #[public]
     fn register_dkim_bulk(verifier_ids: [Field; BULK_KEY_LENGTH], dkim_key_hashes: [Field; BULK_KEY_LENGTH]) {
-        // check that the sender is the registry contract
-        let registry = storage.contract_registry.read_public();
-        assert(registry == context.msg_sender(), "Sender is not the registry contract");
+        // check that the sender is the admin
+        let admin = storage.admin.read_public();
+        assert(admin == context.msg_sender(), "Sender is not the registry contract");
         // bulk insert up to 50 dkim key hashes
         for i in 0..BULK_KEY_LENGTH {
             if (verifier_ids[i] != 0) {
@@ -81,9 +97,9 @@ contract ZImburseDkimRegistry {
      */
     #[public]
     fn register_dkim(verifier_id: Field, dkim_key_hash: Field) {
-        // check that the sender is the registry contract
-        let registry = storage.contract_registry.read_public();
-        assert(registry == context.msg_sender(), "Sender is not the registry contract");
+        // check that the sender is the admin
+        let admin = storage.admin.read_public();
+        assert(admin == context.msg_sender(), "Sender is not the registry contract");
         // ensure that the dkim key has not already been registered
         let stored_id = storage.dkim_registry.at(dkim_key_hash).read_public();
         assert(stored_id == 0, "DKIM key has already been registered");

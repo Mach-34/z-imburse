@@ -70,14 +70,14 @@ export class ZImburseEscrowRegistryContract extends ContractBase {
   /**
    * Creates a tx to deploy a new instance of this contract.
    */
-  public static deploy(wallet: Wallet, dkim_registry: AztecAddressLike, usdc: AztecAddressLike, escrow_contract_id: FieldLike, dkim_verifier_ids: FieldLike[], dkim_key_hashes: FieldLike[]) {
+  public static deploy(wallet: Wallet, dkim_registry: AztecAddressLike, usdc: AztecAddressLike, escrow_contract_id: FieldLike) {
     return new DeployMethod<ZImburseEscrowRegistryContract>(Fr.ZERO, wallet, ZImburseEscrowRegistryContractArtifact, ZImburseEscrowRegistryContract.at, Array.from(arguments).slice(1));
   }
 
   /**
    * Creates a tx to deploy a new instance of this contract using the specified public keys hash to derive the address.
    */
-  public static deployWithPublicKeysHash(publicKeysHash: Fr, wallet: Wallet, dkim_registry: AztecAddressLike, usdc: AztecAddressLike, escrow_contract_id: FieldLike, dkim_verifier_ids: FieldLike[], dkim_key_hashes: FieldLike[]) {
+  public static deployWithPublicKeysHash(publicKeysHash: Fr, wallet: Wallet, dkim_registry: AztecAddressLike, usdc: AztecAddressLike, escrow_contract_id: FieldLike) {
     return new DeployMethod<ZImburseEscrowRegistryContract>(publicKeysHash, wallet, ZImburseEscrowRegistryContractArtifact, ZImburseEscrowRegistryContract.at, Array.from(arguments).slice(2));
   }
 
@@ -114,16 +114,16 @@ export class ZImburseEscrowRegistryContract extends ContractBase {
       slot: new Fr(1n),
     },
 managed_escrows: {
-      slot: new Fr(5n),
+      slot: new Fr(4n),
     },
 participants: {
-      slot: new Fr(6n),
+      slot: new Fr(5n),
     },
 participant_escrows: {
-      slot: new Fr(7n),
+      slot: new Fr(6n),
     },
 contract_registration: {
-      slot: new Fr(8n),
+      slot: new Fr(7n),
     }
       } as ContractStorageLayout<'definition' | 'managed_escrows' | 'participants' | 'participant_escrows' | 'contract_registration'>;
     }
@@ -159,8 +159,8 @@ ParticipantNote: {
     /** compute_note_hash_and_optionally_a_nullifier(contract_address: struct, nonce: field, storage_slot: field, note_type_id: field, compute_nullifier: boolean, serialized_note: array) */
     compute_note_hash_and_optionally_a_nullifier: ((contract_address: AztecAddressLike, nonce: FieldLike, storage_slot: FieldLike, note_type_id: FieldLike, compute_nullifier: boolean, serialized_note: FieldLike[]) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
-    /** constructor(dkim_registry: struct, usdc: struct, escrow_contract_id: field, dkim_verifier_ids: array, dkim_key_hashes: array) */
-    constructor: ((dkim_registry: AztecAddressLike, usdc: AztecAddressLike, escrow_contract_id: FieldLike, dkim_verifier_ids: FieldLike[], dkim_key_hashes: FieldLike[]) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+    /** constructor(dkim_registry: struct, usdc: struct, escrow_contract_id: field) */
+    constructor: ((dkim_registry: AztecAddressLike, usdc: AztecAddressLike, escrow_contract_id: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
     /** get_contract_registration_status(escrow_contract: struct) */
     get_contract_registration_status: ((escrow_contract: AztecAddressLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
@@ -179,12 +179,6 @@ ParticipantNote: {
 
     /** public_dispatch(selector: field) */
     public_dispatch: ((selector: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
-
-    /** register_dkim(dkim_verifier_id: field, dkim_key_hash: field) */
-    register_dkim: ((dkim_verifier_id: FieldLike, dkim_key_hash: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
-
-    /** register_dkim_bulk(dkim_verifier_ids: array, dkim_key_hashes: array) */
-    register_dkim_bulk: ((dkim_verifier_ids: FieldLike[], dkim_key_hashes: FieldLike[]) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
     /** register_escrow(escrow_contract: struct) */
     register_escrow: ((escrow_contract: AztecAddressLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;

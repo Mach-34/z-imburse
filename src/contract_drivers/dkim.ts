@@ -34,8 +34,8 @@ export function prepareDKIMKeysForInputs(): DKIMInput[][] {
   }
 
   traverseAndExtract(savedDkimHashes);
-  // split inputs into chunks of 50
-  const chunkSize = 50;
+  // split inputs into chunks of 8 (max unencrypted logs)
+  const chunkSize = 4;
   const chunkedInputs: DKIMInput[][] = [];
   for (let i = 0; i < inputs.length; i += chunkSize) {
     chunkedInputs.push(inputs.slice(i, i + chunkSize));

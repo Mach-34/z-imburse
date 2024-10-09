@@ -75,14 +75,14 @@ export class ZImburseDkimRegistryContract extends ContractBase {
   /**
    * Creates a tx to deploy a new instance of this contract.
    */
-  public static deploy(wallet: Wallet, registry: AztecAddressLike) {
+  public static deploy(wallet: Wallet, verifier_ids: FieldLike[], dkim_key_hashes: FieldLike[]) {
     return new DeployMethod<ZImburseDkimRegistryContract>(Fr.ZERO, wallet, ZImburseDkimRegistryContractArtifact, ZImburseDkimRegistryContract.at, Array.from(arguments).slice(1));
   }
 
   /**
    * Creates a tx to deploy a new instance of this contract using the specified public keys hash to derive the address.
    */
-  public static deployWithPublicKeysHash(publicKeysHash: Fr, wallet: Wallet, registry: AztecAddressLike) {
+  public static deployWithPublicKeysHash(publicKeysHash: Fr, wallet: Wallet, verifier_ids: FieldLike[], dkim_key_hashes: FieldLike[]) {
     return new DeployMethod<ZImburseDkimRegistryContract>(publicKeysHash, wallet, ZImburseDkimRegistryContractArtifact, ZImburseDkimRegistryContract.at, Array.from(arguments).slice(2));
   }
 
@@ -113,15 +113,15 @@ export class ZImburseDkimRegistryContract extends ContractBase {
   }
   
 
-  public static get storage(): ContractStorageLayout<'contract_registry' | 'dkim_registry'> {
+  public static get storage(): ContractStorageLayout<'admin' | 'dkim_registry'> {
       return {
-        contract_registry: {
+        admin: {
       slot: new Fr(1n),
     },
 dkim_registry: {
       slot: new Fr(2n),
     }
-      } as ContractStorageLayout<'contract_registry' | 'dkim_registry'>;
+      } as ContractStorageLayout<'admin' | 'dkim_registry'>;
     }
     
 
@@ -139,8 +139,8 @@ dkim_registry: {
     /** compute_note_hash_and_optionally_a_nullifier(contract_address: struct, nonce: field, storage_slot: field, note_type_id: field, compute_nullifier: boolean, serialized_note: array) */
     compute_note_hash_and_optionally_a_nullifier: ((contract_address: AztecAddressLike, nonce: FieldLike, storage_slot: FieldLike, note_type_id: FieldLike, compute_nullifier: boolean, serialized_note: FieldLike[]) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
-    /** constructor(registry: struct) */
-    constructor: ((registry: AztecAddressLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+    /** constructor(verifier_ids: array, dkim_key_hashes: array) */
+    constructor: ((verifier_ids: FieldLike[], dkim_key_hashes: FieldLike[]) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
     /** public_dispatch(selector: field) */
     public_dispatch: ((selector: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;

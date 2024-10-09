@@ -15,12 +15,14 @@ contract ZImburseContractRegistry {
     use dep::aztec::utils::comparison::Comparator;
     use dep::aztec::encrypted_logs::encrypted_note_emission::{encode_and_encrypt_note_unconstrained, encode_and_encrypt_note};
     use dep::address_note::address_note::AddressNote;
-    use crate::types::participant_note::{ParticipantNote, NAME_LENGTH};
+    use crate::types::participant_note::{EscrowRegistryDefinition, ParticipantNote, NAME_LENGTH};
     use dep::z_imburse_escrow::ZImburseEscrow;
+    use dep::z_imburse_dkim_registry    ::{ZImburseDKIMRegistry, BULK_KEY_LENGTH};
 
     #[storage]
     struct Storage<Context> {
-        escrow_contract_id: SharedImmutable<Field, Context>,
+        // todo: decentralize dkim registry functionality
+        definition: SharedImmutable<EscrowRegistryDefinition, Context>,
         managed_escrows: PrivateSet<AddressNote, Context>,
         participants: Map<AztecAddress, PrivateSet<ParticipantNote, Context>, Context>,
         participant_escrows: PrivateSet<AddressNote, Context>,
@@ -34,8 +36,52 @@ contract ZImburseContractRegistry {
      */
     #[public]
     #[initializer]
-    fn constructor(contract_class_id: Field) {
-        storage.escrow_contract_id.initialize(contract_class_id);
+    fn constructor(
+        dkim_registry: AztecAddress,
+        usdc: AztecAddress,
+        escrow_contract_id: Field,
+        dkim_verifier_ids: [Field; BULK_KEY_LENGTH],
+        dkim_key_hashes: [Field; BULK_KEY_LENGTH]
+    ) {
+        let definition = EscrowRegistryDefinition::new(
+            context.msg_sender(),
+            dkim_regiistry,
+            usdc,
+            escrow_contract_id
+        )
+        storage.definition.initialize(definition);
+        ZImburseDKIMRegistry::at(dkim_registry).register_dkim_bulk(dkim_verifier_ids, dkim_key_hashes).enqueue(&mut context);
+    }
+
+    /**
+     * Entrypoint for registering a DKIM key in bulk in the DKIM registry
+     * @dev the DKIM registry is separate from escrow registry so both can import it
+     *
+     * @param dkim_verifier_ids - the verifier IDs to register the DKIM keys to
+     * @param dkim_key_hashes - the hashes of the DKIM keys
+     */
+    #[public]
+    fn register_dkim_bulk(
+        dkim_verifier_ids: [Field; BULK_KEY_LENGTH],
+        dkim_key_hashes: [Field; BULK_KEY_LENGTH]
+    ) {
+        let definition = storage.definition.read_public();
+        assert(context.msg_sender() == definition.admin, "Only admin can update dkim")
+        ZImburseDKIMRegistry::at(dkim_registry).register_dkim_bulk(dkim_verifier_ids, dkim_key_hashes).enqueue(&mut context);
+    }
+
+    /**
+     * Entrypoint for registering a DKIM key in the DKIM registry
+     * @dev the DKIM registry is separate from escrow registry so both can import it
+     *
+     * @param dkim_verifier_id - the verifier ID to register the DKIM key to
+     * @param dkim_key_hash - the hash of the DKIM key
+     */
+    #[public]
+    register_dkim(dkim_verifier_id: Field, dkim_key_hash: Field) {
+        let definition = storage.definition.read_public();
+        assert(context.msg_sender() == definition.admin, "Only admin can update dkim")
+        ZImburseDKIMRegistry::at(dkim_registry).register_dkim(dkim_verifier, dkim_key_hash).enqueue(&mut context);
     }
 
     /**
@@ -58,6 +104,7 @@ contract ZImburseContractRegistry {
         header.prove_contract_initialization(escrow_contract);
 
         // check the contract class ID
+        // THIS IS NOT CONSTRAINED THE ORACLE CAN JUST LIE ://////
         let contract_class_id = get_contract_instance(escrow_contract).contract_class_id.to_field();
         let expected_class_id = storage.escrow_contract_id.read_private();
         assert(
@@ -110,7 +157,6 @@ contract ZImburseContractRegistry {
         admin: AztecAddress,
         escrow: AztecAddress
     ) {
-        let res = std::verify_proof([0; 114], [0; 93], [0; 1], 0);
         // add escrow to the participant's set of escrows
         let mut escrow_note = AddressNote::new(escrow, get_public_keys(participant).npk_m.hash());
         storage.participant_escrows.insert(&mut escrow_note).emit(encode_and_encrypt_note(&mut context, admin, participant));

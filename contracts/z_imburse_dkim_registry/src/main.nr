@@ -1,12 +1,15 @@
 use dep::aztec::macros::aztec;
 
+pub global BULK_KEY_LENGTH: u32 = 50;
+
 #[aztec]
-contract ZImburseContractRegistry {
+contract ZImburseDKIMRegistry {
     use std::meta::derive;
     use dep::aztec::prelude::{AztecAddress, SharedImmutable, Map};
     use dep::aztec::macros::{storage::storage, events::event, functions::{private, public, view, initializer}};
     use dep::aztec::unencrypted_logs::unencrypted_event_emission::emit;
     use dep::aztec::protocol_types::traits::Serialize;
+    use crate::BULK_KEY_LENGTH;
 
     #[storage]
     struct Storage<Context> {
@@ -39,12 +42,12 @@ contract ZImburseContractRegistry {
      * @param dkim_key_hashes - the hashes of the DKIM keys
      */
     #[public]
-    fn register_dkim_bulk(verifier_ids: [Field; 50], dkim_key_hashes: [Field; 50]) {
+    fn register_dkim_bulk(verifier_ids: [Field; BULK_KEY_LENGTH], dkim_key_hashes: [Field; BULK_KEY_LENGTH]) {
         // check that the sender is the registry contract
         let registry = storage.contract_registry.read_public();
         assert(registry == context.msg_sender(), "Sender is not the registry contract");
         // bulk insert up to 50 dkim key hashes
-        for i in 0..50 {
+        for i in 0..BULK_KEY_LENGTH {
             if (verifier_ids[i] != 0) {
                 // ensure that the dkim key has not already been registered
                 let stored_id = storage.dkim_registry.at(dkim_key_hashes[i]).read_public();

@@ -2,7 +2,7 @@ use dep::aztec::macros::aztec;
 
 pub global BULK_KEY_LENGTH: u32 = 4;
 
-mod verifier_id {
+mod receipt_verifier_id {
     pub global AWS: Field = 1;
     pub global LINODE: Field = 2;
     pub global HEROKU: Field = 3;

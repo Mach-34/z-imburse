@@ -70,14 +70,14 @@ export class ZImburseEscrowContract extends ContractBase {
   /**
    * Creates a tx to deploy a new instance of this contract.
    */
-  public static deploy(wallet: Wallet, registry: AztecAddressLike, usdc_token: AztecAddressLike, title: string) {
+  public static deploy(wallet: Wallet, dkimRegistry: AztecAddressLike, escrowRegistry: AztecAddressLike, usdc_token: AztecAddressLike, title: string) {
     return new DeployMethod<ZImburseEscrowContract>(Fr.ZERO, wallet, ZImburseEscrowContractArtifact, ZImburseEscrowContract.at, Array.from(arguments).slice(1));
   }
 
   /**
    * Creates a tx to deploy a new instance of this contract using the specified public keys hash to derive the address.
    */
-  public static deployWithPublicKeysHash(publicKeysHash: Fr, wallet: Wallet, registry: AztecAddressLike, usdc_token: AztecAddressLike, title: string) {
+  public static deployWithPublicKeysHash(publicKeysHash: Fr, wallet: Wallet, dkimRegistry: AztecAddressLike, escrowRegistry: AztecAddressLike, usdc_token: AztecAddressLike, title: string) {
     return new DeployMethod<ZImburseEscrowContract>(publicKeysHash, wallet, ZImburseEscrowContractArtifact, ZImburseEscrowContract.at, Array.from(arguments).slice(2));
   }
 
@@ -114,7 +114,7 @@ export class ZImburseEscrowContract extends ContractBase {
       slot: new Fr(1n),
     },
 entitlements: {
-      slot: new Fr(6n),
+      slot: new Fr(7n),
     }
       } as ContractStorageLayout<'definition' | 'entitlements'>;
     }
@@ -144,8 +144,8 @@ RecurringEntitlementNote: {
     /** compute_note_hash_and_optionally_a_nullifier(contract_address: struct, nonce: field, storage_slot: field, note_type_id: field, compute_nullifier: boolean, serialized_note: array) */
     compute_note_hash_and_optionally_a_nullifier: ((contract_address: AztecAddressLike, nonce: FieldLike, storage_slot: FieldLike, note_type_id: FieldLike, compute_nullifier: boolean, serialized_note: FieldLike[]) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
-    /** constructor(registry: struct, usdc_token: struct, title: string) */
-    constructor: ((registry: AztecAddressLike, usdc_token: AztecAddressLike, title: string) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+    /** constructor(dkimRegistry: struct, escrowRegistry: struct, usdc_token: struct, title: string) */
+    constructor: ((dkimRegistry: AztecAddressLike, escrowRegistry: AztecAddressLike, usdc_token: AztecAddressLike, title: string) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
     /** get_admin_private() */
     get_admin_private: (() => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;

@@ -114,6 +114,7 @@ contract ZImburseEscrowRegistry {
 
         // check the contract class ID
         // THIS IS NOT CONSTRAINED THE ORACLE CAN JUST LIE ://////
+        // need to compute the full contract address to prove it uses the correct class
         let contract_class_id = get_contract_instance(escrow_contract).contract_class_id.to_field();
         let expected_class_id = storage.definition.read_private().escrow_contract_id;
         assert(

@@ -126,6 +126,7 @@ describe("Test deposit to zimburse", () => {
       const managedEscrows = await escrowRegistry.methods
         .get_managed_escrows(escrowAdmin.getAddress(), 0)
         .simulate();
+        console.log(managedEscrows);
       // todo: FIX
       // expect(managedEscrows[0][0]).toEqual(escrows[0].address);
       // check the rest of the fields are zero

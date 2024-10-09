@@ -52,8 +52,6 @@ export async function setup(
   if (verbose) console.log(`Deployed USDC token at ${usdc.address}`);
   // deploy dkim registry
   const dkimKeys = prepareDKIMKeysForInputs();
-  console.log("===================================================================================================")
-  console.log(dkimKeys[0].length);
   const dkimRegistry = await ZImburseDkimRegistryContract.deploy(
     superuser,
     dkimKeys[0].map((key) => key.id),
@@ -88,6 +86,7 @@ export async function setup(
   for (let i = 0; i < numEscrows; i++) {
     const escrow = await ZImburseEscrowContract.deploy(
       escrowAdmin[i],
+      dkimRegistry.address,
       escrowRegistry.address,
       usdc.address,
       `Escrow ${i}`

@@ -221,60 +221,72 @@ pub fn extract_billed_amount_united(
     body: [u8; MAX_UNITED_EMAIL_BODY_LENGTH], 
     purchase_summary_indices: [u32; UNITED_PURCHASE_SUMMARY_INDICE_LEN] 
 ) -> u32 {
-    let total_tr_tag_start_opening = purchase_summary_indices[0]; // <tr ...
+    let total_tr_tag_start_opening_index = purchase_summary_indices[0]; // <tr ...
     let total_tr_tag_start_len = purchase_summary_indices[1];
     let total_label_td_start_len = purchase_summary_indices[2];
     let total_amount_td_start_len = purchase_summary_indices[3];
     let total_amount_len = purchase_summary_indices[4];
 
     let tr_opening_bytes = "<tr ".as_bytes();
-    let td_amt_opening_bytes = "<=\r\ntd ".as_bytes();
+    let td_amt_opening_bytes = "<td ".as_bytes();
     let label_bytes = ">Total:</td><td ".as_bytes();
-    let tr_closing_bytes = " USD</td></tr>=\r\n".as_bytes();
+    let tr_closing_bytes = " USD</td></tr>".as_bytes();
 
-    let total_label_td_start_index = total_tr_tag_start_opening + total_tr_tag_start_len + 1; // <=\r\ntd ...
+    let total_label_td_start_index = total_tr_tag_start_opening_index + total_tr_tag_start_len + 1; // <=\r\ntd ...
     let total_label_td_end_index = total_label_td_start_index + total_label_td_start_len; // >Total:</td><td 
     let total_amount_td_end_index = total_label_td_end_index + total_amount_td_start_len + label_bytes.len() - 4;
     let total_tr_closure_index = total_amount_td_end_index + total_amount_len + 1; //  USD</td></tr>\r\n
 
     // assert index represents table row opening
-    for i in 0..4 {
-        assert(body[total_tr_tag_start_opening + i] == tr_opening_bytes[i], "Index does not point to tr opening.");
-    }
+    check_qp_sequence::<MAX_UNITED_EMAIL_BODY_LENGTH, 35, 4>(
+        body, 
+        total_tr_tag_start_opening_index, 
+        tr_opening_bytes,
+        "Index does not point to tr opening."
+    );
 
     // check row close at open index + tag length and what proceeds 
-    assert(body[total_tr_tag_start_opening + total_tr_tag_start_len] == 0x3E, "Index does not point to tr opening tag closure");
+    assert(body[total_tr_tag_start_opening_index + total_tr_tag_start_len] == 0x3E, "Index does not point to tr opening tag closure");
 
     // assert following the close of the row opening tag is a data tag
-    for i in 0..7 {
-        assert(body[total_label_td_start_index + i] == td_amt_opening_bytes[i], "Index does not point to td opening.");
-    }
+    check_qp_sequence::<MAX_UNITED_EMAIL_BODY_LENGTH, 35, 4>(
+        body, 
+        total_label_td_start_index, 
+        td_amt_opening_bytes,
+         "Index does not point to td opening."
+    );
 
     // assert opening tag is closed and "Total:" is contained withing data tag. Also check that it is followed by another opening "<td"
-    for i in 0..label_bytes.len() {
-        assert(body[total_label_td_end_index + i] == label_bytes[i], "Td opening tag does not have closure at this index.");
-    }
+    check_qp_sequence::<MAX_UNITED_EMAIL_BODY_LENGTH, 51, 16>(
+        body, 
+        total_label_td_end_index, 
+        label_bytes,
+        "Td opening tag does not have closure at this index."
+    );
 
     // assert td closing tag prior to amount
     assert(body[total_amount_td_end_index] == 0x3E, "Index does not point to td opening tag closure");
 
     // assert amount td end tag closure and tr end tag closure
-    for i in 0..tr_closing_bytes.len() {
-        assert(body[total_tr_closure_index + i] == tr_closing_bytes[i], "Index does not point to tr end closure");  
-    }
+    check_qp_sequence::<MAX_UNITED_EMAIL_BODY_LENGTH, 39, 14>(
+        body, 
+        total_tr_closure_index, 
+        tr_closing_bytes,
+        "Index does not point to tr end closure."
+    );
 
     let mut amount: u32 = 0;
+    let mut power: Field = 0;
     // extract out amount
     for i in 0..MAX_BILLED_AMOUNT_UNITED {
-        if i < total_amount_len - 3 {
-            let val = (body[total_amount_td_end_index + i + 1] - 0x30) as u32;
-            let power = (total_amount_len - 2 - i) as Field;
+        let byte = body[total_amount_td_end_index + total_amount_len - i];
+        if (i < total_amount_len) & (is_qp_linebreak_char(byte) == false) & (byte != 0x2E) {
+            let val = (byte - 0x30) as u32;
             amount = amount + val * (10 as Field).pow_32(power) as u32;
+            power = power + 1;
         }
     }
-    // handle two decimal places
-    amount = amount + (body[total_amount_td_end_index + total_amount_len - 1] - 0x30) as u32 * 10;
-    amount = amount + (body[total_amount_td_end_index + total_amount_len] - 0x30) as u32;
+
     amount
 }
 
@@ -296,3 +308,33 @@ pub fn extract_billed_amount_united(
 //  let bytes = LINODE_BILLING_PAYMENT_TEXT.as_bytes();
 //  println(bytes);
 // }
+
+/**
+* Check whether or not character is quoted printable linebreak
+* - 0x3D "="
+* - 0xD "\r"
+* - 0xA "\n"
+*/
+fn is_qp_linebreak_char(byte: u8) -> bool {
+    (byte == 0x3D) | (byte == 0xD) | (byte == 0xA)
+}
+
+/**
+* Check whether email body using quoted printable encoding contains a certain text sequence. Handles
+* 3 character linebreak sequences: "=\r\n"
+*/
+fn check_qp_sequence<let MAX_LEN: u32, let REVERT_MSG_LEN: u32, let SEQ_LEN: u32>(
+    body: [u8; MAX_LEN], 
+    start_index: u32,
+    sequence: [u8; SEQ_LEN],
+    revert_msg: str<REVERT_MSG_LEN>
+) {
+    let mut checked_bytes = 0;
+    for i in 0..SEQ_LEN + 3 {
+        let byte = body[start_index + i];
+        if !is_qp_linebreak_char(byte) & (checked_bytes <= SEQ_LEN - 4)  {
+            assert(body[start_index + i] == sequence[i], revert_msg);
+            checked_bytes = checked_bytes + 1;
+        }
+    }
+}

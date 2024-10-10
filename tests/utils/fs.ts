@@ -9,5 +9,5 @@ const __dirname = dirname(__filename);
 export const emails = {
   linode_sep: readFileSync(join(__dirname, "../test-data/linode_sep.eml")),
   linode_oct: readFileSync(join(__dirname, "../test-data/linode_oct.eml")),
-  united: readFileSync(join(__dirname, "../test-data/united_athens.eml"))
+  united: readFileSync(join(__dirname, "../test-data/united_istanbul_2.eml"))
 };

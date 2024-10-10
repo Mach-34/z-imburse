@@ -27,8 +27,8 @@ pub fn verify_united_flight_receipt(
     verify_dkim_2048(header, header_length, pubkey, pubkey_redc, signature);
 
     // extract body hash and decode from base64
-    let body_hash_encoded = get_body_hash_by_index(header, body_hash_index);
-    let signed_body_hash = body_hash_base64_decode(body_hash_encoded);
+    // let body_hash_encoded = get_body_hash_by_index(header, body_hash_index);
+    // let signed_body_hash = body_hash_base64_decode(body_hash_encoded);
 
         // compute the hash of the asserted body
     // let computed_body_hash = sha256_var(body, body_length as u64);

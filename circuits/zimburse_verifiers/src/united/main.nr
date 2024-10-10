@@ -1,5 +1,7 @@
-use crate::constants::{MAX_UNITED_EMAIL_BODY_LENGTH, MAX_UNITED_EMAIL_HEADER_LENGTH, UNITED_PURCHASE_SUMMARY_INDICE_LEN};
-use crate::utils::{check_from_united_receipts, check_subject_united_flight_receipt, extract_billed_amount_united};
+use crate::united::{
+    constants::{MAX_EMAIL_BODY_LENGTH, MAX_EMAIL_HEADER_LENGTH, PURCHASE_SUMMARY_INDICE_LEN},
+    utils::{check_from_united_receipts, check_subject_united_flight_receipt, extract_billed_amount}
+};
 use dep::zkemail::{dkim::verify_dkim_2048, KEY_LIMBS_2048, get_body_hash_by_index, base64::body_hash_base64_decode};
 use std::hash::pedersen_hash;
 
@@ -7,21 +9,21 @@ use std::hash::pedersen_hash;
 // use crate::sha256_var::sha256_var;
 
 pub fn verify_united_flight_receipt(
-    body: [u8; MAX_UNITED_EMAIL_BODY_LENGTH],
+    body: [u8; MAX_EMAIL_BODY_LENGTH],
     body_hash_index: u32,
     body_length: u32, 
-    header: [u8; MAX_UNITED_EMAIL_HEADER_LENGTH], 
+    header: [u8; MAX_EMAIL_HEADER_LENGTH], 
     header_length: u32,
     pubkey: [Field; KEY_LIMBS_2048],
     pubkey_redc: [Field; KEY_LIMBS_2048],
     signature: [Field; KEY_LIMBS_2048],
     from_index: u32,
     subject_index: u32,
-    purchase_summary_indices: [u32; UNITED_PURCHASE_SUMMARY_INDICE_LEN]
+    purchase_summary_indices: [u32; PURCHASE_SUMMARY_INDICE_LEN]
 ) -> [Field; 2] {
     // check the body and header lengths are within bounds
-    assert(header_length <= MAX_UNITED_EMAIL_HEADER_LENGTH);
-    assert(body_length <= MAX_UNITED_EMAIL_BODY_LENGTH);
+    assert(header_length <= MAX_EMAIL_HEADER_LENGTH);
+    assert(body_length <= MAX_EMAIL_BODY_LENGTH);
 
     // verify the dkim signature over the header
     verify_dkim_2048(header, header_length, pubkey, pubkey_redc, signature);
@@ -46,7 +48,7 @@ pub fn verify_united_flight_receipt(
 
     // extract billed amount
     // note: the billed amount has 2 decimals
-    let billed_amount = extract_billed_amount_united(body, purchase_summary_indices);
+    let billed_amount = extract_billed_amount(body, purchase_summary_indices);
 
     // hash the dkim key used to verify the email
     let dkim_key_hash = pedersen_hash(pubkey);

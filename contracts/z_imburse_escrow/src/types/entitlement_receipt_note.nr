@@ -37,11 +37,11 @@ impl NoteInterface<ENTITLEMENT_RECEIPT_NOTE_LENGTH> for EntitlementReceiptNote {
     fn serialize_content(self) -> [Field; ENTITLEMENT_RECEIPT_NOTE_LENGTH] {
         // serialize max_value and verifier_id together
         let max_value_bytes: [u8; 16] = self.max_value.to_le_bytes();
-        let mut packed_bytes: [u8; 32] = [0; 32];
+        let mut packed_bytes: [u8; 17] = [0; 17];
         for i in 0..16 {
-            packed_bytes[i + 16] = max_value_bytes[i];
+            packed_bytes[i] = max_value_bytes[i];
         };
-        packed_bytes[1] = self.verifier_id;
+        packed_bytes[16] = self.verifier_id;
         let packed_verifier_and_max_value = field_from_bytes(packed_bytes, true);
         // return serialized content
         [
@@ -55,11 +55,11 @@ impl NoteInterface<ENTITLEMENT_RECEIPT_NOTE_LENGTH> for EntitlementReceiptNote {
     fn deserialize_content(serialized_note: [Field; ENTITLEMENT_RECEIPT_NOTE_LENGTH]) -> EntitlementReceiptNote {
         // unpack verifier_id and max_value
         let packed_verifier_and_max_value = serialized_note[2];
-        let packed_bytes: [u8; 32] = packed_verifier_and_max_value.to_be_bytes();
-        let verifier_id = packed_bytes[1];
+        let packed_bytes: [u8; 17] = packed_verifier_and_max_value.to_be_bytes();
+        let verifier_id = packed_bytes[16];
         let mut max_value_bytes: [u8; 16] = [0; 16];
         for i in 0..16 {
-            max_value_bytes[i] = packed_bytes[i + 16];
+            max_value_bytes[i] = packed_bytes[i];
         }
         let max_value = U128::from_le_bytes(max_value_bytes);
         // return deserialized note

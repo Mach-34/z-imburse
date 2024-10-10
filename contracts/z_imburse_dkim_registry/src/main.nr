@@ -65,17 +65,20 @@ contract ZImburseDkimRegistry {
 
     /** Add dkim with no emit for testing purposes (more ergonomic) (remove later) */
     #[public]
-    fn register_bulk_no_emit(verifier_ids: [Field; 64], dkim_key_hashes: [Field; 64]) {
+    fn register_bulk_no_emit(verifier_ids: [Field; 8], dkim_key_hashes: [Field; 8]) {
         // check that the sender is the admin
         let admin = storage.admin.read_public();
         assert(admin == context.msg_sender(), "Sender is not the registry contract");
         // bulk insert up to 8 dkim key hashes at initialization (max unencrypted logs per tx)
-        for i in 0..100 {
+        for i in 0..8 {
             if (verifier_ids[i] != 0) {
                 // ensure that the dkim key has not already been registered
                 let stored_id = storage.dkim_registry.at(dkim_key_hashes[i]).read_public();
                 assert(stored_id == 0, "DKIM key has already been registered");
                 storage.dkim_registry.at(dkim_key_hashes[i]).initialize(verifier_ids[i]);
+                unsafe {
+                    dep::aztec::oracle::debug_log::debug_log_format("Added key {0} for id {1}", [dkim_key_hashes[i], verifier_ids[i]]);
+                }
             }
         }
     }

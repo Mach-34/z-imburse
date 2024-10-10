@@ -51,7 +51,6 @@ export async function setup(
     .deployed();
   if (verbose) console.log(`Deployed USDC token at ${usdc.address}`);
   // deploy dkim registry
-  const dkimKeys = prepareDKIMKeysForInputs(64);
   const dkimRegistry = await ZImburseDkimRegistryContract.deploy(
     superuser,
   )
@@ -59,9 +58,10 @@ export async function setup(
     .deployed();
   if (verbose) console.log(`Deployed DKIM Registry at ${dkimRegistry.address}`);
   // add remaining keys to registry
+  const dkimKeys = prepareDKIMKeysForInputs(8);
   for (let i = 0; i < dkimKeys.length; i++) {
     // cannot be batched as there is a max of 64 notes per tx
-    await dkimRegistry.methods.register_dkim_bulk(
+    await dkimRegistry.methods.register_bulk_no_emit(
       dkimKeys[i].map((key) => key.id),
       dkimKeys[i].map((key) => key.keyHash)
     ).send().wait();

@@ -128,8 +128,8 @@ contract ZImburseEscrow {
         // retrieve a Linode hosting entitlement
         let notes = storage.recurring_entitlements.at(context.msg_sender()).pop_notes(
             NoteGetterOptions::new()
+                // .select(RecurringEntitlementNote::properties().verifier_id, Comparator.EQ, receipt_verifier_id::LINODE)
                 .set_limit(1)
-                .select(RecurringEntitlementNote::properties().verifier_id, Comparator.EQ, receipt_verifier_id::LINODE)
         );
         assert(notes.len() == 1, "No entitlements to redeem");
         let note = notes.get_unchecked(0);

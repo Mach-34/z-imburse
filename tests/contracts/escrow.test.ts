@@ -225,28 +225,32 @@ describe("Test deposit to zimburse", () => {
     it.todo("Cannot give entitlement if escrow not registered");
     it.todo("Cannot give entitlement if participant not registered");
     describe("Linode", () => {
-      // it("Check DKIM Key", async () => {
-      //   const inputs = await makeLinodeInputs(emails.linode_sep);
-      //   // transform inputs to contract friendly format
-      //   const keyHash = await dkimPubkeyToHash(inputs.pubkey);
-      //   console.log("Pubkey Hash: ", keyHash);
-      //   // check if dkim key is initialized
-      //   let verifierId = await dkimRegistry
-      //     .withWallet(alice)
-      //     .methods
-      //     .check_dkim_key_hash_private(keyHash)
-      //     .simulate();
-      //   console.log("Verifier ID: ", verifierId);
-      // })
+      it("Check DKIM Key", async () => {
+        const inputs = await makeLinodeInputs(emails.linode_sep);
+        // transform inputs to contract friendly format
+        const keyHash = await dkimPubkeyToHash(inputs.pubkey);
+        console.log("Pubkey Hash: ", keyHash);
+        // check if dkim key is initialized
+        let verifierId = await dkimRegistry
+          .withWallet(alice)
+          .methods
+          .check_dkim_key_hash_private(keyHash)
+          .simulate();
+        console.log("Verifier ID: ", verifierId);
+      })
       it("Give linode recurring entitlement", async () => {
         // check dkim key
         // give entitlement of 10 usdc
         const amount = toUSDCDecimals(10n);
-        await escrows[0]
+        const receipt1 = await escrows[0]
           .withWallet(escrowAdmin)
           .methods.give_recurring_entitlement(alice.getAddress(), amount, VERIFIER_IDS.LINODE)
           .send()
-          .wait();
+          .wait({ debug: true });
+        console.log("Public Data Writes", receipt1.debugInfo!.publicDataWrites);
+        console.log("Outgoing visible notes", receipt1.debugInfo!.visibleOutgoingNotes.map(note => note.note.items));
+        console.log("Incoming visible notes", receipt1.debugInfo!.visibleIncomingNotes.map(note => note.note.items));
+
         // generate email inputs
         const inputs = await makeLinodeInputs(emails.linode_sep);
         // transform inputs to contract friendly format

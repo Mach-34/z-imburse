@@ -37,6 +37,7 @@ import { setup, mintToEscrow, addContractsToPXE } from "../utils/index";
 import { emails } from "../utils/fs";
 import { parseStringBytes } from "../../src/utils";
 import { addPendingShieldNoteToPXE } from "../../src/contract_drivers/notes";
+import { VERIFIER_IDS } from "../../src/contract_drivers/dkim";
 
 const DEFAULT_PXE_URL = "http://localhost";
 
@@ -224,26 +225,26 @@ describe("Test deposit to zimburse", () => {
     it.todo("Cannot give entitlement if escrow not registered");
     it.todo("Cannot give entitlement if participant not registered");
     describe("Linode", () => {
-      it("Check DKIM Key", async () => {
-        const inputs = await makeLinodeInputs(emails.linode_sep);
-        // transform inputs to contract friendly format
-        const keyHash = await dkimPubkeyToHash(inputs.pubkey);
-        console.log("Pubkey Hash: ", keyHash);
-        // check if dkim key is initialized
-        let verifierId = await dkimRegistry
-          .withWallet(alice)
-          .methods
-          .check_dkim_key_hash_private(keyHash)
-          .simulate();
-        console.log("Verifier ID: ", verifierId);
-      })
+      // it("Check DKIM Key", async () => {
+      //   const inputs = await makeLinodeInputs(emails.linode_sep);
+      //   // transform inputs to contract friendly format
+      //   const keyHash = await dkimPubkeyToHash(inputs.pubkey);
+      //   console.log("Pubkey Hash: ", keyHash);
+      //   // check if dkim key is initialized
+      //   let verifierId = await dkimRegistry
+      //     .withWallet(alice)
+      //     .methods
+      //     .check_dkim_key_hash_private(keyHash)
+      //     .simulate();
+      //   console.log("Verifier ID: ", verifierId);
+      // })
       it("Give linode recurring entitlement", async () => {
         // check dkim key
         // give entitlement of 10 usdc
         const amount = toUSDCDecimals(10n);
         await escrows[0]
           .withWallet(escrowAdmin)
-          .methods.give_entitlement(alice.getAddress(), amount)
+          .methods.give_recurring_entitlement(alice.getAddress(), amount, VERIFIER_IDS.LINODE)
           .send()
           .wait();
         // generate email inputs
@@ -283,6 +284,24 @@ describe("Test deposit to zimburse", () => {
           .simulate();
         expect(recipientBalance).toBe(toUSDCDecimals(10n));
       });
+      xit("Can't use the same email (same month)", async () => {
+        // generate email inputs
+        const inputs = await makeLinodeInputs(emails.linode_sep);
+        // transform inputs to contract friendly format
+        const redeemLinodeInputs = formatRedeemLinode(inputs);
+        // redeem entitlement
+        const secret = Fr.random();
+        const secretHash = computeSecretHash(secret);
+        expect(escrows[0]
+          .withWallet(alice)
+          .methods.redeem_linode_entitlement(...redeemLinodeInputs, secretHash)
+          .simulate()
+        ).rejects.toThrowError(/someerror/);
+      });
+      it.todo("Can use different month to claim the entitlement again");
+      it.todo("Admin can't re-issue an entitlement");
+      it.todo("Admin can nullify the entitlement");
+      it.todo("Admin can reissue an entitlement after nullifying the old one");
     });
   });
 });

@@ -44,21 +44,38 @@ contract ZImburseDkimRegistry {
     #[public]
     #[initializer]
     fn constructor(
-        verifier_ids: [Field; BULK_KEY_LENGTH],
-        dkim_key_hashes: [Field; BULK_KEY_LENGTH]
+        // verifier_ids: [Field; BULK_KEY_LENGTH],
+        // dkim_key_hashes: [Field; BULK_KEY_LENGTH]
     ) {
         storage.admin.initialize(context.msg_sender());
         // bulk insert up to 8 dkim key hashes at initialization (max unencrypted logs per tx)
-        for i in 0..BULK_KEY_LENGTH {
+        // for i in 0..BULK_KEY_LENGTH {
+        //     if (verifier_ids[i] != 0) {
+        //         // ensure that the dkim key has not already been registered
+        //         let stored_id = storage.dkim_registry.at(dkim_key_hashes[i]).read_public();
+        //         assert(stored_id == 0, "DKIM key has already been registered");
+        //         storage.dkim_registry.at(dkim_key_hashes[i]).initialize(verifier_ids[i]);
+        //         emit(&mut context, DKIMKeyRegistered {
+        //             dkim_key_hash: dkim_key_hashes[i],
+        //             verifier_id: verifier_ids[i]
+        //         });
+        //     }
+        // }
+    }
+
+    /** Add dkim with no emit for testing purposes (more ergonomic) (remove later) */
+    #[public]
+    fn register_bulk_no_emit(verifier_ids: [Field; 64], dkim_key_hashes: [Field; 64]) {
+        // check that the sender is the admin
+        let admin = storage.admin.read_public();
+        assert(admin == context.msg_sender(), "Sender is not the registry contract");
+        // bulk insert up to 8 dkim key hashes at initialization (max unencrypted logs per tx)
+        for i in 0..100 {
             if (verifier_ids[i] != 0) {
                 // ensure that the dkim key has not already been registered
                 let stored_id = storage.dkim_registry.at(dkim_key_hashes[i]).read_public();
                 assert(stored_id == 0, "DKIM key has already been registered");
                 storage.dkim_registry.at(dkim_key_hashes[i]).initialize(verifier_ids[i]);
-                emit(&mut context, DKIMKeyRegistered {
-                    dkim_key_hash: dkim_key_hashes[i],
-                    verifier_id: verifier_ids[i]
-                });
             }
         }
     }

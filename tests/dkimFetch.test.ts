@@ -23,7 +23,7 @@ describe("Test deposit to zimburse", () => {
     console.log(keyHashes.map((key) => key.toString()));
   })
   xit("Test", async () => {
-    const inputs = prepareDKIMKeysForInputs();
+    const inputs = prepareDKIMKeysForInputs(4);
     console.log(inputs);
   })
   it("Check dkim key hashes line up", async () => {

@@ -1,12 +1,25 @@
 import { FieldLike } from "@aztec/aztec.js";
 import savedDkimHashes from "../dkim/keyHashes.json";
 
+/** IDs of verifiers to specify in contract when setting entitlement */
+export const VERIFIER_IDS = {
+  AWS: 1,
+  LINODE: 2,
+  HEROKU: 3,
+  FRONTIER: 4,
+  UNITED: 5,
+  AA: 6,
+  DELTA: 7,
+  UBER: 8,
+  LYFT: 9
+}
+
 export type DKIMInput = {
   id: FieldLike;
   keyHash: FieldLike;
 };
 
-export function prepareDKIMKeysForInputs(): DKIMInput[][] {
+export function prepareDKIMKeysForInputs(chunkSize: number): DKIMInput[][] {
   const inputs: DKIMInput[] = [];
 
   // ugly but chatgpt thinkin for me
@@ -36,9 +49,6 @@ export function prepareDKIMKeysForInputs(): DKIMInput[][] {
   // traverseAndExtract(savedDkimHashes);
   // save time for now just add hosting keys
   traverseAndExtract(savedDkimHashes.hosting);
-  // split inputs into chunks of 4 (max unencrypted logs) it will allow
-  // todo: i think it will work with 8 if it is not a contract deployment so need separate inputs
-  const chunkSize = 4;
   const chunkedInputs: DKIMInput[][] = [];
   for (let i = 0; i < inputs.length; i += chunkSize) {
     chunkedInputs.push(inputs.slice(i, i + chunkSize));

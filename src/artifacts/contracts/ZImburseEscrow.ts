@@ -108,19 +108,25 @@ export class ZImburseEscrowContract extends ContractBase {
   }
   
 
-  public static get storage(): ContractStorageLayout<'definition' | 'entitlements'> {
+  public static get storage(): ContractStorageLayout<'definition' | 'recurring_entitlements' | 'entitlement_receipts' | 'entitlement_nullifiers'> {
       return {
         definition: {
       slot: new Fr(1n),
     },
-entitlements: {
+recurring_entitlements: {
       slot: new Fr(7n),
+    },
+entitlement_receipts: {
+      slot: new Fr(8n),
+    },
+entitlement_nullifiers: {
+      slot: new Fr(9n),
     }
-      } as ContractStorageLayout<'definition' | 'entitlements'>;
+      } as ContractStorageLayout<'definition' | 'recurring_entitlements' | 'entitlement_receipts' | 'entitlement_nullifiers'>;
     }
     
 
-  public static get notes(): ContractNotes<'AddressNote' | 'TransparentNote' | 'TokenNote' | 'RecurringEntitlementNote'> {
+  public static get notes(): ContractNotes<'AddressNote' | 'TransparentNote' | 'TokenNote' | 'RecurringEntitlementNote' | 'EntitlementReceiptNote'> {
     return {
       AddressNote: {
           id: new NoteSelector(2232136525),
@@ -133,8 +139,11 @@ TokenNote: {
         },
 RecurringEntitlementNote: {
           id: new NoteSelector(3639716131),
+        },
+EntitlementReceiptNote: {
+          id: new NoteSelector(2196796984),
         }
-    } as ContractNotes<'AddressNote' | 'TransparentNote' | 'TokenNote' | 'RecurringEntitlementNote'>;
+    } as ContractNotes<'AddressNote' | 'TransparentNote' | 'TokenNote' | 'RecurringEntitlementNote' | 'EntitlementReceiptNote'>;
   }
   
 
@@ -153,8 +162,8 @@ RecurringEntitlementNote: {
     /** get_title() */
     get_title: (() => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
-    /** give_entitlement(to: struct, amount: field) */
-    give_entitlement: ((to: AztecAddressLike, amount: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+    /** give_recurring_entitlement(to: struct, amount: field, verifier_id: integer) */
+    give_recurring_entitlement: ((to: AztecAddressLike, amount: FieldLike, verifier_id: (bigint | number)) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
     /** public_dispatch(selector: field) */
     public_dispatch: ((selector: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;

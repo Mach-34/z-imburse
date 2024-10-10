@@ -129,7 +129,7 @@ contract_registration: {
     }
     
 
-  public static get notes(): ContractNotes<'AddressNote' | 'TransparentNote' | 'TokenNote' | 'RecurringEntitlementNote' | 'ParticipantNote'> {
+  public static get notes(): ContractNotes<'AddressNote' | 'TransparentNote' | 'TokenNote' | 'EntitlementReceiptNote' | 'RecurringEntitlementNote' | 'ParticipantNote'> {
     return {
       AddressNote: {
           id: new NoteSelector(2232136525),
@@ -140,13 +140,16 @@ TransparentNote: {
 TokenNote: {
           id: new NoteSelector(2350566847),
         },
+EntitlementReceiptNote: {
+          id: new NoteSelector(2196796984),
+        },
 RecurringEntitlementNote: {
           id: new NoteSelector(3639716131),
         },
 ParticipantNote: {
           id: new NoteSelector(3017618054),
         }
-    } as ContractNotes<'AddressNote' | 'TransparentNote' | 'TokenNote' | 'RecurringEntitlementNote' | 'ParticipantNote'>;
+    } as ContractNotes<'AddressNote' | 'TransparentNote' | 'TokenNote' | 'EntitlementReceiptNote' | 'RecurringEntitlementNote' | 'ParticipantNote'>;
   }
   
 

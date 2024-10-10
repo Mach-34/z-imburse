@@ -204,16 +204,8 @@ pub fn to_unix_month(datetime: Datetime) -> u32 {
         }
     }
     days_in_current_year += datetime.add_leap_day as u32;
-    // total seconds since epoch
-    let mut seconds_since_epoch = (days_in_complete_years + days_in_current_year) * 86400 + datetime.time as u32;
-    // apply offset
-    if datetime.subtract {
-        seconds_since_epoch -= datetime.offset as u32;
-    } else {
-        seconds_since_epoch += datetime.offset as u32;
-    }
-    // return unix timestamp
-    seconds_since_epoch
+    // return total seconds since epoch (don't factor in the localized timestamp)
+    (days_in_complete_years + days_in_current_year) * 86400 + datetime.time as u32
 }
 
 pub fn to_unix(datetime: Datetime) -> u32 {

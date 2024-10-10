@@ -1,3 +1,3 @@
-// mod entitlement_note;
 mod escrow_definition;
 mod recurring_entitlement_note;
+mod entitlement_receipt_note;

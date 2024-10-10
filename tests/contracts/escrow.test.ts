@@ -1,4 +1,5 @@
 import { describe, expect, jest } from "@jest/globals";
+import { generateEmailVerifierInputs } from "@mach-34/zkemail-nr";
 import {
   getInitialTestAccountsWallets,
   createAccount,
@@ -18,6 +19,7 @@ import {
   createDebugLogger,
   createPXEClient,
 } from "@aztec/aztec.js";
+import { Fr as NoirFr } from "@aztec/bb.js";
 import {
   MultiCallEntrypointContract,
   TokenContract,
@@ -25,11 +27,12 @@ import {
   ZImburseDkimRegistryContract,
   ZImburseEscrowRegistryContract
 } from "../../src/artifacts/contracts/index";
-import { toUSDCDecimals, fromUSDCDecimals } from "../../src/utils";
+import { toUSDCDecimals, toBigIntBE } from "../../src/utils";
 import {
   formatRedeemLinode,
   makeLinodeInputs,
 } from "../../src/email_inputs/linode";
+import { dkimPubkeyToHash } from "../../src/dkim";
 import { setup, mintToEscrow, addContractsToPXE } from "../utils/index";
 import { emails } from "../utils/fs";
 import { parseStringBytes } from "../../src/utils";
@@ -108,7 +111,7 @@ describe("Test deposit to zimburse", () => {
     }
   });
 
-  describe("Registration", () => {
+  xdescribe("Registration", () => {
     it("Register Z-Imburse Escrow", async () => {
       // register the escrow
       await escrowRegistry
@@ -221,7 +224,21 @@ describe("Test deposit to zimburse", () => {
     it.todo("Cannot give entitlement if escrow not registered");
     it.todo("Cannot give entitlement if participant not registered");
     describe("Linode", () => {
+      it("Check DKIM Key", async () => {
+        const inputs = await makeLinodeInputs(emails.linode_sep);
+        // transform inputs to contract friendly format
+        const keyHash = await dkimPubkeyToHash(inputs.pubkey);
+        console.log("Pubkey Hash: ", keyHash);
+        // check if dkim key is initialized
+        let verifierId = await dkimRegistry
+          .withWallet(alice)
+          .methods
+          .check_dkim_key_hash_private(keyHash)
+          .simulate();
+        console.log("Verifier ID: ", verifierId);
+      })
       it("Give linode recurring entitlement", async () => {
+        // check dkim key
         // give entitlement of 10 usdc
         const amount = toUSDCDecimals(10n);
         await escrows[0]

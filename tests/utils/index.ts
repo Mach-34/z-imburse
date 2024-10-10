@@ -66,7 +66,7 @@ export async function setup(
     await dkimRegistry.methods.register_dkim_bulk(
       dkimKeys[i].map((key) => key.id),
       dkimKeys[i].map((key) => key.keyHash)
-    );
+    ).send().wait();
     console.log(`Added batch ${i} to DKIM Registry`);
   }
   // deploy registry contract

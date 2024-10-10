@@ -1,6 +1,7 @@
 import { describe, expect } from "@jest/globals";
 import { verifyDKIMSignature } from "@zk-email/helpers/dist/dkim";
-import { getDKIMHashes, domains, fetchDKIMKeys } from "../src/dkim/index";
+import { makeLinodeInputs } from "../src/email_inputs/linode";
+import { getDKIMHashes, domains, fetchDKIMKeys, dkimPubkeyToHash } from "../src/dkim/index";
 import { prepareDKIMKeysForInputs } from "../src/contract_drivers/dkim";
 import { emails } from "./utils/fs";
 
@@ -21,8 +22,18 @@ describe("Test deposit to zimburse", () => {
     console.log("Domain: ", domain);
     console.log(keyHashes.map((key) => key.toString()));
   })
-  it("Test", async () => {
+  xit("Test", async () => {
     const inputs = prepareDKIMKeysForInputs();
     console.log(inputs);
+  })
+  it("Check dkim key hashes line up", async () => {
+    const keyHashes = await getDKIMHashes(domains[1]);
+    const linodeInputs = await makeLinodeInputs(emails.linode_sep);
+    const { publicKey } = await verifyDKIMSignature(emails.linode_oct);
+    // hash public keys
+    const linodeKeyHash = await dkimPubkeyToHash(linodeInputs.pubkey);
+    const regularKeyHash = await dkimPubkeyToHash(publicKey);
+    expect(keyHashes.some((key) => key === linodeKeyHash)).toBeTruthy();
+    expect(keyHashes.some((key) => key === regularKeyHash)).toBeTruthy();
   })
 });

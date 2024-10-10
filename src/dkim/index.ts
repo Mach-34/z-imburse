@@ -31,15 +31,15 @@ export const domains = [
 // }
 
 export enum VerifierTypes {
-    amazon = 1,
-    linode = 2,
-    heroku = 3,
-    frontier = 4,
-    united = 5,
-    aa = 6,
-    delta = 7,
-    uber = 8,
-    lyft = 9,
+  amazon = 1,
+  linode = 2,
+  heroku = 3,
+  frontier = 4,
+  united = 5,
+  aa = 6,
+  delta = 7,
+  uber = 8,
+  lyft = 9,
 }
 
 export type KeyResponse = {
@@ -50,8 +50,41 @@ export type KeyResponse = {
   value: string;
 };
 
-export function parseDKIMKey(base64Key: string): bigint | null
- {
+/**
+ * Create a dkim key hash from a public key
+ *
+ * @param pubkey - the public key to hash (bigint: unserialized, string[]: 120-bit limbs)
+ * @returns the hash of the public key
+ */
+export async function dkimPubkeyToHash(pubkey: bigint | string[]): Promise<bigint> {
+  let limbs: Fr[];
+  if (typeof pubkey === "bigint") {
+    limbs =  NoirBignum.splitInto120BitLimbs(
+      pubkey,
+      pubkey.toString(2).length
+    ).map((limb) => new Fr(limb));
+  } else {
+    // need to convert back to Fr with right padding to match hash for some reason
+    const limbBuf = pubkey.map((limb) => {
+      const index = limb.indexOf("0x") === 0 ? 2 : 0;
+      const limbBuf = Buffer.from(limb.slice(index), "hex");
+      if (limbBuf.length === 32) return limbBuf;
+      const pad = Buffer.alloc(32 - limbBuf.length);
+      return Buffer.concat([pad, limbBuf]);
+    });
+    limbs = limbBuf.map((limb) => Fr.fromBuffer(limb));
+  }
+  let bb: BarretenbergSync;
+  try {
+    bb = BarretenbergSync.getSingleton();
+  } catch {
+    bb = await BarretenbergSync.initSingleton();
+  }
+  const hash = bb.pedersenHash(limbs, 0);
+  return toBigIntBE(hash.value);
+}
+
+export function parseDKIMKey(base64Key: string): bigint | null {
   const paddingNeeded = base64Key.length % 4 ? 4 - (base64Key.length % 4) : 0;
   const pem = Buffer.from(
     `-----BEGIN PUBLIC KEY-----\n${(
@@ -80,8 +113,8 @@ export async function fetchDKIMKeys(domain: string): Promise<Array<bigint>> {
   const keys = keyEntries.reduce((keys, entry) => {
     const match = entry.value.match(search);
     if (match) {
-        const parsed = parseDKIMKey(match[1]);
-        if (parsed) keys.add(parsed);
+      const parsed = parseDKIMKey(match[1]);
+      if (parsed) keys.add(parsed);
     }
     return keys;
   }, new Set<bigint>());
@@ -89,46 +122,34 @@ export async function fetchDKIMKeys(domain: string): Promise<Array<bigint>> {
 }
 
 export async function getDKIMHashes(domain: string): Promise<Array<bigint>> {
-    // get all dkim keys
-    const keys = await fetchDKIMKeys(domain);
-    // produce pedersen hashes for each key
-    let bb: BarretenbergSync;
-    try {
-        bb = BarretenbergSync.getSingleton();
-    } catch {
-        bb = await BarretenbergSync.initSingleton();
-    }
-    return keys.map(key => {
-        const dkimKeyLimbs = NoirBignum.splitInto120BitLimbs(
-            key,
-            key.toString(2).length
-        ).map(limb => new Fr(limb));
-        const hash = bb.pedersenHash(dkimKeyLimbs, 0);
-        return toBigIntBE(hash.value);
-    });
+  // get all dkim keys
+  const keys = await fetchDKIMKeys(domain);
+  // produce pedersen hashes for each key
+  return await Promise.all(keys.map(dkimPubkeyToHash));
 }
 
 function wait(delay: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, delay));
+  return new Promise((resolve) => setTimeout(resolve, delay));
 }
 
 // Function to perform a fetch request with retries
 function fetchRetry(
-    url: string,
-    delay: number = 1000,
-    tries: number = 3,
-    fetchOptions: RequestInit = {}
+  url: string,
+  delay: number = 1000,
+  tries: number = 3,
+  fetchOptions: RequestInit = {}
 ): Promise<Response> {
-    // Helper function to handle errors and retry
-    function onError(err: any): Promise<Response> {
-        const triesLeft = tries - 1;
-        if (!triesLeft) {
-            return Promise.reject(err); // If no more tries left, reject the Promise with the error
-        }
-        return wait(delay).then(() => fetchRetry(url, delay, triesLeft, fetchOptions));
+  // Helper function to handle errors and retry
+  function onError(err: any): Promise<Response> {
+    const triesLeft = tries - 1;
+    if (!triesLeft) {
+      return Promise.reject(err); // If no more tries left, reject the Promise with the error
     }
+    return wait(delay).then(() =>
+      fetchRetry(url, delay, triesLeft, fetchOptions)
+    );
+  }
 
-    // Perform the fetch request and catch errors to retry
-    return fetch(url, fetchOptions).catch(onError);
+  // Perform the fetch request and catch errors to retry
+  return fetch(url, fetchOptions).catch(onError);
 }
-

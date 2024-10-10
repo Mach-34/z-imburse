@@ -33,8 +33,11 @@ export function prepareDKIMKeysForInputs(): DKIMInput[][] {
     }
   }
 
-  traverseAndExtract(savedDkimHashes);
-  // split inputs into chunks of 8 (max unencrypted logs)
+  // traverseAndExtract(savedDkimHashes);
+  // save time for now just add hosting keys
+  traverseAndExtract(savedDkimHashes.hosting);
+  // split inputs into chunks of 4 (max unencrypted logs) it will allow
+  // todo: i think it will work with 8 if it is not a contract deployment so need separate inputs
   const chunkSize = 4;
   const chunkedInputs: DKIMInput[][] = [];
   for (let i = 0; i < inputs.length; i += chunkSize) {

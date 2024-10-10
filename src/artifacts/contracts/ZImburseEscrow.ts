@@ -165,6 +165,9 @@ EntitlementReceiptNote: {
     /** give_recurring_entitlement(to: struct, amount: field, verifier_id: integer) */
     give_recurring_entitlement: ((to: AztecAddressLike, amount: FieldLike, verifier_id: (bigint | number)) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
+    /** log_note(from: struct) */
+    log_note: ((from: AztecAddressLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+
     /** public_dispatch(selector: field) */
     public_dispatch: ((selector: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 

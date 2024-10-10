@@ -9,7 +9,7 @@ contract ZImburseEscrow {
     use dep::aztec::encrypted_logs::encrypted_note_emission::{encode_and_encrypt_note, encode_and_encrypt_note_unconstrained};
     use dep::aztec::macros::{storage::storage, functions::{private, public, internal, view, initializer}};
     use dep::aztec::keys::getters::get_public_keys;
-    use dep::aztec::note::note_getter_options::NoteGetterOptions;
+    use dep::aztec::note::{note_getter_options::NoteGetterOptions, note_viewer_options::NoteViewerOptions};
     use dep::aztec::oracle::random::random;
     use dep::aztec::utils::comparison::Comparator;
     
@@ -134,7 +134,6 @@ contract ZImburseEscrow {
         assert(notes.len() == 1, "No entitlements to redeem");
         let note = notes.get_unchecked(0);
         assert(note.owner == context.msg_sender(), "Entitlement does not belong to the sender");
-
         // check that the revocation nullifier has not been emitted
         let revocation_nullifier = note.compute_revocation_nullifier();
         let revocation_nullifier_exists = storage.entitlement_nullifiers.at(revocation_nullifier).read_private();
@@ -153,7 +152,10 @@ contract ZImburseEscrow {
         // check the dkim key hash matches the linode verifier id
         let registry = storage.definition.read_private().dkimRegistry;
         let verifier_id = ZImburseDkimRegistry::at(registry).check_dkim_key_hash_private(dkim_key_hash).view(&mut context);
-        assert(verifier_id == receipt_verifier_id::LINODE, "DKIM key is not registered for Linode");
+        assert(
+            (verifier_id as u8) == receipt_verifier_id::LINODE,
+            "DKIM key is not registered for Linode"
+        );
 
         // check that this entitlement has not been emitted for this month
         // constrained to use the year/month unix timestamp computed by email verifier
@@ -208,6 +210,26 @@ contract ZImburseEscrow {
     #[view]
     pub fn get_admin_private() -> AztecAddress {
         storage.definition.read_private().admin
+    }
+
+
+
+    unconstrained fn log_note(from: AztecAddress) -> [Field; 6] {
+        // retrieve a Linode hosting entitlement
+        let notes = storage.recurring_entitlements.at(from).view_notes(
+            NoteViewerOptions::new()
+                // .select(RecurringEntitlementNote::properties().verifier_id, Comparator.EQ, receipt_verifier_id::LINODE)
+                .set_limit(1)
+        );
+        let note = notes.get_unchecked(0);
+        [
+            note.owner.to_field(),
+            note.npk_m_hash,
+            note.revocation_npk_m_hash,
+            note.verifier_id as Field, 
+            note.max_value.to_integer(),
+            note.randomness
+        ]
     }
 
 }

@@ -251,6 +251,19 @@ describe("Test deposit to zimburse", () => {
         console.log("Outgoing visible notes", receipt1.debugInfo!.visibleOutgoingNotes.map(note => note.note.items));
         console.log("Incoming visible notes", receipt1.debugInfo!.visibleIncomingNotes.map(note => note.note.items));
 
+        // check entitlement
+        const entitlement = await escrows[0]
+          .withWallet(alice)
+          .methods
+          .log_note(alice.getAddress())
+          .simulate();
+        console.log("Owner: ", entitlement[0]);
+        console.log("npk_m_hash: ", entitlement[1]);
+        console.log("revocation npk_m_hash: ", entitlement[2]);
+        console.log("verifier_id: ", entitlement[3]);
+        console.log("amount: ", entitlement[4]);
+        console.log("randomness: ", entitlement[5]);
+
         // generate email inputs
         const inputs = await makeLinodeInputs(emails.linode_sep);
         // transform inputs to contract friendly format

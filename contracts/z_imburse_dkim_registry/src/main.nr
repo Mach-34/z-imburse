@@ -3,15 +3,15 @@ use dep::aztec::macros::aztec;
 pub global BULK_KEY_LENGTH: u32 = 4;
 
 mod receipt_verifier_id {
-    pub global AWS: Field = 1;
-    pub global LINODE: Field = 2;
-    pub global HEROKU: Field = 3;
-    pub global FRONTIER_AIRLINES: Field = 4;
-    pub global UNITED_AIRLINES: Field = 5;
-    pub global AMERICAN_AIRLINES: Field = 6;
-    pub global DELTA_AIRLINES: Field = 7;
-    pub global UBER: Field = 8;
-    pub global LYFT: Field = 9;
+    pub global AWS: u8 = 1;
+    pub global LINODE: u8 = 2;
+    pub global HEROKU: u8 = 3;
+    pub global FRONTIER_AIRLINES: u8 = 4;
+    pub global UNITED_AIRLINES: u8 = 5;
+    pub global AMERICAN_AIRLINES: u8 = 6;
+    pub global DELTA_AIRLINES: u8 = 7;
+    pub global UBER: u8 = 8;
+    pub global LYFT: u8 = 9;
 }
 
 #[aztec]
@@ -44,41 +44,21 @@ contract ZImburseDkimRegistry {
     #[public]
     #[initializer]
     fn constructor(
-        // verifier_ids: [Field; BULK_KEY_LENGTH],
-        // dkim_key_hashes: [Field; BULK_KEY_LENGTH]
+        verifier_ids: [Field; BULK_KEY_LENGTH],
+        dkim_key_hashes: [Field; BULK_KEY_LENGTH]
     ) {
         storage.admin.initialize(context.msg_sender());
         // bulk insert up to 8 dkim key hashes at initialization (max unencrypted logs per tx)
-        // for i in 0..BULK_KEY_LENGTH {
-        //     if (verifier_ids[i] != 0) {
-        //         // ensure that the dkim key has not already been registered
-        //         let stored_id = storage.dkim_registry.at(dkim_key_hashes[i]).read_public();
-        //         assert(stored_id == 0, "DKIM key has already been registered");
-        //         storage.dkim_registry.at(dkim_key_hashes[i]).initialize(verifier_ids[i]);
-        //         emit(&mut context, DKIMKeyRegistered {
-        //             dkim_key_hash: dkim_key_hashes[i],
-        //             verifier_id: verifier_ids[i]
-        //         });
-        //     }
-        // }
-    }
-
-    /** Add dkim with no emit for testing purposes (more ergonomic) (remove later) */
-    #[public]
-    fn register_bulk_no_emit(verifier_ids: [Field; 8], dkim_key_hashes: [Field; 8]) {
-        // check that the sender is the admin
-        let admin = storage.admin.read_public();
-        assert(admin == context.msg_sender(), "Sender is not the registry contract");
-        // bulk insert up to 8 dkim key hashes at initialization (max unencrypted logs per tx)
-        for i in 0..8 {
+        for i in 0..BULK_KEY_LENGTH {
             if (verifier_ids[i] != 0) {
                 // ensure that the dkim key has not already been registered
                 let stored_id = storage.dkim_registry.at(dkim_key_hashes[i]).read_public();
                 assert(stored_id == 0, "DKIM key has already been registered");
                 storage.dkim_registry.at(dkim_key_hashes[i]).initialize(verifier_ids[i]);
-                unsafe {
-                    dep::aztec::oracle::debug_log::debug_log_format("Added key {0} for id {1}", [dkim_key_hashes[i], verifier_ids[i]]);
-                }
+                emit(&mut context, DKIMKeyRegistered {
+                    dkim_key_hash: dkim_key_hashes[i],
+                    verifier_id: verifier_ids[i]
+                });
             }
         }
     }
@@ -152,5 +132,6 @@ contract ZImburseDkimRegistry {
     fn check_dkim_key_hash_private(dkim_key_hash: Field) -> Field {
         storage.dkim_registry.at(dkim_key_hash).read_private()
     }
+
 }
 

@@ -17,14 +17,15 @@ contract ZImburseEscrow {
         zkemail::KEY_LIMBS_2048
     };
     
-    use crate::types::definition::{Definition, TITLE_LENGTH};
+    use crate::types::escrow_definition::{EscrowDefinition, TITLE_LENGTH};
     use crate::types::recurring_entitlement_note::RecurringEntitlementNote;
     // use dep::aztec::macros::{storage::storage, functions::{private, initializer}};
     use dep::token::Token;
+    use dep::z_imburse_dkim_registry::{ZImburseDkimRegistry, receipt_verifier_id };
 
     #[storage]
     struct Storage<Context> {
-        definition: SharedImmutable<Definition, Context>,
+        definition: SharedImmutable<EscrowDefinition, Context>,
         entitlements: Map<AztecAddress, PrivateSet<RecurringEntitlementNote, Context>, Context>
     }
 
@@ -38,18 +39,34 @@ contract ZImburseEscrow {
      */
     #[public]
     #[initializer]
-    fn constructor(registry: AztecAddress, usdc_token: AztecAddress, title: str<TITLE_LENGTH>) {
-        let definition = Definition::new(registry, context.msg_sender(), usdc_token, title);
+    fn constructor(
+        dkimRegistry: AztecAddress,
+        escrowRegistry: AztecAddress,
+        usdc_token: AztecAddress,
+        title: str<TITLE_LENGTH>
+    ) {
+        let definition = EscrowDefinition::new(
+            dkimRegistry,
+            escrowRegistry,
+            context.msg_sender(),
+            usdc_token,
+            title
+        );
         storage.definition.initialize(definition);
     }
 
 
     #[private]
     fn give_entitlement(to: AztecAddress, amount: Field) {
-        let recipient = get_public_keys(to);
-        let mut entitlement: RecurringEntitlementNote = RecurringEntitlementNote::new(to, recipient.npk_m.hash(), U128::from_integer(amount));
+        let recipient_keys = get_public_keys(to);
+        let admin_keys = get_public_keys(context.msg_sender());
+        let mut entitlement: RecurringEntitlementNote = RecurringEntitlementNote::new(
+            to,
+            recipient_keys.npk_m.hash(),
+            U128::from_integer(amount)
+        );
         storage.entitlements.at(to).insert(&mut entitlement).emit(
-            encode_and_encrypt_note(&mut context, context.msg_sender(), to)
+            encode_and_encrypt_note(&mut context, admin_keys.ovpk_m, recipient_keys.ivpk_m, to)
         );
     }
 
@@ -82,6 +99,11 @@ contract ZImburseEscrow {
         let note = notes.get_unchecked(0);
         assert(note.owner == context.msg_sender(), "Entitlement does not belong to the sender");
 
+        // check the dkim key hash matches the linode verifier id
+        let registry = storage.definition.read_private().dkimRegistry;
+        let pubkey_hash = std::hash::pedersen_hash(pubkey);
+        let verifier_id = ZImburseDkimRegistry::at(registry).check_dkim_key_hash_private(pubkey_hash).view(&mut context);
+        assert(verifier_id == receipt_verifier_id::LINODE, "DKIM key is not registered for Linode");
         // verify linode billing receipt and extract amount, date, keyhash
         let linode_receipt_result = verify_linode_billing_receipt(
             body, body_hash_index, body_length, header, header_length, pubkey, pubkey_redc, signature, from_index, subject_index, amount_index, amount_length, date_index, receipt_id_length

@@ -1,10 +1,7 @@
 use dep::zkemail::{KEY_LIMBS_2048, dkim::verify_dkim_2048, get_body_hash_by_index, base64::body_hash_base64_decode};
 use crate::constants::{LinodeBillingParams, MAX_LINODE_EMAIL_BODY_LENGTH, MAX_LINODE_EMAIL_HEADER_LENGTH};
 use crate::utils::{check_from_linode_billing, check_subject_billing_receipt, extract_billed_amount, extract_datetime};
-use std::hash::pedersen_hash;
-
-/// USE UNTIL WE HAVE AZTEC-NARGO v0.35.0
-use crate::sha256_var::sha256_var;
+use std::hash::{sha256_var, pedersen_hash};
 
 pub fn verify_linode_billing_receipt(
     body: [u8; MAX_LINODE_EMAIL_BODY_LENGTH],
@@ -58,5 +55,4 @@ pub fn verify_linode_billing_receipt(
     // hash the dkim key used to verify the email
     let dkim_key_hash = pedersen_hash(pubkey);
     [dkim_key_hash, datetime as Field, billed_amount as Field]
-    // [dkim_key_hash as Field, 0, 0]
 }

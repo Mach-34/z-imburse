@@ -28,5 +28,5 @@
             "@mach-34/z-imburse/*": ["./src/*"]
         }
     },
-    "include": ["src", ".babelrc", "jest.config.js"],
+    "include": ["src", ".babelrc", "jest.config.js", "tests/txe"],
 }

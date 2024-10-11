@@ -301,7 +301,7 @@ describe("Test deposit to zimburse", () => {
           .simulate();
         expect(recipientBalance).toBe(toUSDCDecimals(10n));
       });
-      xit("Can't use the same email (same month)", async () => {
+      it("Can't use the same email (same month)", async () => {
         // generate email inputs
         const inputs = await makeLinodeInputs(emails.linode_sep);
         // transform inputs to contract friendly format
@@ -315,7 +315,45 @@ describe("Test deposit to zimburse", () => {
           .simulate()
         ).rejects.toThrowError(/someerror/);
       });
-      it.todo("Can use different month to claim the entitlement again");
+      it("Can use different month to claim the entitlement again", async () => {
+        const amount = toUSDCDecimals(10n);
+        // generate email inputs
+        const inputs = await makeLinodeInputs(emails.linode_oct);
+        // transform inputs to contract friendly format
+        const redeemLinodeInputs = formatRedeemLinode(inputs);
+        // redeem entitlement
+        const secret = Fr.random();
+        const secretHash = computeSecretHash(secret);
+        const receipt = await escrows[0]
+          .withWallet(alice)
+          .methods.redeem_linode_entitlement(...redeemLinodeInputs, secretHash)
+          .send()
+          .wait();
+        await addPendingShieldNoteToPXE(
+          alice,
+          usdc.address,
+          amount,
+          secretHash,
+          receipt.txHash
+        );
+        // check that the balance has decremented from zimburse
+        const escrowBalance = await usdc.methods
+          .balance_of_public(escrows[0])
+          .simulate();
+        expect(escrowBalance).toBe(toUSDCDecimals(9980n));
+        // redeem the shielded USDC note
+        await usdc
+          .withWallet(alice)
+          .methods.redeem_shield(alice.getAddress(), amount, secret)
+          .send()
+          .wait();
+        // check that the balance has incremented for the recipient
+        const recipientBalance = await usdc
+          .withWallet(alice)
+          .methods.balance_of_private(alice.getAddress())
+          .simulate();
+        expect(recipientBalance).toBe(toUSDCDecimals(10n));
+      });
       it.todo("Admin can't re-issue an entitlement");
       it.todo("Admin can nullify the entitlement");
       it.todo("Admin can reissue an entitlement after nullifying the old one");

@@ -5,7 +5,7 @@ mod types;
 
 #[aztec]
 contract ZImburseEscrow {
-    use dep::aztec::prelude::{AztecAddress, PrivateImmutable, PrivateSet, SharedImmutable, Map};
+    use dep::aztec::prelude::{AztecAddress, PrivateSet, SharedImmutable, Map};
     use dep::aztec::encrypted_logs::encrypted_note_emission::{encode_and_encrypt_note, encode_and_encrypt_note_unconstrained};
     use dep::aztec::macros::{storage::storage, functions::{private, public, internal, view, initializer}};
     use dep::aztec::keys::getters::get_public_keys;
@@ -28,7 +28,6 @@ contract ZImburseEscrow {
         entitlement_receipt_note::EntitlementReceiptNote
     };
     
-
     #[storage]
     struct Storage<Context> {
         definition: SharedImmutable<EscrowDefinition, Context>,
@@ -66,13 +65,16 @@ contract ZImburseEscrow {
 
     #[private]
     fn give_recurring_entitlement(to: AztecAddress, amount: Field, verifier_id: u8) {
-        // todo: check receipts to see if there is an existing entitlement for this verifier & recipient (only on recurring)
-        // let options = NoteGetterOptions::new()
-        //     .set_limit(1)
-        //     .select(EntitlementNoteReceipt::properties().verifier_id, Comparators.EQ, receipt_verifier_id::LINODE);
-        //     .select(EntitlementNoteReceipt::properties().owner, Comparators.EQ, to);
-        // let notes = storage.entitlement_receipts.pop_notes(options);
-        // assert(notes.len() == 0, "Entitlement already exists for this verifier and recipient");
+        // check that no receipt exists for this recipient and verifier
+        // let options =  NoteGetterOptions::new()
+                // .select(EntitlementReceiptNote::properties().recipient, dep::aztec::utils::comparison::Comparator::EQ, to)
+                // .select(EntitlementReceiptNote::properties().verifier_id, dep::aztec::utils::comparison::Comparator::EQ, verifier_id)
+                // .set_limit(1);
+        // let notes = storage.entitlement_receipts.get_notes(options);
+        // assert(notes.len() == 0, "An entitlement already exists for this recipient and verifier");
+        // check is escrow admin
+        let admin = storage.definition.read_private().admin;
+        assert(context.msg_sender() == admin, "Only the escrow admin can give entitlements");
 
         // get nullifying keys for admin and recipient
         let recipient_keys = get_public_keys(to);
@@ -106,6 +108,31 @@ contract ZImburseEscrow {
     }
 
     #[private]
+    fn nullify_recurring_entitlement(to: AztecAddress, verifier_id: u8) {
+        // check is escrow admin
+        let admin = storage.definition.read_private().admin;
+        assert(context.msg_sender() == admin, "Only the escrow admin can give entitlements");
+
+        // get note receipt note for user and verifier type
+        // pop notes to destroy them
+        // let notes = storage.entitlement_receipts.pop_notes(
+        //     NoteGetterOptions::new()
+        //         .select(EntitlementReceiptNote::properties().recipient, Comparator::EQ, to)
+        //         .select(EntitlementReceiptNote::properties().verifier_id, Comparator::EQ, verifier_id)
+        //         .set_limit(1)
+        // );
+        // assert(notes.len() == 1, "No entitlements to nullify");
+        // let note = notes.get_unchecked(0);
+        // check that the revocation nullifier has not been emitted
+        // let revocation_nullifier = note.compute_revocation_nullifier();
+        // let revocation_nullifier_exists = storage.entitlement_nullifiers.at(revocation_nullifier).read_private();
+        // assert(!revocation_nullifier_exists, "Entitlement has been revoked");
+
+        // // emit the nullifier
+        // ZImburseEscrow::at(context.this_address()).emit_entitlement_nullifier(revocation_nullifier).enqueue(&mut context);
+    }
+
+    #[private]
     fn redeem_linode_entitlement(
         // email inputs
         body: [u8; MAX_LINODE_EMAIL_BODY_LENGTH],
@@ -126,7 +153,7 @@ contract ZImburseEscrow {
         claim_secret_hash: Field,
     ) {
         // retrieve a Linode hosting entitlement
-        let notes = storage.recurring_entitlements.at(context.msg_sender()).pop_notes(
+        let notes = storage.recurring_entitlements.at(context.msg_sender()).get_notes(
             NoteGetterOptions::new()
                 // .select(RecurringEntitlementNote::properties().verifier_id, Comparator.EQ, receipt_verifier_id::LINODE)
                 .set_limit(1)
@@ -178,6 +205,13 @@ contract ZImburseEscrow {
         let token_address = storage.definition.read_private().usdc;
         Token::at(token_address).shield(context.this_address(), amount_to_reimburse.to_field(), claim_secret_hash, 0).enqueue(&mut context);
     }
+
+    // #[private]
+    // fn remove_nullified_recurring_notes() {
+    //     let notes = storage.recurring_entitlements.at(context.msg_sender()).get_notes(
+    //         NoteGetterOptions::new()
+    //     );
+    // }
 
     /**
      * Emit a nullifier from the private context for any reason (using spot, recurring, or revocation)
@@ -231,6 +265,6 @@ contract ZImburseEscrow {
             note.randomness
         ]
     }
-
+    
 }
 

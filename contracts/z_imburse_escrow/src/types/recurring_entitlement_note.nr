@@ -4,6 +4,7 @@ use dep::aztec::protocol_types::{
     constants::{GENERATOR_INDEX__NOTE_NULLIFIER, MAX_NOTE_HASH_READ_REQUESTS_PER_CALL},
     hash::{poseidon2_hash_with_separator, poseidon2_hash_bytes},
     utils::field::field_from_bytes,
+    point::Point
 };
 use dep::aztec::{note::utils::compute_note_hash_for_nullify, oracle::random::random};
 use dep::compressed_string::CompressedString;
@@ -13,6 +14,7 @@ use dep::aztec::keys::getters::get_nsk_app;
 use dep::aztec::generators::{Ga1, Ga2, Ga3, Ga4, Ga5, G_slot};
 use std::embedded_curve_ops::multi_scalar_mul;
 use std::hash::from_field_unsafe;
+
 
 // serializes verifier_id and max_value into one field element
 global RECURRING_ENTITLEMENT_NOTE_LENGTH: u32 = 5;
@@ -114,8 +116,9 @@ impl NoteInterface<RECURRING_ENTITLEMENT_NOTE_LENGTH> for RecurringEntitlementNo
 
     fn compute_note_hash(self) -> Field {
         let serialized = self.serialize_content();
+        let generators: [Point; 12] = std::hash::derive_generators("aztec_nr_generators".as_bytes(), 0);
         std::embedded_curve_ops::multi_scalar_mul(
-            [Ga1, Ga2, Ga3, Ga4, Ga5, G_slot],
+            [generators[2], generators[4], generators[5], generators[6], generators[7], generators[8]],
             [
             from_field_unsafe(serialized[0]),
             from_field_unsafe(serialized[1]),

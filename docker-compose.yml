@@ -43,7 +43,7 @@ services:
     ports:
       - "${PXE_PORT:-8081}:${PXE_PORT:-8081}"
     volumes:
-      - ./log:/usr/src/yarn-project/aztec/log_pxe:rw
+      - ./log:/usr/src/yarn-project/aztec/log_pxe_1:rw
     depends_on:
       - aztec
     command: "start --pxe --port 8081 --pxe.nodeUrl=http://aztec:8080/"
@@ -53,8 +53,18 @@ services:
     ports:
       - "${PXE_PORT:-8082}:${PXE_PORT:-8082}"
     volumes:
-      - ./log:/usr/src/yarn-project/aztec/log_pxe:rw
+      - ./log:/usr/src/yarn-project/aztec/log_pxe_2:rw
     depends_on:
       - aztec
     command: "start --pxe --port 8082 --pxe.nodeUrl=http://aztec:8080/"
+    restart: on-failure
+  pxe_3:
+    image: "aztecprotocol/aztec"
+    ports:
+      - "${PXE_PORT:-8083}:${PXE_PORT:-8083}"
+    volumes:
+      - ./log:/usr/src/yarn-project/aztec/log_pxe_3:rw
+    depends_on:
+      - aztec
+    command: "start --pxe --port 8083 --pxe.nodeUrl=http://aztec:8080/"
     restart: on-failure

@@ -33,22 +33,22 @@ import {
   type Wallet,
   type WrappedFieldLike,
 } from '@aztec/aztec.js';
-import ZImburseContractRegistryContractArtifactJson from './ZImburseContractRegistry.json' assert { type: 'json' };
+import ZImburseEscrowRegistryContractArtifactJson from './ZImburseEscrowRegistry.json' assert { type: 'json' };
 //@ts-ignore
-export const ZImburseContractRegistryContractArtifact = loadContractArtifact(ZImburseContractRegistryContractArtifactJson as NoirCompiledContract);
+export const ZImburseEscrowRegistryContractArtifact = loadContractArtifact(ZImburseEscrowRegistryContractArtifactJson as NoirCompiledContract);
 
 
 
 /**
- * Type-safe interface for contract ZImburseContractRegistry;
+ * Type-safe interface for contract ZImburseEscrowRegistry;
  */
-export class ZImburseContractRegistryContract extends ContractBase {
+export class ZImburseEscrowRegistryContract extends ContractBase {
   
   private constructor(
     instance: ContractInstanceWithAddress,
     wallet: Wallet,
   ) {
-    super(instance, ZImburseContractRegistryContractArtifact, wallet);
+    super(instance, ZImburseEscrowRegistryContractArtifact, wallet);
   }
   
 
@@ -63,36 +63,36 @@ export class ZImburseContractRegistryContract extends ContractBase {
     address: AztecAddress,
     wallet: Wallet,
   ) {
-    return Contract.at(address, ZImburseContractRegistryContract.artifact, wallet) as Promise<ZImburseContractRegistryContract>;
+    return Contract.at(address, ZImburseEscrowRegistryContract.artifact, wallet) as Promise<ZImburseEscrowRegistryContract>;
   }
 
   
   /**
    * Creates a tx to deploy a new instance of this contract.
    */
-  public static deploy(wallet: Wallet, contract_class_id: FieldLike) {
-    return new DeployMethod<ZImburseContractRegistryContract>(Fr.ZERO, wallet, ZImburseContractRegistryContractArtifact, ZImburseContractRegistryContract.at, Array.from(arguments).slice(1));
+  public static deploy(wallet: Wallet, dkim_registry: AztecAddressLike, usdc: AztecAddressLike, escrow_contract_id: FieldLike) {
+    return new DeployMethod<ZImburseEscrowRegistryContract>(Fr.ZERO, wallet, ZImburseEscrowRegistryContractArtifact, ZImburseEscrowRegistryContract.at, Array.from(arguments).slice(1));
   }
 
   /**
    * Creates a tx to deploy a new instance of this contract using the specified public keys hash to derive the address.
    */
-  public static deployWithPublicKeysHash(publicKeysHash: Fr, wallet: Wallet, contract_class_id: FieldLike) {
-    return new DeployMethod<ZImburseContractRegistryContract>(publicKeysHash, wallet, ZImburseContractRegistryContractArtifact, ZImburseContractRegistryContract.at, Array.from(arguments).slice(2));
+  public static deployWithPublicKeysHash(publicKeysHash: Fr, wallet: Wallet, dkim_registry: AztecAddressLike, usdc: AztecAddressLike, escrow_contract_id: FieldLike) {
+    return new DeployMethod<ZImburseEscrowRegistryContract>(publicKeysHash, wallet, ZImburseEscrowRegistryContractArtifact, ZImburseEscrowRegistryContract.at, Array.from(arguments).slice(2));
   }
 
   /**
    * Creates a tx to deploy a new instance of this contract using the specified constructor method.
    */
-  public static deployWithOpts<M extends keyof ZImburseContractRegistryContract['methods']>(
+  public static deployWithOpts<M extends keyof ZImburseEscrowRegistryContract['methods']>(
     opts: { publicKeysHash?: Fr; method?: M; wallet: Wallet },
-    ...args: Parameters<ZImburseContractRegistryContract['methods'][M]>
+    ...args: Parameters<ZImburseEscrowRegistryContract['methods'][M]>
   ) {
-    return new DeployMethod<ZImburseContractRegistryContract>(
+    return new DeployMethod<ZImburseEscrowRegistryContract>(
       opts.publicKeysHash ?? Fr.ZERO,
       opts.wallet,
-      ZImburseContractRegistryContractArtifact,
-      ZImburseContractRegistryContract.at,
+      ZImburseEscrowRegistryContractArtifact,
+      ZImburseEscrowRegistryContract.at,
       Array.from(arguments).slice(1),
       opts.method ?? 'constructor',
     );
@@ -104,40 +104,28 @@ export class ZImburseContractRegistryContract extends ContractBase {
    * Returns this contract's artifact.
    */
   public static get artifact(): ContractArtifact {
-    return ZImburseContractRegistryContractArtifact;
+    return ZImburseEscrowRegistryContractArtifact;
   }
   
 
-  public static get storage(): ContractStorageLayout<'admin' | 'minters' | 'balances' | 'total_supply' | 'pending_shields' | 'public_balances' | 'symbol' | 'name' | 'decimals'> {
+  public static get storage(): ContractStorageLayout<'definition' | 'managed_escrows' | 'participants' | 'participant_escrows' | 'contract_registration'> {
       return {
-        admin: {
+        definition: {
       slot: new Fr(1n),
     },
-minters: {
-      slot: new Fr(2n),
-    },
-balances: {
-      slot: new Fr(3n),
-    },
-total_supply: {
+managed_escrows: {
       slot: new Fr(4n),
     },
-pending_shields: {
+participants: {
       slot: new Fr(5n),
     },
-public_balances: {
+participant_escrows: {
       slot: new Fr(6n),
     },
-symbol: {
+contract_registration: {
       slot: new Fr(7n),
-    },
-name: {
-      slot: new Fr(8n),
-    },
-decimals: {
-      slot: new Fr(9n),
     }
-      } as ContractStorageLayout<'admin' | 'minters' | 'balances' | 'total_supply' | 'pending_shields' | 'public_balances' | 'symbol' | 'name' | 'decimals'>;
+      } as ContractStorageLayout<'definition' | 'managed_escrows' | 'participants' | 'participant_escrows' | 'contract_registration'>;
     }
     
 
@@ -171,8 +159,8 @@ ParticipantNote: {
     /** compute_note_hash_and_optionally_a_nullifier(contract_address: struct, nonce: field, storage_slot: field, note_type_id: field, compute_nullifier: boolean, serialized_note: array) */
     compute_note_hash_and_optionally_a_nullifier: ((contract_address: AztecAddressLike, nonce: FieldLike, storage_slot: FieldLike, note_type_id: FieldLike, compute_nullifier: boolean, serialized_note: FieldLike[]) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
-    /** constructor(contract_class_id: field) */
-    constructor: ((contract_class_id: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+    /** constructor(dkim_registry: struct, usdc: struct, escrow_contract_id: field) */
+    constructor: ((dkim_registry: AztecAddressLike, usdc: AztecAddressLike, escrow_contract_id: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
     /** get_contract_registration_status(escrow_contract: struct) */
     get_contract_registration_status: ((escrow_contract: AztecAddressLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
@@ -188,6 +176,9 @@ ParticipantNote: {
 
     /** get_participants(escrow: struct, page_index: integer) */
     get_participants: ((escrow: AztecAddressLike, page_index: (bigint | number)) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+
+    /** public_dispatch(selector: field) */
+    public_dispatch: ((selector: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
     /** register_escrow(escrow_contract: struct) */
     register_escrow: ((escrow_contract: AztecAddressLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;

@@ -66,10 +66,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 
 ### Check the versions of aztec dependencies
 
-### Patch noir bignum to work with aztec-nargo
-### TODO: remove with 0.35.0 release
-sh $SCRIPT_DIR/patch_noir_bignum.sh
-
 ### Compile the ZImburse workspace
 cd $SCRIPT_DIR/../contracts
 

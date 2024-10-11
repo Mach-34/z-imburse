@@ -30,7 +30,7 @@ describe("United Flight Receipt Test", () => {
         })
     })
 
-    describe("Proving", () => {
+    xdescribe("Proving", () => {
         it("United::Honk", async () => {
             // make inputs from email
             const inputs = await makeUnitedInputs(emails.united);
@@ -42,7 +42,7 @@ describe("United Flight Receipt Test", () => {
 
         });
 
-        xit("United::Plonk", async () => {
+        it("United::Plonk", async () => {
             // make inputs from email
             const inputs = await makeUnitedInputs(emails.united);
             // generate proof

@@ -24,6 +24,7 @@ describe("Linode Billing Receipt Test", () => {
             // simulate witness
             const { returnValue } = await prover.simulateWitness({ params: inputs });
             // check the returned values
+            // this linode email has a value of $22.00
             const values = (returnValue as string[]).map(x => toBigIntBE(new Uint8Array(Buffer.from(x.slice(2), 'hex'))));
             expect(values[2]).toEqual(2200n);
             // todo: check expected date matches
@@ -50,6 +51,7 @@ describe("Linode Billing Receipt Test", () => {
             const proof = await prover.fullProve({ params: inputs }, 'honk');
             // verify proof
             const result = await prover.verify(proof, 'honk');
+            expect(result).toBeTruthy();
 
         });
 

@@ -12,8 +12,7 @@ contract ZImburseEscrow {
     use dep::address_note::address_note::AddressNote;
     use dep::aztec::note::note_getter_options::NoteGetterOptions;
     use dep::zimburse_verifiers::{
-        constants::{MAX_LINODE_EMAIL_BODY_LENGTH, MAX_LINODE_EMAIL_HEADER_LENGTH},
-        linode::verify_linode_billing_receipt,
+        linode::{constants::{MAX_LINODE_EMAIL_BODY_LENGTH, MAX_LINODE_EMAIL_HEADER_LENGTH}, main::verify_linode_billing_receipt},
         zkemail::KEY_LIMBS_2048
     };
     

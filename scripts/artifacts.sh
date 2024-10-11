@@ -18,7 +18,7 @@ compile_artifact() {
     case "$OSTYPE" in
     darwin*)
         # macOS
-        contract_name=$(echo "$project" | sed '' 's/_\([a-z]\)/\U\1/g' | sed '' 's/^\([a-z]\)/\U\1/')
+        contract_name=$(echo "$project" | awk -F'_' '{for(i=1;i<=NF;i++){printf toupper(substr($i,1,1)) substr($i,2)}}')
         ;;
     *)
         # Linux
@@ -39,8 +39,13 @@ compile_artifact() {
     darwin*)
         # macOS
         sed -i '' "s|target/${project}-${contract_name}.json|./${contract_name}.json|" $contract_name.ts
-        sed -i '' "export const ${contract_name}ContractArtifact = loadContractArtifact(${contract_name}ContractArtifactJson as NoirCompiledContract);/i \\/\/@ts-ignore" $contract_name.ts
-
+        # do not align last line as it adds extra whitespace
+        sed -i '' '
+/export const '"${contract_name}"'ContractArtifact = loadContractArtifact('"${contract_name}"'ContractArtifactJson as NoirCompiledContract);/ {
+    i\
+//@ts-ignore
+}
+' "${contract_name}.ts"
         ;;
     *)
         # Linux

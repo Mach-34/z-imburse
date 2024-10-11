@@ -7,7 +7,7 @@ import { makeLinodeInputs } from "../../src/email_inputs/linode";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const OUTPUT_PATH = join(__dirname, "../../contracts/z_imburse_escrow/src/test/email_inputs.nr");
+const OUTPUT_PATH = join(__dirname, "../../contracts/z_imburse_escrow_registry/src/test/email_inputs.nr");
 
 // stringified struct assignments
 type LinodeStructFields = {
@@ -117,13 +117,13 @@ export async function txeInputCodegen() {
   // add the september email
   const sepInputs = await stringifyEmailInputs(emails.linode_sep);
   codegen +=
-    `pub const LINODE_SEP: LinodeInputs = {\n` +
+    `global LINODE_SEP = LinodeInputs {\n` +
     buildStruct(sepInputs) +
     `};\n`;
   // add the october email
   const octInputs = await stringifyEmailInputs(emails.linode_oct);
   codegen +=
-    `pub const LINODE_OCT: LinodeInputs = {\n` +
+    `global LINODE_OCT = LinodeInputs {\n` +
     buildStruct(octInputs) +
     `};\n`;
     // write the generated code to the output file

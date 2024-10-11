@@ -1,6 +1,8 @@
 use dep::zimburse_verifiers::{
-    constants::LinodeBillingParams,
-    linode::verify_linode_billing_receipt
+    linode::{
+        constants::LinodeBillingParams,
+        main::verify_linode_billing_receipt
+    }
 };
 
 fn main(params: LinodeBillingParams) -> pub [Field; 3] {

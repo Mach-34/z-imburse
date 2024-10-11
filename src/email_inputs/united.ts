@@ -62,31 +62,11 @@ export const makeUnitedInputs = async (
 
     const purchaseSummaryIndices = calculatePurchaseSummaryIndices(dkimResult.body);
 
-    // // match the billed amount in the email body
-    // const billMatch = body.match(Regexes.linodeBilledAmount);
-    // if (billMatch === null) {
-    //     throw Error("No 'amount' could be extracted from body");
-    // }
-
-    // const { length: subjectLen, index: subjectIndex } = subjectParams;
-    // const receipt_id_length = calculateReceiptIdLength(
-    //     header.slice(subjectIndex, subjectIndex + subjectLen)
-    // );
-
-    // // need to fix in zkemail.nr
-    // if (baseInputs.body!.length > LINODE_MAX_BODY_LENGTH) {
-    //     baseInputs.body = baseInputs.body!.slice(0, LINODE_MAX_BODY_LENGTH);
-    // }
-
     const inputs = {
         ...baseInputs,
-        // amount_index: billMatch.index as number,
-        // amount_length: billMatch[0].length,
         from_index: fromParams.index,
         subject_index: subjectParams.index,
         purchase_summary_indices: Object.values(purchaseSummaryIndices)
-        // date_index: dateField.index,
-        // receipt_id_length,
     };
     return inputs;
 };

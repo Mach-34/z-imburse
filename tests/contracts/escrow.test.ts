@@ -38,7 +38,7 @@ const DEFAULT_PXE_URL = "http://localhost";
 
 jest.setTimeout(1000000);
 
-xdescribe("Test deposit to zimburse", () => {
+describe("Test deposit to zimburse", () => {
   let externalDeployer: AccountWalletWithSecretKey;
   let escrowAdmin: AccountWalletWithSecretKey;
   let alice: AccountWalletWithSecretKey;

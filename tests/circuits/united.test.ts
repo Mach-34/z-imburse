@@ -30,25 +30,26 @@ describe("United Flight Receipt Test", () => {
         })
     })
 
-    // describe("Proving", () => {
-    //     it("United::Honk", async () => {
-    //         // make inputs from email
-    //         const inputs = await makeLinodeInputs(emails.linode_sep);
-    //         // generate proof
-    //         const proof = await prover.fullProve({ params: inputs }, 'honk');
-    //         // verify proof
-    //         const result = await prover.verify(proof, 'honk');
+    describe("Proving", () => {
+        it("United::Honk", async () => {
+            // make inputs from email
+            const inputs = await makeUnitedInputs(emails.united);
+            console.log('Inputs: ', inputs)
+            // generate proof
+            const proof = await prover.fullProve({ params: inputs }, 'honk');
+            // verify proof
+            const result = await prover.verify(proof, 'honk');
 
-    //     });
+        });
 
-    //     it("United::Plonk", async () => {
-    //         // make inputs from email
-    //         const inputs = await makeLinodeInputs(emails.linode_oct);
-    //         // generate proof
-    //         const proof = await prover.fullProve({ params: inputs }, 'plonk');
-    //         // verify proof
-    //         const result = await prover.verify(proof, 'honk');
-    //         expect(result).toBeTruthy();
-    //     });
-    // })
+        xit("United::Plonk", async () => {
+            // make inputs from email
+            const inputs = await makeUnitedInputs(emails.united);
+            // generate proof
+            const proof = await prover.fullProve({ params: inputs }, 'plonk');
+            // verify proof
+            const result = await prover.verify(proof, 'honk');
+            expect(result).toBeTruthy();
+        });
+    })
 })

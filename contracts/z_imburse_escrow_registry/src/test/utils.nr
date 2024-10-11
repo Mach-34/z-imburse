@@ -60,8 +60,8 @@ unconstrained pub fn setup<let N: u32>() -> (&mut TestEnvironment, [AztecAddress
     // deploy dkim registry contract
     let linode_id = receipt_verifier_id::LINODE as Field;
     let dkim_registry_init_call_iface = ZImburseDkimRegistry::interface().constructor(
-        LINODE_DKIM_KEY_HASHES,
-        [linode_id, linode_id, linode_id, linode_id]
+        [linode_id, linode_id, linode_id, linode_id],
+        LINODE_DKIM_KEY_HASHES
     );
     let dkim_contract = env
         .deploy("./@z_imburse_dkim_registry", "ZImburseDkimRegistry")
@@ -77,6 +77,7 @@ unconstrained pub fn setup<let N: u32>() -> (&mut TestEnvironment, [AztecAddress
         // contract_class_id
         escrow_contract_class_id
     );
+    env.impersonate(accounts[1]);
     let escrow_registry_contract = env
         .deploy_self("ZImburseEscrowRegistry")
         .with_public_initializer(escrow_registry_init_call_iface);
@@ -95,7 +96,7 @@ unconstrained pub fn setup<let N: u32>() -> (&mut TestEnvironment, [AztecAddress
             .deploy("./@z_imburse_escrow", "ZImburseEscrow")
             .with_public_initializer(escrow_init_call_iface);
         let escrow_address = escrow_contract.to_address();
-        contracts[2 + i] = escrow_address;
+        contracts[3 + i] = escrow_address;
         cheatcodes::advance_blocks_by(1);
     }
     

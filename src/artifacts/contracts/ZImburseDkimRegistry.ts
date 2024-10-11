@@ -35,6 +35,8 @@ import {
 } from '@aztec/aztec.js';
 import ZImburseDkimRegistryContractArtifactJson from './ZImburseDkimRegistry.json' assert { type: 'json' };
 //@ts-ignore
+//@ts-ignore
+//@ts-ignore
 export const ZImburseDkimRegistryContractArtifact = loadContractArtifact(ZImburseDkimRegistryContractArtifactJson as NoirCompiledContract);
 
 

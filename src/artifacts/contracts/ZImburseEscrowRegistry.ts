@@ -35,6 +35,8 @@ import {
 } from '@aztec/aztec.js';
 import ZImburseEscrowRegistryContractArtifactJson from './ZImburseEscrowRegistry.json' assert { type: 'json' };
 //@ts-ignore
+//@ts-ignore
+//@ts-ignore
 export const ZImburseEscrowRegistryContractArtifact = loadContractArtifact(ZImburseEscrowRegistryContractArtifactJson as NoirCompiledContract);
 
 
@@ -129,7 +131,7 @@ contract_registration: {
     }
     
 
-  public static get notes(): ContractNotes<'AddressNote' | 'TransparentNote' | 'TokenNote' | 'EntitlementReceiptNote' | 'RecurringEntitlementNote' | 'ParticipantNote'> {
+  public static get notes(): ContractNotes<'AddressNote' | 'TransparentNote' | 'TokenNote' | 'RecurringEntitlementNote' | 'EntitlementReceiptNote' | 'ParticipantNote'> {
     return {
       AddressNote: {
           id: new NoteSelector(2232136525),
@@ -140,16 +142,16 @@ TransparentNote: {
 TokenNote: {
           id: new NoteSelector(2350566847),
         },
-EntitlementReceiptNote: {
-          id: new NoteSelector(2196796984),
-        },
 RecurringEntitlementNote: {
           id: new NoteSelector(3639716131),
+        },
+EntitlementReceiptNote: {
+          id: new NoteSelector(2196796984),
         },
 ParticipantNote: {
           id: new NoteSelector(3017618054),
         }
-    } as ContractNotes<'AddressNote' | 'TransparentNote' | 'TokenNote' | 'EntitlementReceiptNote' | 'RecurringEntitlementNote' | 'ParticipantNote'>;
+    } as ContractNotes<'AddressNote' | 'TransparentNote' | 'TokenNote' | 'RecurringEntitlementNote' | 'EntitlementReceiptNote' | 'ParticipantNote'>;
   }
   
 

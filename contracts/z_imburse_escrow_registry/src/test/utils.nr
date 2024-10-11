@@ -52,7 +52,7 @@ unconstrained pub fn setup<let N: u32>() -> (&mut TestEnvironment, [AztecAddress
         USDC_DECIMALS
     );
     let token_contract = env
-        .deploy("../../node_modules/@aztec/noir-contracts.js/artifacts/token_contract", "Token")
+        .deploy("./@token_contract", "Token")
         .with_public_initializer(token_init_call_iface);
     let token_address = token_contract.to_address();
     contracts[0] = token_address;

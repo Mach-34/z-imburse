@@ -35,8 +35,6 @@ import {
 } from '@aztec/aztec.js';
 import ZImburseEscrowContractArtifactJson from './ZImburseEscrow.json' assert { type: 'json' };
 //@ts-ignore
-//@ts-ignore
-//@ts-ignore
 export const ZImburseEscrowContractArtifact = loadContractArtifact(ZImburseEscrowContractArtifactJson as NoirCompiledContract);
 
 

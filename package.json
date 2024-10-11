@@ -5,13 +5,14 @@
   "types": "dist",
   "license": "MIT",
   "scripts": {
-    "compile": "yarn compile:circuits && yarn compile:contracts",
+    "compile": "yarn compile:circuits true && yarn compile:contracts",
     "compile:contracts": "./scripts/artifacts.sh",
     "compile:circuits": "cd scripts && ./compile_testers.sh",
-    "postinstall": "yarn compile:contracts && yarn compile:circuits",
+    "postinstall": "yarn compile:contracts true && yarn compile:circuits",
     "test": "NODE_NO_WARNINGS=1 node --experimental-vm-modules $(yarn bin jest) --config jest.integration.config.json --no-cache --runInBand --verbose",
     "test:circuits": "yarn test tests/circuits",
     "test:contracts": "yarn test tests/contracts",
+    "test:txe": "cd contracts/z_imburse_escrow_registry && aztec test --package z_imburse_escrow_registry",
     "sandbox": "docker compose up"
   },
   "devDependencies": {

@@ -2,6 +2,7 @@ import { verifyDKIMSignature } from "@zk-email/helpers/dist/dkim";
 import { generateEmailVerifierInputsFromDKIMResult } from '@mach-34/zkemail-nr';
 import { getSequenceParams } from "./location";
 import { Regexes } from "../constants";
+import { UnitedInputs } from "../types";
 
 const UNITED_MAX_HEADER_LENGTH = 640;
 const UNITED_MAX_BODY_LENGTH = 58560;
@@ -47,7 +48,7 @@ export const calculatePurchaseSummaryIndices = (body: Buffer) => {
  */
 export const makeUnitedInputs = async (
     email: Buffer
-): Promise<any> => {
+): Promise<UnitedInputs> => {
     const dkimResult = await verifyDKIMSignature(email);
     const baseInputs = generateEmailVerifierInputsFromDKIMResult(dkimResult, { maxBodyLength: UNITED_MAX_BODY_LENGTH, maxHeadersLength: UNITED_MAX_HEADER_LENGTH });
     // grab sequence params from the email

@@ -43,7 +43,7 @@ pub fn check_subject_united_flight_receipt(index: u32, header: [u8; MAX_EMAIL_HE
 
 
 /**
-* Extract the amount billed by Unites as a u32. Total is displayed in an html table which requires
+* Extract the amount billed by United as a u32. Total is displayed in an html table which requires
 * a bit of parsing
 */
 pub fn extract_billed_amount(

@@ -1,5 +1,7 @@
 import { CircuitInput } from "@mach-34/zkemail-nr";
 
+export type FrontierInputs = { from_index: number, subject_index: number } & CircuitInput;
+
 export type LinodeInputs = {
     amount_index: number;
     amount_length: number;

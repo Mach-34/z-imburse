@@ -1,0 +1,8 @@
+[package]
+name = "frontier_email_verifier"
+type = "bin"
+authors = [""]
+compiler_version = ">=0.35.0"
+
+[dependencies]
+zimburse_verifiers = { path = "../../zimburse_verifiers" }

@@ -236,7 +236,7 @@ impl RecurringEntitlementNote {
         let mut secret_bytes = point_to_symmetric_key(sk, pk);
         // set the highest byte to be 0 to ensure that the secret is not too large
         secret_bytes[0] = 0;
-        field_from_bytes(secret_bytes, true)
+        field_from_bytes(secret_bytes, false)
     }
 
     fn derive_nullifier_secret(self) -> Field {
@@ -259,7 +259,7 @@ impl RecurringEntitlementNote {
         let mut secret_bytes = point_to_symmetric_key(sk, pk);
         // set the highest byte to be 0 to ensure that the secret is not too large
         secret_bytes[0] = 0;
-        field_from_bytes(secret_bytes, true)
+        field_from_bytes(secret_bytes, false)
     }
 
     fn serialize_without_is_admin(self) -> [Field; RECURRING_ENTITLEMENT_NOTE_LENGTH] {

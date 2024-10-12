@@ -7,7 +7,7 @@ import { makeLinodeInputs } from "../../src/email_inputs/linode";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const OUTPUT_PATH = join(__dirname, "../../contracts/z_imburse_escrow_registry/src/test/email_inputs.nr");
+const OUTPUT_PATH = join(__dirname, "../../contracts/z_imburse_registry/src/test/utils/email_inputs.nr");
 
 // stringified struct assignments
 type LinodeStructFields = {
@@ -30,7 +30,7 @@ type LinodeStructFields = {
 // imports used in the generated code
 const IMPORTS =
   `use dep::zimburse_verifiers::{\n` +
-  `    constants::{MAX_LINODE_EMAIL_BODY_LENGTH, MAX_LINODE_EMAIL_HEADER_LENGTH},\n` +
+  `    constants::LinodeBillingParams,\n` +
   `   zkemail::KEY_LIMBS_2048\n` +
   `};\n`;
 
@@ -112,18 +112,18 @@ export async function txeInputCodegen() {
   // add the imports
   codegen += IMPORTS;
   // add the struct definition
-  codegen +=
-    `pub struct LinodeInputs {\n` + buildStruct(STRUCT_DEF_INPUTS) + `}\n`;
+//   codegen +=
+//     `pub struct LinodeInputs {\n` + buildStruct(STRUCT_DEF_INPUTS) + `}\n`;
   // add the september email
   const sepInputs = await stringifyEmailInputs(emails.linode_sep);
   codegen +=
-    `global LINODE_SEP = LinodeInputs {\n` +
+    `global LINODE_SEP = LinodeBillingParams {\n` +
     buildStruct(sepInputs) +
     `};\n`;
   // add the october email
   const octInputs = await stringifyEmailInputs(emails.linode_oct);
   codegen +=
-    `global LINODE_OCT = LinodeInputs {\n` +
+    `global LINODE_OCT = LinodeBillingParams {\n` +
     buildStruct(octInputs) +
     `};\n`;
     // write the generated code to the output file

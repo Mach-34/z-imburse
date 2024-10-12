@@ -58,52 +58,51 @@ contract ZImburseEscrow {
     }
 
 
-    // #[private]
-    // fn give_recurring_entitlement(to: AztecAddress, amount: Field, verifier_id: u8) {
-    //     // check that no receipt exists for this recipient and verifier
-    //     // let options =  NoteGetterOptions::new()
-    //             // .select(EntitlementReceiptNote::properties().recipient, dep::aztec::utils::comparison::Comparator::EQ, to)
-    //             // .select(EntitlementReceiptNote::properties().verifier_id, dep::aztec::utils::comparison::Comparator::EQ, verifier_id)
-    //             // .set_limit(1);
-    //     // let notes = storage.entitlement_receipts.get_notes(options);
-    //     // assert(notes.len() == 0, "An entitlement already exists for this recipient and verifier");
-    //     // check is escrow admin
-    //     let (admin) = storage.definition.read_private().admin;
-    //     assert(context.msg_sender() == admin, "Only the escrow admin can give entitlements");
+    #[private]
+    fn give_recurring_entitlement(to: AztecAddress, amount: Field, verifier_id: u8) {
+        // check that no receipt exists for this recipient and verifier
+        // let options =  NoteGetterOptions::new()
+                // .select(EntitlementReceiptNote::properties().recipient, dep::aztec::utils::comparison::Comparator::EQ, to)
+                // .select(EntitlementReceiptNote::properties().verifier_id, dep::aztec::utils::comparison::Comparator::EQ, verifier_id)
+                // .set_limit(1);
+        // let notes = storage.entitlement_receipts.get_notes(options);
+        // assert(notes.len() == 0, "An entitlement already exists for this recipient and verifier");
+        // check is escrow admin
+        let admin = storage.definition.read_private().admin;
+        assert(context.msg_sender() == admin, "Only the escrow admin can give entitlements");
 
-    //     // get nullifying keys for admin and recipient
-    //     let recipient_keys = get_public_keys(to);
-    //     let admin_keys = get_public_keys(admin);
-    //     // create random value here since shared in both notes
-    //     let blinding_factor = unsafe { random() };
-    //     // add the note for the recipient
-    //     // todo: will the header be mutated here or can we skip duplication
-    //     let amount = U128::from_integer(amount);
-    //     let mut entitlement_recipient = RecurringEntitlementNote::new(
-    //         admin,
-    //         to,
-    //         false,
-    //         verifier_id,
-    //         amount,
-    //         blinding_factor
-    //     );
-    //     storage.recurring_entitlements.at(to).insert(&mut entitlement_recipient).emit(
-    //         encode_and_encrypt_note(&mut context, admin_keys.ovpk_m, recipient_keys.ivpk_m, to)
-    //     );
-    //     // add the note for the admin
-    //     let mut entitlement_sender = RecurringEntitlementNote::new(
-    //         admin,
-    //         to,
-    //         true,
-    //         verifier_id,
-    //         amount,
-    //         blinding_factor
-    //     );
-    //     storage.recurring_entitlements.at(admin).insert(&mut entitlement_sender).emit(
-    //         encode_and_encrypt_note(&mut context, admin_keys.ovpk_m, admin_keys.ivpk_m, admin)
-    //     )
-        
-    // }
+        // get nullifying keys for admin and recipient
+        let recipient_keys = get_public_keys(to);
+        let admin_keys = get_public_keys(admin);
+        // create random value here since shared in both notes
+        let blinding_factor = unsafe { random() };
+        // add the note for the recipient
+        // todo: will the header be mutated here or can we skip duplication
+        let amount = U128::from_integer(amount);
+        let mut entitlement_recipient = RecurringEntitlementNote::new(
+            admin,
+            to,
+            false,
+            verifier_id,
+            amount,
+            blinding_factor
+        );
+        storage.recurring_entitlements.at(to).insert(&mut entitlement_recipient).emit(
+            encode_and_encrypt_note(&mut context, admin_keys.ovpk_m, recipient_keys.ivpk_m, to)
+        );
+        // add the note for the admin
+        let mut entitlement_sender = RecurringEntitlementNote::new(
+            admin,
+            to,
+            true,
+            verifier_id,
+            amount,
+            blinding_factor
+        );
+        storage.recurring_entitlements.at(admin).insert(&mut entitlement_sender).emit(
+            encode_and_encrypt_note(&mut context, admin_keys.ovpk_m, admin_keys.ivpk_m, admin)
+        )
+    }
 
     // #[private]
     // fn nullify_recurring_entitlement(to: AztecAddress, verifier_id: u8) {
@@ -130,80 +129,80 @@ contract ZImburseEscrow {
     //     // ZImburseEscrow::at(context.this_address()).emit_entitlement_nullifier(revocation_nullifier).enqueue(&mut context);
     // }
 
-    // #[private]
-    // fn redeem_linode_entitlement(
-    //     // email inputs
-    //     body: [u8; MAX_LINODE_EMAIL_BODY_LENGTH],
-    //     body_hash_index: u32,
-    //     body_length: u32,
-    //     header: [u8; MAX_LINODE_EMAIL_HEADER_LENGTH],
-    //     header_length: u32,
-    //     pubkey: [Field; KEY_LIMBS_2048],
-    //     pubkey_redc: [Field; KEY_LIMBS_2048],
-    //     signature: [Field; KEY_LIMBS_2048],
-    //     from_index: u32,
-    //     subject_index: u32,
-    //     amount_index: u32,
-    //     amount_length: u32,
-    //     date_index: u32,
-    //     receipt_id_length: u32,
-    //     // claim hash
-    //     claim_secret_hash: Field,
-    // ) {
-    //     // retrieve a Linode hosting entitlement
-    //     let notes = storage.recurring_entitlements.at(context.msg_sender()).get_notes(
-    //         NoteGetterOptions::new()
-    //             // .select(RecurringEntitlementNote::properties().verifier_id, Comparator.EQ, receipt_verifier_id::LINODE)
-    //             .set_limit(1)
-    //     );
-    //     assert(notes.len() == 1, "No entitlements to redeem");
-    //     let note = notes.get_unchecked(0);
-    //     assert(note.recipient == context.msg_sender(), "Entitlement does not belong to the sender");
+    #[private]
+    fn reimburse_linode(
+        // email inputs
+        body: [u8; MAX_LINODE_EMAIL_BODY_LENGTH],
+        body_hash_index: u32,
+        body_length: u32,
+        header: [u8; MAX_LINODE_EMAIL_HEADER_LENGTH],
+        header_length: u32,
+        pubkey: [Field; KEY_LIMBS_2048],
+        pubkey_redc: [Field; KEY_LIMBS_2048],
+        signature: [Field; KEY_LIMBS_2048],
+        from_index: u32,
+        subject_index: u32,
+        amount_index: u32,
+        amount_length: u32,
+        date_index: u32,
+        receipt_id_length: u32,
+        // claim hash
+        claim_secret_hash: Field,
+    ) {
+        // retrieve a Linode hosting entitlement
+        let notes = storage.recurring_entitlements.at(context.msg_sender()).get_notes(
+            NoteGetterOptions::new()
+                // .select(RecurringEntitlementNote::properties().verifier_id, Comparator.EQ, receipt_verifier_id::LINODE)
+                .set_limit(1)
+        );
+        assert(notes.len() == 1, "No entitlements to redeem");
+        let note = notes.get_unchecked(0);
+        assert(note.recipient == context.msg_sender(), "Entitlement does not belong to the sender");
         
-    //     // ensure the note has not been nullified by the admin
-    //     // todo: is this unnecessary? probably
-    //     context.historical_header.prove_note_not_nullified(note, &mut context);
+        // // ensure the note has not been nullified by the admin
+        // // todo: is this unnecessary? probably
+        // context.historical_header.prove_note_not_nullified(note, &mut context);
 
-    //     // verify linode billing receipt and extract amount, date, keyhash
-    //     // todo: create a new function with pop_capsule to handle custom logic & inputs per email
-    //     let linode_receipt_result = verify_linode_billing_receipt(
-    //         body, body_hash_index, body_length, header, header_length, pubkey, pubkey_redc, signature, from_index, subject_index, amount_index, amount_length, date_index, receipt_id_length
-    //     );
-    //     let dkim_key_hash = linode_receipt_result[0];
-    //     let unix_month = linode_receipt_result[1]; // month and year
-    //     // billed amount returns 2 decimals, so multiply billed_amount by 10,000
-    //     let billed_amount = U128::from_integer(linode_receipt_result[2] * 10000);
+        // // verify linode billing receipt and extract amount, date, keyhash
+        // // todo: create a new function with pop_capsule to handle custom logic & inputs per email
+        let linode_receipt_result = verify_linode_billing_receipt(
+            body, body_hash_index, body_length, header, header_length, pubkey, pubkey_redc, signature, from_index, subject_index, amount_index, amount_length, date_index, receipt_id_length
+        );
+        // let dkim_key_hash = linode_receipt_result[0];
+        // let unix_month = linode_receipt_result[1]; // month and year
+        // // billed amount returns 2 decimals, so multiply billed_amount by 10,000
+        // let billed_amount = U128::from_integer(linode_receipt_result[2] * 10000);
 
-    //     // check the dkim key hash matches the linode verifier id
-    //     let registry = storage.definition.read_private().dkimRegistry;
-    //     let verifier_id = ZImburseDkimRegistry::at(registry).check_dkim_key_hash_private(dkim_key_hash).view(&mut context);
-    //     assert(
-    //         (verifier_id as u8) == receipt_verifier_id::LINODE,
-    //         "DKIM key is not registered for Linode"
-    //     );
+        // // check the dkim key hash matches the linode verifier id
+        // // let registry = storage.definition.read_private().dkimRegistry;
+        // // let verifier_id = ZImburseDkimRegistry::at(registry).check_dkim_key_hash_private(dkim_key_hash).view(&mut context);
+        // // assert(
+        // //     (verifier_id as u8) == receipt_verifier_id::LINODE,
+        // //     "DKIM key is not registered for Linode"
+        // // );
 
-    //     // check that this entitlement has not been emitted for this month and add it
-    //     // todo: is it sufficient to just push the nullifier? will the kernel circuit fail if it exists?
-    //     // constrained to use the year/month unix timestamp computed by email verifier
-    //     // todo: silo nullifiers to contract address
-    //     let recurring_nullifier = note.derive_recurring_nullifier(unix_month);
-    //     context.historical_header.prove_nullifier_non_inclusion(recurring_nullifier);
-    //         context.push_nullifier(recurring_nullifier);
-    //     // todo: event for admin revealing month
+        // // check that this entitlement has not been emitted for this month and add it
+        // // todo: is it sufficient to just push the nullifier? will the kernel circuit fail if it exists?
+        // // constrained to use the year/month unix timestamp computed by email verifier
+        // // todo: silo nullifiers to contract address
+        // let recurring_nullifier = note.derive_recurring_nullifier(unix_month);
+        // context.historical_header.prove_nullifier_non_inclusion(recurring_nullifier);
+        // context.push_nullifier(recurring_nullifier);
+        // // todo: event for admin revealing month
 
-    //     // determine the amount to reimburse
-    //     let amount_to_reimburse = if note.max_value >= billed_amount {
-    //         billed_amount   
-    //     } else {
-    //         note.max_value
-    //     };
+        // // determine the amount to reimburse
+        // let amount_to_reimburse = if note.max_value >= billed_amount {
+        //     billed_amount   
+        // } else {
+        //     note.max_value
+        // };
 
-    //     // release funds from escrow by shielding in public
-    //     // todo: do we need a private event? or is it sufficient to instantly claim?
-    //     // worry would be waiting/ disconnection
-    //     let token_address = storage.definition.read_private().usdc;
-    //     Token::at(token_address).shield(context.this_address(), amount_to_reimburse.to_field(), claim_secret_hash, 0).enqueue(&mut context);
-    // }
+        // // release funds from escrow by shielding in public
+        // // todo: do we need a private event? or is it sufficient to instantly claim?
+        // // worry would be waiting/ disconnection
+        // let token_address = storage.definition.read_private().usdc;
+        // Token::at(token_address).shield(context.this_address(), amount_to_reimburse.to_field(), claim_secret_hash, 0).enqueue(&mut context);
+    }
 
     // #[private]
     // fn remove_nullified_recurring_notes() {

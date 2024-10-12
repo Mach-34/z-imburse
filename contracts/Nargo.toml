@@ -1,7 +1,7 @@
 [workspace]
 members = [
     "address_note",
-    "z_imburse_escrow_registry",
+    "generators",
     "z_imburse_escrow",
-    "z_imburse_dkim_registry"
+    "z_imburse_registry",
 ]

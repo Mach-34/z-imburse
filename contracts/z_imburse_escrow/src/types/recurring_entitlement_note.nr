@@ -18,7 +18,7 @@ use dep::aztec::keys::{
 use dep::compressed_string::CompressedString;
 use std::embedded_curve_ops::multi_scalar_mul;
 use std::hash::from_field_unsafe;
-use crate::generators::GENERATORS;
+use dep::generators::GENERATORS;
 
 // serializes verifier_id and max_value into one field element
 global RECURRING_ENTITLEMENT_NOTE_LENGTH: u32 = 4;

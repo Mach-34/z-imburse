@@ -2,100 +2,141 @@ use dep::aztec::macros::aztec;
 
 mod test;
 mod types;
+mod verifiers;
+
+pub global BULK_KEY_LENGTH: u32 = 4;
 
 #[aztec]
-contract ZImburseEscrowRegistry {
-    use dep::aztec::prelude::{AztecAddress, PrivateImmutable, PrivateSet, SharedImmutable, Map};
-    use dep::aztec::macros::{storage::storage, functions::{private, public, view, initializer}};
-    use dep::aztec::note::{
-        note_viewer_options::NoteViewerOptions, note_getter_options::NoteGetterOptions,
-        note_getter::{get_notes, view_notes}, constants::MAX_NOTES_PER_PAGE
+contract ZImburseRegistry {
+    use dep::aztec::{
+        prelude::{AztecAddress, PrivateImmutable, PrivateSet, SharedImmutable, Map},
+        macros::{storage::storage, events::event, functions::{private, public, view, initializer}},
+        note::{
+            note_viewer_options::NoteViewerOptions, note_getter_options::NoteGetterOptions,
+            note_getter::{get_notes, view_notes}, constants::MAX_NOTES_PER_PAGE
+        },
+        protocol_types::{
+            contract_instance::ContractInstance,
+            address::partial_address::PartialAddress,
+            contract_class_id::ContractClassId,
+            abis::function_selector::FunctionSelector,
+            traits::Serialize
+        },
+        oracle::{get_contract_instance::get_contract_instance, header::get_header_at_oracle},
+        keys::getters::get_public_keys,
+        utils::comparison::Comparator,
+        encrypted_logs::encrypted_note_emission::{encode_and_encrypt_note_unconstrained, encode_and_encrypt_note},
+        unencrypted_logs::unencrypted_event_emission::emit
     };
-    use dep::aztec::protocol_types::{
-        contract_instance::ContractInstance,
-        address::partial_address::PartialAddress,
-        contract_class_id::ContractClassId
-    };
-    use dep::aztec::oracle::{get_contract_instance::get_contract_instance, header::get_header_at_oracle};
-    use dep::aztec::keys::getters::get_public_keys;
-    use dep::aztec::utils::comparison::Comparator;
-    use dep::aztec::encrypted_logs::encrypted_note_emission::{encode_and_encrypt_note_unconstrained, encode_and_encrypt_note};
+    use std::meta::derive;
     use dep::address_note::address_note::AddressNote;
     use dep::z_imburse_escrow::ZImburseEscrow;
-    use dep::z_imburse_dkim_registry::{ZImburseDkimRegistry, BULK_KEY_LENGTH};
-    use crate::types::{
-        escrow_registry_definition::EscrowRegistryDefinition,
-        participant_note::{ParticipantNote, NAME_LENGTH}
-    };
+    use crate::{
+        types::{
+            registry_definition::RegistryDefinition,
+            participant_note::{ParticipantNote, NAME_LENGTH}
+        },
+        BULK_KEY_LENGTH
+    };  
+
+    #[event]
+    #[derive(Serialize)]
+    struct DKIMKeyHashRegistered {
+        dkim_key_hash: Field,
+        verifier_id: Field,
+    }
 
     #[storage]
     struct Storage<Context> {
-        // todo: decentralize dkim registry functionality
-        definition: SharedImmutable<EscrowRegistryDefinition, Context>,
+        definition: SharedImmutable<RegistryDefinition, Context>,
+        escrow_registry: Map<AztecAddress, SharedImmutable<bool, Context>, Context>,
+        dkim_registry: Map<Field, SharedImmutable<Field, Context>, Context>,
         managed_escrows: PrivateSet<AddressNote, Context>,
         participants: Map<AztecAddress, PrivateSet<ParticipantNote, Context>, Context>,
         participant_escrows: PrivateSet<AddressNote, Context>,
-        contract_registration: Map<AztecAddress, SharedImmutable<bool, Context>, Context>
     }
 
     /**
-     * Initialize the Z-Imburse registry contract by setting the class ID of the escrow contract
+     * Initialize the Z-Imburse registry contract
      *
+     * @param usdc - The address of the USDC token
      * @param contract_class_id - The class ID of the escrow contract that all escrows must be instances of
+     * @param verifier_ids - the verifier IDs to register the DKIM keys to
+     * @param dkim_key_hashes - the hashes of the DKIM keys to add to the registry
      */
     #[public]
     #[initializer]
     fn constructor(
-        dkim_registry: AztecAddress,
         usdc: AztecAddress,
         escrow_contract_id: Field,
+        verifier_ids: [Field; BULK_KEY_LENGTH],
+        dkim_key_hashes: [Field; BULK_KEY_LENGTH]
     ) {
-        let definition = EscrowRegistryDefinition::new(
-            dkim_registry,
+        // initialize the registry definition
+        let definition = RegistryDefinition::new(
+            context.msg_sender(),
             usdc,
             escrow_contract_id
         );
         storage.definition.initialize(definition);
+        // add any DKIM key hashes that were passed in at initialization
+        for i in 0..BULK_KEY_LENGTH {
+            if (verifier_ids[i] != 0) {
+                // ensure that the dkim key has not already been registered
+                let stored_id = storage.dkim_registry.at(dkim_key_hashes[i]).read_public();
+                assert(stored_id == 0, "DKIM key has already been registered");
+                storage.dkim_registry.at(dkim_key_hashes[i]).initialize(verifier_ids[i]);
+                emit(&mut context, DKIMKeyHashRegistered {
+                    dkim_key_hash: dkim_key_hashes[i],
+                    verifier_id: verifier_ids[i]
+                });
+            }
+        }
     }
 
-    // /**
-    //  * Entrypoint for registering a DKIM key in bulk in the DKIM registry
-    //  * @dev the DKIM registry is separate from escrow registry so both can import it
-    //  *
-    //  * @param dkim_verifier_ids - the verifier IDs to register the DKIM keys to
-    //  * @param dkim_key_hashes - the hashes of the DKIM keys
-    //  */
-    // #[public]
-    // fn register_dkim_bulk(
-    //     dkim_verifier_ids: [Field; BULK_KEY_LENGTH],
-    //     dkim_key_hashes: [Field; BULK_KEY_LENGTH]
-    // ) {
-    //     // check admin is sender
-    //     let definition = storage.definition.read_public();
-    //     assert(context.msg_sender() == definition.admin, "Only admin can update dkim");
-    //     // forward call to DKIM registry
-    //     ZImburseDkimRegistry::at(definition.dkim_registry)
-    //         .register_dkim_bulk(dkim_verifier_ids, dkim_key_hashes)
-    //         .call(&mut context);
-    // }
+    /**
+     * Bulk registration of DKIM keys
+     *
+     * @param verifier_ids - the verifier IDs to register the DKIM keys to
+     * @param dkim_key_hashes - the hashes of the DKIM keys
+     */
+    #[public]
+    fn register_dkim_bulk(verifier_ids: [Field; BULK_KEY_LENGTH], dkim_key_hashes: [Field; BULK_KEY_LENGTH]) {
+        // check that the sender is the admin
+        let admin = storage.definition.read_public().admin;
+        assert(admin == context.msg_sender(), "Sender is not the registry contract");
+        // bulk insert up to 50 dkim key hashes
+        for i in 0..BULK_KEY_LENGTH {
+            if (verifier_ids[i] != 0) {
+                // ensure that the dkim key has not already been registered
+                let stored_id = storage.dkim_registry.at(dkim_key_hashes[i]).read_public();
+                assert(stored_id == 0, "DKIM key has already been registered");
+                storage.dkim_registry.at(dkim_key_hashes[i]).initialize(verifier_ids[i]);
+                emit(&mut context, DKIMKeyHashRegistered {
+                    dkim_key_hash: dkim_key_hashes[i],
+                    verifier_id: verifier_ids[i]
+                });
+            }
+        }
+    }
 
-    // /**
-    //  * Entrypoint for registering a DKIM key in the DKIM registry
-    //  * @dev the DKIM registry is separate from escrow registry so both can import it
-    //  *
-    //  * @param dkim_verifier_id - the verifier ID to register the DKIM key to
-    //  * @param dkim_key_hash - the hash of the DKIM key
-    //  */
-    // #[public]
-    // fn register_dkim(dkim_verifier_id: Field, dkim_key_hash: Field) {
-    //     // check admin is sender
-    //     let definition = storage.definition.read_public();
-    //     assert(context.msg_sender() == definition.admin, "Only admin can update dkim");
-    //     // forward call to DKIM registry
-    //     ZImburseDkimRegistry::at(definition.dkim_registry)
-    //         .register_dkim(dkim_verifier_id, dkim_key_hash)
-    //         .call(&mut context);
-    // }
+    /**
+     * Register a DKIM key hash for email verifiers to anchor trust to
+     *
+     * @param verifier_id - the ID of the verifier
+     * @param dkim_key_hash - the hash of the DKIM key
+     */
+    #[public]
+    fn register_dkim(verifier_id: Field, dkim_key_hash: Field) {
+        // check that the sender is the admin
+        let admin = storage.definition.read_public().admin;
+        assert(admin == context.msg_sender(), "Sender is not the registry contract");
+        // ensure that the dkim key has not already been registered
+        let stored_id = storage.dkim_registry.at(dkim_key_hash).read_public();
+        assert(stored_id == 0, "DKIM key has already been registered");
+        storage.dkim_registry.at(dkim_key_hash).initialize(verifier_id);
+        emit(&mut context, DKIMKeyHashRegistered { dkim_key_hash, verifier_id });
+    }
 
     /**
      * Check the authenticity and deployment status of an escrow contract and register it in the Z-Imburse registry
@@ -117,34 +158,32 @@ contract ZImburseEscrowRegistry {
                 contract_instance.deployer
             )
         );
-        assert(
-            exected_escrow_address == escrow_contract,
-            "Escrow contract class ID does not match expected class ID"
-        );
-
-        // check that the contract has not already been registered
-        let registration_status = storage.contract_registration.at(escrow_contract).read_private();
-        assert(!registration_status, "Escrow contract has already been registered");
-
-        // check that the contract admin is the sender of the message
-        let escrow_admin = ZImburseEscrow::at(escrow_contract).get_admin_private().view(&mut context);
-        assert(escrow_admin == context.msg_sender(), "Escrow contract admin does not match sender of message");
-        // todo: check that dkim registry matches
-
+        assert(exected_escrow_address == escrow_contract, "Escrow contract class ID does not match expected class ID");
         // check that the contract has been deployed
+        // annoying that we can't use this in the deploy tx
         context.historical_header.prove_contract_initialization(escrow_contract);
 
+        // check that the contract has not already been registered
+        let registration_status = storage.escrow_registry.at(escrow_contract).read_private();
+        assert(!registration_status, "Escrow contract has already been registered");
         
+        let escrow_params = ZImburseEscrow::at(escrow_contract).get_registration_params().view(&mut context);
+        assert(escrow_params[0] == context.this_address(), "Escrow contract registry does not match this contract");
+        assert(escrow_params[1] == definition.usdc, "Escrow contract USDC does not match registry USDC");
+        assert(escrow_params[2] == context.msg_sender(), "Escrow contract admin does not match sender of message");
+
+
         // privately add the escrow contract to the list of managed escrows
         let admin_keys = get_public_keys(context.msg_sender());
         let mut escrow_note = AddressNote::new(escrow_contract, admin_keys.npk_m.hash());
+
         // use unconstrained - why would you lie here
         storage.managed_escrows.insert(&mut escrow_note).emit(
             encode_and_encrypt_note_unconstrained(&mut context, admin_keys.ovpk_m, admin_keys.ivpk_m, context.msg_sender())
         );
 
         // publicly add the escrow contract to the list of participant escrows
-        ZImburseEscrowRegistry::at(context.this_address()).set_contract_registered(escrow_contract).enqueue(&mut context);
+        ZImburseRegistry::at(context.this_address()).set_contract_registered(escrow_contract).enqueue(&mut context);
     }
 
     /**
@@ -155,7 +194,7 @@ contract ZImburseEscrowRegistry {
     #[public]
     #[internal]
     fn set_contract_registered(escrow_contract: AztecAddress) {
-        storage.contract_registration.at(escrow_contract).initialize(true);
+        storage.escrow_registry.at(escrow_contract).initialize(true);
     }
 
     #[private]
@@ -164,7 +203,7 @@ contract ZImburseEscrowRegistry {
         let escrow_admin = ZImburseEscrow::at(escrow).get_admin_private().view(&mut context);
         assert(escrow_admin == context.msg_sender(), "Sender is not the admin of the escrow contract");
         // check that the escrow address is registered
-        let registration_status = storage.contract_registration.at(escrow).read_private();
+        let registration_status = storage.escrow_registry.at(escrow).read_private();
         assert(registration_status, "Escrow contract has not been registered");
         // check if the participant has already been registered
         let options = NoteGetterOptions::new().select(AddressNote::properties().address, Comparator.EQ, participant).set_limit(1);
@@ -172,7 +211,7 @@ contract ZImburseEscrowRegistry {
         // if the participant has not been registered, enqueue a private call to register the participant
         // do this instead of if statement here to make adding first time expensive but cheap if already registered
         if participant_exists {
-            ZImburseEscrowRegistry::at(context.this_address()).register_participant(participant, participant_name, context.msg_sender(), escrow).call(&mut context);
+            ZImburseRegistry::at(context.this_address()).register_participant(participant, participant_name, context.msg_sender(), escrow).call(&mut context);
         }
     }
 
@@ -215,6 +254,32 @@ contract ZImburseEscrowRegistry {
     // todo: add ability to remove participant
     // todo: add ability to remove participant escrows by looking up nullifications
 
+    /**
+     * Check which verifier type a DKIM key maps to using the DKIM key hash
+     * @dev constrained in the public context
+     * 
+     * @param dkim_key_hash - the hash of the DKIM key
+     * @return verifier_id - the ID of the verifier (returns 0 if none)
+     */
+    #[public]
+    #[view]
+    fn check_dkim_key_hash_public(dkim_key_hash: Field) -> Field {
+        storage.dkim_registry.at(dkim_key_hash).read_public()
+    }
+
+    /**
+     * Check which verifier type a DKIM key maps to using the DKIM key hash
+     * @dev constrained in the private context
+     * 
+     * @param dkim_key_hash - the hash of the DKIM key
+     * @return verifier_id - the ID of the verifier (returns 0 if none)
+     */
+    #[private]
+    #[view]
+    fn check_dkim_key_hash_private(dkim_key_hash: Field) -> Field {
+        storage.dkim_registry.at(dkim_key_hash).read_private()
+    }
+
     /** Get the class ID that all escrow contracts must match */
     #[public]
     #[view]
@@ -225,8 +290,8 @@ contract ZImburseEscrowRegistry {
     /** Get the registration status of an escrow contract */
     #[public]
     #[view]
-    fn get_contract_registration_status(escrow_contract: AztecAddress) -> bool {
-        storage.contract_registration.at(escrow_contract).read_public()
+    fn get_escrow_registry_status(escrow_contract: AztecAddress) -> bool {
+        storage.escrow_registry.at(escrow_contract).read_public()
     }
 
     /**

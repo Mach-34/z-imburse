@@ -1,6 +1,6 @@
 use dep::aztec::protocol_types::point::Point;
 use std::hash::derive_generators;
-use dep::z_imburse_escrow::generators::GENERATORS;
+use dep::generators::GENERATORS;
 
 #[test]
 fn test_derived_generators() {

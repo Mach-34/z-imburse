@@ -1,6 +1,6 @@
 use dep::aztec::prelude::AztecAddress;
 use dep::aztec::test::helpers::{cheatcodes, test_environment::TestEnvironment};
-use crate::ZImburseEscrowRegistry;
+use crate::ZImburseRegistry;
 
 /**
  * Register an escrow contract with the escrow registry
@@ -16,7 +16,7 @@ unconstrained pub fn register_escrow(
     escrow_contract_address: AztecAddress,
     escrow_admin: AztecAddress
 ) {
-    let escrow_registry = ZImburseEscrowRegistry::at(escrow_registry_address);
+    let escrow_registry = ZImburseRegistry::at(escrow_registry_address);
     env.impersonate(escrow_admin);
     let register_escrow_call_iface = escrow_registry.register_escrow(
         escrow_contract_address

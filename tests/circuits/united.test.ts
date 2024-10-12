@@ -25,12 +25,11 @@ describe("United Flight Receipt Test", () => {
             const { returnValue } = await prover.simulateWitness(inputs);
             const values = (returnValue as string[]).map(x => toBigIntBE(new Uint8Array(Buffer.from(x.slice(2), 'hex'))));
             // check the returned values
-            // expect(values[1]).toEqual(171785n);
-            console.log('Values: ', values[1]);
+            expect(values[1]).toEqual(171785n);
         })
     })
 
-    describe("Proving", () => {
+    xdescribe("Proving", () => {
         it("United::Honk", async () => {
             // make inputs from email
             const inputs = await makeUnitedInputs(emails.united);

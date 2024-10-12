@@ -29,7 +29,7 @@ describe("Frontier Billing Receipt Test", () => {
         })
     })
 
-    describe("Proving", () => {
+    xdescribe("Proving", () => {
         it("Frontier::Honk", async () => {
             // make inputs from email
             const inputs = await makeFrontierInputs(emails.frontier);

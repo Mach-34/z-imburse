@@ -72,7 +72,7 @@ unconstrained pub fn setup<let N: u32>() -> (&mut TestEnvironment, [AztecAddress
     // deploy escrow registry contract
     let escrow_contract_class_id = get_escrow_contract_class_id(&mut env);
     dep::aztec::oracle::debug_log::debug_log_format("===============================================================", []);
-        dep::aztec::oracle::debug_log::debug_log_format("Gotten ID {0}", [escrow_contract_class_id]);
+     dep::aztec::oracle::debug_log::debug_log_format("Gotten ID {0}", [escrow_contract_class_id]);
     let escrow_registry_init_call_iface = ZImburseEscrowRegistry::interface().constructor(
         dkim_registry_address,
         token_address,
@@ -125,9 +125,32 @@ unconstrained pub fn get_escrow_contract_class_id(env: &mut TestEnvironment) -> 
     let escrow_contract = env
         .deploy("./@z_imburse_escrow", "ZImburseEscrow")
         .with_public_initializer(escrow_init_call_iface);
-    cheatcodes::advance_blocks_by(1);
-    dep::aztec::oracle::debug_log::debug_log_format("===============================================================", []);
-    dep::aztec::oracle::debug_log::debug_log_format("One-off id: {0}", [escrow_contract.contract_class_id.to_field()]);
-    
+    cheatcodes::advance_blocks_by(1);    
     escrow_contract.contract_class_id.to_field()
+}
+
+/**
+ * Publicly mint tokens to a recipient (basically to the escrow contract)
+ *
+ * @param env - The test environment
+ * @param token_address - The address of the token contract
+ * @param escrow_address - The address of the escrow contract
+ * @param amount - The amount of tokens to mint
+ */
+unconstrained pub fn mint_public(
+    env: &mut TestEnvironment,
+    token_address: AztecAddress,
+    minter: AztecAddress,
+    recipient: AztecAddress,
+    amount: Field
+) {
+    env.impersonate(minter);
+    let mint_call_iface = Token::at(token_address).mint_public(recipient, amount);
+    env.call_public(mint_call_iface);
+    cheatcodes::advance_blocks_by(1);
+}
+
+// is this just kinda unnecessary at this level
+unconstrained pub fn to_usdc_decimals(amount: Field) -> Field {
+    amount * 10.pow_32(USDC_DECIMALS as Field)
 }

@@ -1,6 +1,6 @@
 mod email_inputs;
 mod utils;
 
-// mod derive_generators;
+mod derive_generators;
 
-// mod escrow_registration;
+mod escrow_registration;

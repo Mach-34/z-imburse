@@ -12,8 +12,9 @@ unconstrained fn register_contract_success() {
     dep::aztec::oracle::debug_log::debug_log_format("Escrow Registry: {0}", [contracts[2].to_field()]);
     dep::aztec::oracle::debug_log::debug_log_format("Escrow: {0}", [contracts[3].to_field()]);
     // register the escrow contract
+    let escrow_registry = ZImburseEscrowRegistry::at(contracts[2]);
     env.impersonate(accounts[1]);
-    let register_escrow_call_iface = ZImburseEscrowRegistry::interface().register_escrow(
+    let register_escrow_call_iface = escrow_registry.register_escrow(
         contracts[3]
     );
     env.call_private_void(register_escrow_call_iface);

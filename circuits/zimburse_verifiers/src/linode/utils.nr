@@ -41,11 +41,6 @@ pub fn check_subject_linode_billing_receipt(index: u32, header: [u8; MAX_LINODE_
         let headerIndex = i + index + receipt_id_length + LB_SUBJECT_FIXED_START_LEN;
         assert(header[headerIndex] == fixed_end_bytes[i], "Email subject is not Linode billing receipt");
     }
-
-    // TODO: FIXXXXXXX
-    // check for CRLF
-    // assert(header[LB_FROM_LEN + index + 1] == 0x0D, "Invalid CRLF sequence");
-    // assert(header[LB_FROM_LEN + index + 2] == 0x0A, "Invalid CRLF sequence");
 }
 
 /**

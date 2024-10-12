@@ -2,52 +2,43 @@ import { verifyDKIMSignature } from "@zk-email/helpers/dist/dkim";
 import { generateEmailVerifierInputsFromDKIMResult } from "@mach-34/zkemail-nr";
 import { getSequenceParams } from "./location";
 import { Regexes } from "../constants";
-import { FrontierInputs } from "../types";
+import { AmericanAirlinesInputs } from "../types";
 
-// const FRONTIER_MAX_HEADER_LENGTH = 640;
-const FRONTIER_MAX_BODY_LENGTH = 186560;
+// const AA_MAX_HEADER_LENGTH = 640;
+const AA_MAX_BODY_LENGTH = 81856;
 
 /**
- * Quoted printable linebreaks are not of concern here as they appear non-random
+ * Calculate the indices related to total cost in an American Airlines email 
  * 
  * @param body 
  */
-export const calculatePurchaseTotalIndices = (body: Buffer) => {
-    const bodyStr = body.toString();
+export const calculateTotalCostIndices = (body: string) => {
+    const totalCostIndex = body.indexOf('Total cost');
+    const trStartIndex = body.lastIndexOf('<tr>', totalCostIndex);
+    const spanLabelStartIndex = body.lastIndexOf('<span', totalCostIndex);
+    const tdLabelLength = (spanLabelStartIndex - 3) - (trStartIndex + 7);
+    const spanLabelLength = totalCostIndex - 1 - spanLabelStartIndex;
+    const tdCostStartIndex = body.indexOf('<td', totalCostIndex);
+    const tdCostStartCloseIndex = body.indexOf('>', tdCostStartIndex);
+    const tdCostLength = tdCostStartCloseIndex - tdCostStartIndex;
+    const tdCostEndIndex = body.indexOf('</td>', tdCostStartCloseIndex);
+    const amountLength = tdCostEndIndex - (tdCostStartCloseIndex + 1)
 
-    // calculate start and index index of table data section containting "Grand Total"
-    const grandTotalIndex = bodyStr.indexOf('Grand Total')
-    const tdLabelStartClosingIndex = grandTotalIndex - 1;
-    const rowStartIndex = bodyStr.lastIndexOf('<tr>', tdLabelStartClosingIndex);
-    const tdLabelStartOpeningIndex = bodyStr.indexOf('<td', rowStartIndex);
-    const tdLabelLen = tdLabelStartClosingIndex - tdLabelStartOpeningIndex;
+    const start = tdCostStartCloseIndex + 1;
+    const end = start + amountLength;
 
-    const tdAmountStartIndex = bodyStr.indexOf('<td', grandTotalIndex);
-    const tdAmountEndIndex = bodyStr.indexOf('>', tdAmountStartIndex);
-    const tdAmountLen = tdAmountEndIndex - tdAmountStartIndex;
-    const tdAmountCloseIndex = bodyStr.indexOf('</td>', tdAmountEndIndex);
-
-    let amountLen = tdAmountCloseIndex - tdAmountEndIndex - 2; // -2 for '>' and whitespace
-
-    return {
-        rowStartIndex,
-        tdLabelLen,
-        tdAmountLen,
-        amountLen
-    }
+    return { trStartIndex, tdLabelLength, spanLabelLength, tdCostLength, amountLength }
 }
 
 /**
- * Given an email, generate the inputs for the Frontier receipt proof
+ * Given an email, generate the inputs for the American Airlines receipt proof
  * @param email - the Uber ride receipt email to generate the inputs for
  */
-export const makeFrontierInputs = async (
+export const makeAAInputs = async (
     email: Buffer
-): Promise<FrontierInputs> => {
+): Promise<AmericanAirlinesInputs> => {
     const dkimResult = await verifyDKIMSignature(email);
-    const baseInputs = generateEmailVerifierInputsFromDKIMResult(dkimResult, {
-        maxBodyLength: FRONTIER_MAX_BODY_LENGTH,
-    });
+    const baseInputs = generateEmailVerifierInputsFromDKIMResult(dkimResult, { maxBodyLength: AA_MAX_BODY_LENGTH });
 
     // grab sequence params from the email
     const header = dkimResult.headers.toString();
@@ -59,7 +50,7 @@ export const makeFrontierInputs = async (
     if (subjectParams === null)
         throw new Error("No 'subject' field found in email");
 
-    const purchaseTotalIndices = calculatePurchaseTotalIndices(dkimResult.body);
+    const totalCostIndices = calculateTotalCostIndices(dkimResult.body.toString());
 
     // // match the billed amount in the email body
     // const billMatch = body.match(Regexes.linodeBilledAmount);
@@ -81,7 +72,7 @@ export const makeFrontierInputs = async (
         ...baseInputs,
         from_index: fromParams.index,
         subject_index: subjectParams.index,
-        purchase_total_indices: Object.values(purchaseTotalIndices)
+        total_cost_indices: Object.values(totalCostIndices)
     };
     return inputs
 };

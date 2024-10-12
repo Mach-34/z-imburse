@@ -11,6 +11,7 @@ contract ZImburseEscrowRegistry {
         note_viewer_options::NoteViewerOptions, note_getter_options::NoteGetterOptions,
         note_getter::{get_notes, view_notes}, constants::MAX_NOTES_PER_PAGE
     };
+    use dep::aztec::protocol_types::contract_instance::ContractInstance;
     use dep::aztec::oracle::{get_contract_instance::get_contract_instance, header::get_header_at_oracle};
     use dep::aztec::keys::getters::get_public_keys;
     use dep::aztec::utils::comparison::Comparator;
@@ -110,16 +111,24 @@ contract ZImburseEscrowRegistry {
         // todo: check that dkim registry matches
 
         // check that the contract has been deployed
-        let header = context.historical_header;
-        header.prove_contract_initialization(escrow_contract);
+        context.historical_header.prove_contract_initialization(escrow_contract);
 
-        // check the contract class ID
-        // THIS IS NOT CONSTRAINED THE ORACLE CAN JUST LIE ://////
-        // need to compute the full contract address to prove it uses the correct class
-        let contract_class_id = get_contract_instance(escrow_contract).contract_class_id.to_field();
-        let expected_class_id = storage.definition.read_private().escrow_contract_id;
+        // check the contract class ID by recomputing the contract address
+        let definition = storage.definition.read_private();
+        let oracle_contract_id = unsafe { get_contract_instance(escrow_contract).contract_class_id.to_field() };
+        // let expected_escrow_address = AztecAddress::compute(
+        //     escrow_contract_instance.public_keys_hash
+        // )
+        dep::aztec::oracle::debug_log::debug_log_format("Note: DKIM: {0}, USDC: {1}, contract_id: {2}", [
+            definition.dkim_registry.to_field(),
+            definition.usdc.to_field(),
+            definition.escrow_contract_id
+        ]);
+
+        dep::aztec::oracle::debug_log::debug_log_format("Actual: {0}", [oracle_contract_id]);
+
         assert(
-            contract_class_id == expected_class_id, "Escrow contract class ID does not match expected class ID"
+            definition.escrow_contract_id == oracle_contract_id, "Escrow contract class ID does not match expected class ID"
         );
 
         // privately add the escrow contract to the list of managed escrows

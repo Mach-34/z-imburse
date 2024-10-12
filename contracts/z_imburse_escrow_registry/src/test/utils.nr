@@ -71,6 +71,8 @@ unconstrained pub fn setup<let N: u32>() -> (&mut TestEnvironment, [AztecAddress
     cheatcodes::advance_blocks_by(1);
     // deploy escrow registry contract
     let escrow_contract_class_id = get_escrow_contract_class_id(&mut env);
+    dep::aztec::oracle::debug_log::debug_log_format("===============================================================", []);
+        dep::aztec::oracle::debug_log::debug_log_format("Gotten ID {0}", [escrow_contract_class_id]);
     let escrow_registry_init_call_iface = ZImburseEscrowRegistry::interface().constructor(
         dkim_registry_address,
         token_address,
@@ -97,6 +99,10 @@ unconstrained pub fn setup<let N: u32>() -> (&mut TestEnvironment, [AztecAddress
             .with_public_initializer(escrow_init_call_iface);
         let escrow_address = escrow_contract.to_address();
         contracts[3 + i] = escrow_address;
+        let contract_class_id = get_contract_instance(escrow_address).contract_class_id.to_field();
+        dep::aztec::oracle::debug_log::debug_log_format("===============================================================", []);
+
+        dep::aztec::oracle::debug_log::debug_log_format("Escrow {0} class id: {1}", [i as Field, contract_class_id]);
         cheatcodes::advance_blocks_by(1);
     }
     
@@ -120,5 +126,8 @@ unconstrained pub fn get_escrow_contract_class_id(env: &mut TestEnvironment) -> 
         .deploy("./@z_imburse_escrow", "ZImburseEscrow")
         .with_public_initializer(escrow_init_call_iface);
     cheatcodes::advance_blocks_by(1);
-    escrow_contract.contract_class_id.inner
+    dep::aztec::oracle::debug_log::debug_log_format("===============================================================", []);
+    dep::aztec::oracle::debug_log::debug_log_format("One-off id: {0}", [escrow_contract.contract_class_id.to_field()]);
+    
+    escrow_contract.contract_class_id.to_field()
 }

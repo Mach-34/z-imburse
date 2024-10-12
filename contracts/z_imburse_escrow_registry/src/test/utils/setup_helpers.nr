@@ -23,6 +23,20 @@ global USDC_NAME = "Aztec USDC\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
 global USDC_SYMBOL = "USDC.e\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
 global USDC_DECIMALS: u8 = 6;
 
+struct TestAccounts {
+    superuser: AztecAddress,
+    escrowAdmin: AztecAddress,
+    alice: AztecAddress,
+    bob: AztecAddress
+}
+
+struct TestContracts<let N: u32> {
+    usdc: AztecAddress,
+    dkimRegistry: AztecAddress,
+    escrowRegistry: AztecAddress,
+    escrowContracts: [AztecAddress; N]
+}
+
 
 /**
  * Initialize the test environment with Linode DKIM keys loaded
@@ -33,7 +47,7 @@ global USDC_DECIMALS: u8 = 6;
  *     - addreses of accounts [superuser, escrowAdmin, alice, bob]
  *     - addreses of contracts [token, dkimRegistry, escrowRegistry, ...escrowContracts]
  */
-unconstrained pub fn setup<let N: u32>() -> (&mut TestEnvironment, [AztecAddress; 4], [AztecAddress; 3 + N]) {
+unconstrained pub fn setup<let N: u32>() -> (&mut TestEnvironment, TestAccounts, TestContracts<N>) {
     let mut env = TestEnvironment::new();
     // create 4 accounts
     let accounts: [AztecAddress; 4] = [
@@ -42,8 +56,8 @@ unconstrained pub fn setup<let N: u32>() -> (&mut TestEnvironment, [AztecAddress
         env.create_account(),
         env.create_account()
     ];
+
     // deploy the token contract
-    let mut contracts: [AztecAddress; 3 + N] = [AztecAddress::zero(); 3 + N];
     env.impersonate(accounts[0]);
     let token_init_call_iface = Token::interface().constructor(
         accounts[0],
@@ -55,8 +69,8 @@ unconstrained pub fn setup<let N: u32>() -> (&mut TestEnvironment, [AztecAddress
         .deploy("./@token_contract", "Token")
         .with_public_initializer(token_init_call_iface);
     let token_address = token_contract.to_address();
-    contracts[0] = token_address;
     cheatcodes::advance_blocks_by(1);
+
     // deploy dkim registry contract
     let linode_id = receipt_verifier_id::LINODE as Field;
     let dkim_registry_init_call_iface = ZImburseDkimRegistry::interface().constructor(
@@ -67,16 +81,13 @@ unconstrained pub fn setup<let N: u32>() -> (&mut TestEnvironment, [AztecAddress
         .deploy("./@z_imburse_dkim_registry", "ZImburseDkimRegistry")
         .with_public_initializer(dkim_registry_init_call_iface);
     let dkim_registry_address = dkim_contract.to_address();
-    contracts[1] = dkim_registry_address;
     cheatcodes::advance_blocks_by(1);
+
     // deploy escrow registry contract
     let escrow_contract_class_id = get_escrow_contract_class_id(&mut env);
-    dep::aztec::oracle::debug_log::debug_log_format("===============================================================", []);
-     dep::aztec::oracle::debug_log::debug_log_format("Gotten ID {0}", [escrow_contract_class_id]);
     let escrow_registry_init_call_iface = ZImburseEscrowRegistry::interface().constructor(
         dkim_registry_address,
         token_address,
-        // contract_class_id
         escrow_contract_class_id
     );
     env.impersonate(accounts[1]);
@@ -84,9 +95,10 @@ unconstrained pub fn setup<let N: u32>() -> (&mut TestEnvironment, [AztecAddress
         .deploy_self("ZImburseEscrowRegistry")
         .with_public_initializer(escrow_registry_init_call_iface);
     let escrow_registry_address = escrow_registry_contract.to_address();
-    contracts[2] = escrow_registry_address;
     cheatcodes::advance_blocks_by(1);
+
     // deploy as many escrow contracts as requested
+    let mut escrowContracts: [AztecAddress; N] = [AztecAddress::zero(); N];
     for i in 0..N {
         let escrow_init_call_iface = ZImburseEscrow::interface().constructor(
             dkim_registry_address,
@@ -98,19 +110,26 @@ unconstrained pub fn setup<let N: u32>() -> (&mut TestEnvironment, [AztecAddress
             .deploy("./@z_imburse_escrow", "ZImburseEscrow")
             .with_public_initializer(escrow_init_call_iface);
         let escrow_address = escrow_contract.to_address();
-        contracts[3 + i] = escrow_address;
+        escrowContracts[i] = escrow_address;
         let contract_class_id = get_contract_instance(escrow_address).contract_class_id.to_field();
-        dep::aztec::oracle::debug_log::debug_log_format("===============================================================", []);
-
-        dep::aztec::oracle::debug_log::debug_log_format("Escrow {0} class id: {1}", [i as Field, contract_class_id]);
         cheatcodes::advance_blocks_by(1);
     }
     
     // return the test environment
     (
         &mut env,
-        accounts,
-        contracts,
+        TestAccounts {
+            superuser: accounts[0],
+            escrowAdmin: accounts[1],
+            alice: accounts[2],
+            bob: accounts[3]
+        },
+        TestContracts {
+            usdc: token_address,
+            dkimRegistry: dkim_registry_address,
+            escrowRegistry: escrow_registry_address,
+            escrowContracts: escrowContracts
+        }
     )
 }
 
@@ -127,30 +146,4 @@ unconstrained pub fn get_escrow_contract_class_id(env: &mut TestEnvironment) -> 
         .with_public_initializer(escrow_init_call_iface);
     cheatcodes::advance_blocks_by(1);    
     escrow_contract.contract_class_id.to_field()
-}
-
-/**
- * Publicly mint tokens to a recipient (basically to the escrow contract)
- *
- * @param env - The test environment
- * @param token_address - The address of the token contract
- * @param escrow_address - The address of the escrow contract
- * @param amount - The amount of tokens to mint
- */
-unconstrained pub fn mint_public(
-    env: &mut TestEnvironment,
-    token_address: AztecAddress,
-    minter: AztecAddress,
-    recipient: AztecAddress,
-    amount: Field
-) {
-    env.impersonate(minter);
-    let mint_call_iface = Token::at(token_address).mint_public(recipient, amount);
-    env.call_public(mint_call_iface);
-    cheatcodes::advance_blocks_by(1);
-}
-
-// is this just kinda unnecessary at this level
-unconstrained pub fn to_usdc_decimals(amount: Field) -> Field {
-    amount * 10.pow_32(USDC_DECIMALS as Field)
 }

@@ -11,7 +11,11 @@ contract ZImburseEscrowRegistry {
         note_viewer_options::NoteViewerOptions, note_getter_options::NoteGetterOptions,
         note_getter::{get_notes, view_notes}, constants::MAX_NOTES_PER_PAGE
     };
-    use dep::aztec::protocol_types::contract_instance::ContractInstance;
+    use dep::aztec::protocol_types::{
+        contract_instance::ContractInstance,
+        address::partial_address::PartialAddress,
+        contract_class_id::ContractClassId
+    };
     use dep::aztec::oracle::{get_contract_instance::get_contract_instance, header::get_header_at_oracle};
     use dep::aztec::keys::getters::get_public_keys;
     use dep::aztec::utils::comparison::Comparator;
@@ -101,6 +105,23 @@ contract ZImburseEscrowRegistry {
      */
     #[private]
     fn register_escrow(escrow_contract: AztecAddress) {
+        // check the contract class ID by recomputing the contract address
+        let definition = storage.definition.read_private();
+        let contract_instance: ContractInstance = unsafe { get_contract_instance(escrow_contract) };
+        let exected_escrow_address = AztecAddress::compute(
+            contract_instance.public_keys_hash,
+            PartialAddress::compute(
+                ContractClassId::from_field(definition.escrow_contract_id), // constrained here
+                contract_instance.salt,
+                contract_instance.initialization_hash,
+                contract_instance.deployer
+            )
+        );
+        assert(
+            exected_escrow_address == escrow_contract,
+            "Escrow contract class ID does not match expected class ID"
+        );
+
         // check that the contract has not already been registered
         let registration_status = storage.contract_registration.at(escrow_contract).read_private();
         assert(!registration_status, "Escrow contract has already been registered");
@@ -113,24 +134,7 @@ contract ZImburseEscrowRegistry {
         // check that the contract has been deployed
         context.historical_header.prove_contract_initialization(escrow_contract);
 
-        // check the contract class ID by recomputing the contract address
-        let definition = storage.definition.read_private();
-        let oracle_contract_id = unsafe { get_contract_instance(escrow_contract).contract_class_id.to_field() };
-        // let expected_escrow_address = AztecAddress::compute(
-        //     escrow_contract_instance.public_keys_hash
-        // )
-        dep::aztec::oracle::debug_log::debug_log_format("Note: DKIM: {0}, USDC: {1}, contract_id: {2}", [
-            definition.dkim_registry.to_field(),
-            definition.usdc.to_field(),
-            definition.escrow_contract_id
-        ]);
-
-        dep::aztec::oracle::debug_log::debug_log_format("Actual: {0}", [oracle_contract_id]);
-
-        assert(
-            definition.escrow_contract_id == oracle_contract_id, "Escrow contract class ID does not match expected class ID"
-        );
-
+        
         // privately add the escrow contract to the list of managed escrows
         let admin_keys = get_public_keys(context.msg_sender());
         let mut escrow_note = AddressNote::new(escrow_contract, admin_keys.npk_m.hash());

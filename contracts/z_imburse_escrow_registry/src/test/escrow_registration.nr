@@ -1,22 +1,62 @@
 use dep::aztec::test::helpers::cheatcodes;
-use dep::aztec::hash::compute_secret_hash;
-use crate::test::utils;
+use crate::test::utils::{setup_helpers::setup, escrow_registry_helpers};
 use crate::ZImburseEscrowRegistry;
 
 #[test]
 unconstrained fn register_contract_success() {
     // setup test env
-    let (env, accounts, contracts) = utils::setup::<1>();
-    dep::aztec::oracle::debug_log::debug_log_format("Token: {0}", [contracts[0].to_field()]);
-    dep::aztec::oracle::debug_log::debug_log_format("DKIM Registry: {0}", [contracts[1].to_field()]);
-    dep::aztec::oracle::debug_log::debug_log_format("Escrow Registry: {0}", [contracts[2].to_field()]);
-    dep::aztec::oracle::debug_log::debug_log_format("Escrow: {0}", [contracts[3].to_field()]);
-    // register the escrow contract
-    let escrow_registry = ZImburseEscrowRegistry::at(contracts[2]);
-    env.impersonate(accounts[1]);
-    let register_escrow_call_iface = escrow_registry.register_escrow(
-        contracts[3]
+    let (env, accounts, contracts) = setup::<1>();
+    // regis: &mut TestEnvironmentter the escrow contract
+    escrow_registry_helpers::register_escrow(
+        env,
+        contracts.escrowRegistry,
+        contracts.escrowContracts[0],
+        accounts.escrowAdmin
     );
-    env.call_private_void(register_escrow_call_iface);
-    cheatcodes::advance_blocks_by(1);
+}
+
+#[test(should_fail_with="Escrow contract has already been registered")]
+unconstrained fn fail_register_contract_already_registered() {
+    // setup test env
+    let (env, accounts, contracts) = setup::<1>();
+    // register the escrow contract
+    escrow_registry_helpers::register_escrow(
+        env,
+        contracts.escrowRegistry,
+        contracts.escrowContracts[0],
+        accounts.escrowAdmin
+    );
+    // try to register the same contract again
+    escrow_registry_helpers::register_escrow(
+        env,
+        contracts.escrowRegistry,
+        contracts.escrowContracts[0],
+        accounts.escrowAdmin
+    );
+}
+
+#[test(should_fail_with="Escrow contract admin does not match sender of message")]
+unconstrained fn fail_register_contract_not_admin() {
+    // setup test env
+    let (env, accounts, contracts) = setup::<1>();
+    // register the escrow contract
+    escrow_registry_helpers::register_escrow(
+        env,
+        contracts.escrowRegistry,
+        contracts.escrowContracts[0],
+        accounts.alice
+    );
+}
+
+#[test(should_fail_with="Escrow contract class ID does not match expected class ID")]
+unconstrained fn fail_register_contract_not_escrow() {
+    // setup test env
+    let (env, accounts, contracts) = setup::<1>();
+    // register the escrow contract
+    escrow_registry_helpers::register_escrow(
+        env,
+        contracts.escrowRegistry,
+        contracts.usdc,
+        accounts.alice
+    );
 }

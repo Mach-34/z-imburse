@@ -137,10 +137,7 @@ impl NullifiableNote for RecurringEntitlementNote {
     fn compute_nullifier(self, context: &mut PrivateContext, note_hash_for_nullify: Field) -> Field {
         let secret = self.derive_nullifier_secret_with_context(context);
         poseidon2_hash_with_separator(
-            [
-            note_hash_for_nullify,
-            secret
-        ],
+            [note_hash_for_nullify, secret],
             GENERATOR_INDEX__NOTE_NULLIFIER as Field
         )
     }
@@ -233,10 +230,13 @@ impl RecurringEntitlementNote {
             sk = from_field_unsafe(nsk_app);
         }
         // derive the shared secret
-        let mut secret_bytes = point_to_symmetric_key(sk, pk);
+        let secret_bytes = point_to_symmetric_key(sk, pk);
         // set the highest byte to be 0 to ensure that the secret is not too large
-        secret_bytes[0] = 0;
-        field_from_bytes(secret_bytes, false)
+        let mut resized: [u8; 31] = [0; 31];
+        for i in 0..31 {
+            resized[i] = secret_bytes[i + 1];
+        }
+        field_from_bytes(resized, true)
     }
 
     fn derive_nullifier_secret(self) -> Field {
@@ -256,10 +256,13 @@ impl RecurringEntitlementNote {
             sk = from_field_unsafe(nsk_app);
         }
         // derive the shared secret
-        let mut secret_bytes = point_to_symmetric_key(sk, pk);
+        let secret_bytes = point_to_symmetric_key(sk, pk);
         // set the highest byte to be 0 to ensure that the secret is not too large
-        secret_bytes[0] = 0;
-        field_from_bytes(secret_bytes, false)
+        let mut resized: [u8; 31] = [0; 31];
+        for i in 0..31 {
+            resized[i] = secret_bytes[i + 1];
+        }
+        field_from_bytes(resized, false)
     }
 
     fn serialize_without_is_admin(self) -> [Field; RECURRING_ENTITLEMENT_NOTE_LENGTH] {

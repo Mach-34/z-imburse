@@ -50,15 +50,16 @@ unconstrained fn claim_linode_reimbursement_success() {
     let claim_secret = reimburse_linode(
         env,
         contracts.escrows[0],
+        contracts.usdc,
         accounts.alice,
         LINODE_SEP
     );
     // check the balance of the escrow has decremented
-    // check_public_balance(contracts.usdc, contracts.escrows[0], 0);
-    // // claim the reimbursement
-    // redeem_shield(env, contracts.usdc, accounts.alice, amount, claim_secret);
-    // // check the balance of alice has incremented
-    // check_private_balance(contracts.usdc, accounts.alice, amount);
+    check_public_balance(contracts.usdc, contracts.escrows[0], 0);
+    // claim the reimbursement
+    redeem_shield(env, contracts.usdc, accounts.alice, amount, claim_secret);
+    // check the balance of alice has incremented
+    check_private_balance(contracts.usdc, accounts.alice, amount);
 }
 
 // unconstrained fn claim_linode_reimbursement_max_value_success() {

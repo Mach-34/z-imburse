@@ -1,8 +1,9 @@
 use dep::aztec::macros::aztec;
 
 mod constants;
-// mod registry_interface;
+mod registry_interface;
 mod types;
+mod verifiers;
 
 #[aztec]
 contract ZImburseEscrow {
@@ -11,7 +12,7 @@ contract ZImburseEscrow {
     use dep::aztec::macros::{storage::storage, functions::{private, public, internal, view, initializer}};
     use dep::aztec::keys::getters::get_public_keys;
     use dep::aztec::note::{note_getter_options::NoteGetterOptions, note_viewer_options::NoteViewerOptions};
-    use dep::aztec::oracle::random::random;
+    use dep::aztec::oracle::{random::random, notes::check_nullifier_exists};
     use dep::aztec::utils::comparison::Comparator;
     
     use dep::token::Token;
@@ -21,9 +22,13 @@ contract ZImburseEscrow {
         linode::verify_linode_billing_receipt,
         zkemail::KEY_LIMBS_2048
     };
-    use crate::types::{
-        escrow_definition::{EscrowDefinition, TITLE_LENGTH},
-        recurring_entitlement_note::RecurringEntitlementNote
+    use crate::{
+        types::{
+            escrow_definition::{EscrowDefinition, TITLE_LENGTH},
+            recurring_entitlement_note::RecurringEntitlementNote
+        },
+        registry_interface::check_dkim_key_hash_private,
+        verifiers,
     };
     
     #[storage]
@@ -148,7 +153,7 @@ contract ZImburseEscrow {
         receipt_id_length: u32,
         // claim hash
         claim_secret_hash: Field,
-    ) {
+    ) -> Field {
         // retrieve a Linode hosting entitlement
         let notes = storage.recurring_entitlements.at(context.msg_sender()).get_notes(
             NoteGetterOptions::new()
@@ -159,68 +164,86 @@ contract ZImburseEscrow {
         let note = notes.get_unchecked(0);
         assert(note.recipient == context.msg_sender(), "Entitlement does not belong to the sender");
         
-        // // ensure the note has not been nullified by the admin
-        // // todo: is this unnecessary? probably
-        // context.historical_header.prove_note_not_nullified(note, &mut context);
+        // ensure the note has not been nullified by the admin
+        // todo: switch for nullifier non-inclusion check once out of txe
+        let exists = check_nullifier_exists(note.compute_nullifier(&mut context, note.compute_note_hash()));
+        assert(!exists, "Entitlement has been nullified");
 
         // // verify linode billing receipt and extract amount, date, keyhash
         // // todo: create a new function with pop_capsule to handle custom logic & inputs per email
         let linode_receipt_result = verify_linode_billing_receipt(
             body, body_hash_index, body_length, header, header_length, pubkey, pubkey_redc, signature, from_index, subject_index, amount_index, amount_length, date_index, receipt_id_length
         );
-        // let dkim_key_hash = linode_receipt_result[0];
-        // let unix_month = linode_receipt_result[1]; // month and year
-        // // billed amount returns 2 decimals, so multiply billed_amount by 10,000
-        // let billed_amount = U128::from_integer(linode_receipt_result[2] * 10000);
+        let dkim_key_hash = linode_receipt_result[0];
+        let unix_month = linode_receipt_result[1]; // month and year
+        // billed amount returns 2 decimals, so multiply billed_amount by 10,000
+        let billed_amount = U128::from_integer(linode_receipt_result[2] * 10000);
 
-        // // check the dkim key hash matches the linode verifier id
-        // // let registry = storage.definition.read_private().dkimRegistry;
-        // // let verifier_id = ZImburseDkimRegistry::at(registry).check_dkim_key_hash_private(dkim_key_hash).view(&mut context);
-        // // assert(
-        // //     (verifier_id as u8) == receipt_verifier_id::LINODE,
-        // //     "DKIM key is not registered for Linode"
-        // // );
+        // check the dkim key hash matches the linode verifier id
+        let registry = storage.definition.read_private().registry;
+        let registered_verifier_id = check_dkim_key_hash_private(&mut context, registry, dkim_key_hash);
+        assert(
+            (registered_verifier_id as u8) == verifiers::LINODE,
+            "DKIM key is not registered for Linode"
+        );
 
-        // // check that this entitlement has not been emitted for this month and add it
-        // // todo: is it sufficient to just push the nullifier? will the kernel circuit fail if it exists?
-        // // constrained to use the year/month unix timestamp computed by email verifier
-        // // todo: silo nullifiers to contract address
-        // let recurring_nullifier = note.derive_recurring_nullifier(unix_month);
+        // check that this entitlement has not been emitted for this month and add it
+        // todo: check the nullifier non-inclusion once out of txe
+        // constrained to use the year/month unix timestamp computed by email verifier
+        // todo: silo nullifiers to contract address
+        let recurring_nullifier = note.derive_recurring_nullifier(unix_month);
+        let recurring_nullifier_exists = storage.entitlement_nullifiers.at(recurring_nullifier).read_private();
+        assert(!recurring_nullifier_exists, "Entitlement has already been redeemed for this month");
+        context.push_nullifier(recurring_nullifier);
+
         // context.historical_header.prove_nullifier_non_inclusion(recurring_nullifier);
         // context.push_nullifier(recurring_nullifier);
         // // todo: event for admin revealing month
 
-        // // determine the amount to reimburse
-        // let amount_to_reimburse = if note.max_value >= billed_amount {
-        //     billed_amount   
-        // } else {
-        //     note.max_value
-        // };
+        // determine the amount to reimburse
+        let amount_to_reimburse = if note.max_value >= billed_amount {
+            billed_amount   
+        } else {
+            note.max_value
+        };
 
-        // // release funds from escrow by shielding in public
-        // // todo: do we need a private event? or is it sufficient to instantly claim?
-        // // worry would be waiting/ disconnection
-        // let token_address = storage.definition.read_private().usdc;
-        // Token::at(token_address).shield(context.this_address(), amount_to_reimburse.to_field(), claim_secret_hash, 0).enqueue(&mut context);
+        // release funds from escrow by shielding in public
+        // todo: do we need a private event? or is it sufficient to instantly claim?
+        // worry would be waiting/ disconnection
+        let token_address = storage.definition.read_private().usdc;
+        Token::at(token_address).shield(context.this_address(), amount_to_reimburse.to_field(), claim_secret_hash, 0).enqueue(&mut context);
+
+        amount_to_reimburse.to_field()
     }
 
-    // #[private]
-    // fn remove_nullified_recurring_notes() {
-    //     let notes = storage.recurring_entitlements.at(context.msg_sender()).get_notes(
-    //         NoteGetterOptions::new()
-    //     );
-    // }
+    
 
     // /**
-    //  * Emit a nullifier from the private context for any reason (using spot, recurring, or revocation)
-    //  * 
-    //  * @param nullifier - the nullifier to emit
+    //  * Emit the nullifier for a recurring entitlement
+    //  *
+    //  * @param from - the address to revoke entitlement for
+    //  * @param verifier_type - the verifier type to revoke entitlement for
     //  */
-    // #[public]
-    // #[internal]
-    // pub fn emit_entitlement_nullifier(nullifier: Field) {
-    //     storage.entitlement_nullifiers.at(nullifier).initialize(true);
-    //     // todo: emit event on nullifier?
+    // #[private]
+    // pub fn revoke_recurring_entitlement(from: AztecAddress, verifier_type: u8) {
+    //     // check is escrow admin
+    //     let defintion = storage.definition.read_private();
+    //     assert(context.msg_sender() == defintion.admin, "Only the escrow admin can revoke entitlements");
+
+    //     // try to pop a note for this recipient
+    //     // should automatically emit the nullifier
+    //     let notes = storage.recurring_entitlements.at(context.msg_sender()).pop_notes(
+    //         NoteGetterOptions::new()
+    //             .select(RecurringEntitlementNote::properties().verifier_id, Comparator::EQ, verifier_type)
+    //             .select(RecurringEntitlementNote::properties().recipient, Comparator::EQ, from)
+    //             .set_limit(1)
+    //     );
+        
+    //     // ensure the note is to/ from correctly
+    //     assert(notes.len() == 1, "No entitlements to revoke");
+    //     let note = notes.get_unchecked(0);
+    //     assert(note.recipient == from, "Entitlement does not belong to the recipient");
+    //     // todo: emit event to recipient
     // }
 
     /**
@@ -256,22 +279,11 @@ contract ZImburseEscrow {
         [definition.registry, definition.usdc, definition.admin]
     }
 
-    // unconstrained fn log_note(from: AztecAddress) -> [Field; 6] {
-    //     // retrieve a Linode hosting entitlement
-    //     let notes = storage.recurring_entitlements.at(from).view_notes(
-    //         NoteViewerOptions::new()
-    //             // .select(RecurringEntitlementNote::properties().verifier_id, Comparator.EQ, receipt_verifier_id::LINODE)
-    //             .set_limit(1)
-    //     );
-    //     let note = notes.get_unchecked(0);
-    //     [
-    //         note.owner.to_field(),
-    //         note.npk_m_hash,
-    //         note.revocation_npk_m_hash,
-    //         note.verifier_id as Field, 
-    //         note.max_value.to_integer(),
-    //         note.randomness
-    //     ]
+    // #[private]
+    // #[view]
+    // pub fn get_recurring_entitlements_private(from: AztecAddress, verifier_id: u8, offset: u32) -> PrivateSet<RecurringEntitlementNote> {
+    //     let options = NoteGetterOptions::new()
+    //         .set
     // }
     
 }

@@ -42,16 +42,18 @@ unconstrained pub fn give_recurring_entitlement(
  *
  * @param env The test environment
  * @param escrow_address The address of the deployed escrow contract
+ * @param usdc_address The address of the USDC token contract
  * @param claimant The address of the claimant
  * @param linode_inputs The inputs for the linode claim
- * @return - the secret used to privately control the USDC transparent note
+ * @return - the claim secret used to claim the entitlement
  */
 unconstrained pub fn reimburse_linode(
     env: &mut TestEnvironment,
     escrow_address: AztecAddress,
+    usdc_address: AztecAddress,
     claimant: AztecAddress,
     linode_inputs: LinodeBillingParams
-) -> Field{
+) -> Field {
     env.impersonate(claimant);
     // get claim hash
     let secret = unsafe { random() };
@@ -76,8 +78,11 @@ unconstrained pub fn reimburse_linode(
         linode_inputs.receipt_id_length,
         claim_hash
     );
-    env.call_private_void(reimburse_linode_call_iface);
+    let amount_reimbursed = env.call_private(reimburse_linode_call_iface);
     cheatcodes::advance_blocks_by(1);
+
+    // add shielded note to the txe
+    add_shielded_note(env, usdc_address, amount_reimbursed, claim_hash);
 
     secret
 }

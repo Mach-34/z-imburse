@@ -7,14 +7,18 @@ mod verifiers;
 
 #[aztec]
 contract ZImburseEscrow {
+    use std::meta::derive;
     use dep::aztec::prelude::{AztecAddress, PrivateSet, SharedImmutable, Map};
-    use dep::aztec::encrypted_logs::encrypted_note_emission::{encode_and_encrypt_note, encode_and_encrypt_note_unconstrained};
-    use dep::aztec::macros::{storage::storage, functions::{private, public, internal, view, initializer}};
+    use dep::aztec::encrypted_logs::{
+        encrypted_note_emission::{encode_and_encrypt_note, encode_and_encrypt_note_unconstrained},
+        encrypted_event_emission::encode_and_encrypt_event
+    };
+    use dep::aztec::macros::{storage::storage,  events::event, functions::{private, public, internal, view, initializer}};
     use dep::aztec::keys::getters::get_public_keys;
     use dep::aztec::note::{note_getter_options::NoteGetterOptions, note_viewer_options::NoteViewerOptions};
     use dep::aztec::oracle::{random::random, notes::check_nullifier_exists};
     use dep::aztec::utils::comparison::Comparator;
-    
+    use dep::aztec::protocol_types::traits::Serialize;
     use dep::token::Token;
     use dep::address_note::address_note::AddressNote;
     use dep::zimburse_verifiers::{
@@ -30,6 +34,16 @@ contract ZImburseEscrow {
         registry_interface::check_dkim_key_hash_private,
         verifiers,
     };
+
+    #[event]
+    #[derive(Serialize)]
+    struct RecurringReimbursementClaimed {
+        claimant: AztecAddress,
+        amount: Field,
+        verifier_id: u8,
+        datetime: Field
+    }
+    
     
     #[storage]
     struct Storage<Context> {
@@ -166,8 +180,10 @@ contract ZImburseEscrow {
         
         // ensure the note has not been nullified by the admin
         // todo: switch for nullifier non-inclusion check once out of txe
-        let exists = check_nullifier_exists(note.compute_nullifier(&mut context, note.compute_note_hash()));
-        assert(!exists, "Entitlement has been nullified");
+        let note_nullifier = note.compute_nullifier(&mut context, note.compute_note_hash());
+        context.historical_header.prove_nullifier_non_inclusion(note_nullifier);
+        // let exists = check_nullifier_exists(note.compute_nullifier(&mut context, note.compute_note_hash()));
+        // assert(!exists, "Entitlement has been nullified");
 
         // // verify linode billing receipt and extract amount, date, keyhash
         // // todo: create a new function with pop_capsule to handle custom logic & inputs per email
@@ -187,33 +203,43 @@ contract ZImburseEscrow {
             "DKIM key is not registered for Linode"
         );
 
+        // determine the amount to reimburse
+        let amount_to_reimburse = if note.max_value >= billed_amount {
+            billed_amount.to_field()
+        } else {
+            note.max_value.to_field()
+        };
+
+        // notify admin of reimbursement
+        RecurringReimbursementClaimed {
+            claimant: context.msg_sender(),
+            amount: amount_to_reimburse,
+            verifier_id: verifiers::LINODE,
+            datetime: unix_month
+        }.emit(encode_and_encrypt_event(
+            &mut context,
+            get_public_keys(context.msg_sender()).ovpk_m,
+            get_public_keys(note.admin).ivpk_m,
+            note.admin
+        ));
+
         // check that this entitlement has not been emitted for this month and add it
         // todo: check the nullifier non-inclusion once out of txe
         // constrained to use the year/month unix timestamp computed by email verifier
         // todo: silo nullifiers to contract address
         let recurring_nullifier = note.derive_recurring_nullifier(unix_month);
-        let recurring_nullifier_exists = storage.entitlement_nullifiers.at(recurring_nullifier).read_private();
-        assert(!recurring_nullifier_exists, "Entitlement has already been redeemed for this month");
+        // let recurring_nullifier_exists = storage.entitlement_nullifiers.at(recurring_nullifier).read_private();
+        // assert(!recurring_nullifier_exists, "Entitlement has already been redeemed for this month");
+        context.historical_header.prove_nullifier_non_inclusion(recurring_nullifier);
         context.push_nullifier(recurring_nullifier);
-
-        // context.historical_header.prove_nullifier_non_inclusion(recurring_nullifier);
-        // context.push_nullifier(recurring_nullifier);
-        // // todo: event for admin revealing month
-
-        // determine the amount to reimburse
-        let amount_to_reimburse = if note.max_value >= billed_amount {
-            billed_amount   
-        } else {
-            note.max_value
-        };
 
         // release funds from escrow by shielding in public
         // todo: do we need a private event? or is it sufficient to instantly claim?
         // worry would be waiting/ disconnection
         let token_address = storage.definition.read_private().usdc;
-        Token::at(token_address).shield(context.this_address(), amount_to_reimburse.to_field(), claim_secret_hash, 0).enqueue(&mut context);
+        Token::at(token_address).shield(context.this_address(), amount_to_reimburse, claim_secret_hash, 0).enqueue(&mut context);
 
-        amount_to_reimburse.to_field()
+        amount_to_reimburse
     }
 
     

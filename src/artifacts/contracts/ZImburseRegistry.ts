@@ -32,23 +32,21 @@ import {
   type Wallet,
   type WrappedFieldLike,
 } from "@aztec/aztec.js";
-import ZImburseEscrowContractArtifactJson from "./ZImburseEscrow.json" assert { type: "json" };
+import ZImburseRegistryContractArtifactJson from "./ZImburseRegistry.json" assert { type: "json" };
 //@ts-ignore
-export const ZImburseEscrowContractArtifact = loadContractArtifact(ZImburseEscrowContractArtifactJson as NoirCompiledContract);
+export const ZImburseRegistryContractArtifact = loadContractArtifact(ZImburseRegistryContractArtifactJson as NoirCompiledContract);
 
-export type RecurringReimbursementClaimed = {
-  claimant: AztecAddressLike;
-  amount: FieldLike;
-  verifier_id: bigint | number;
-  datetime: FieldLike;
+export type DKIMKeyHashRegistered = {
+  dkim_key_hash: FieldLike;
+  verifier_id: FieldLike;
 };
 
 /**
- * Type-safe interface for contract ZImburseEscrow;
+ * Type-safe interface for contract ZImburseRegistry;
  */
-export class ZImburseEscrowContract extends ContractBase {
+export class ZImburseRegistryContract extends ContractBase {
   private constructor(instance: ContractInstanceWithAddress, wallet: Wallet) {
-    super(instance, ZImburseEscrowContractArtifact, wallet);
+    super(instance, ZImburseRegistryContractArtifact, wallet);
   }
 
   /**
@@ -60,9 +58,9 @@ export class ZImburseEscrowContract extends ContractBase {
   public static async at(address: AztecAddress, wallet: Wallet) {
     return Contract.at(
       address,
-      ZImburseEscrowContract.artifact,
+      ZImburseRegistryContract.artifact,
       wallet
-    ) as Promise<ZImburseEscrowContract>;
+    ) as Promise<ZImburseRegistryContract>;
   }
 
   /**
@@ -70,15 +68,16 @@ export class ZImburseEscrowContract extends ContractBase {
    */
   public static deploy(
     wallet: Wallet,
-    registry: AztecAddressLike,
-    usdc_token: AztecAddressLike,
-    title: string
+    usdc: AztecAddressLike,
+    escrow_contract_id: FieldLike,
+    verifier_ids: FieldLike[],
+    dkim_key_hashes: FieldLike[]
   ) {
-    return new DeployMethod<ZImburseEscrowContract>(
+    return new DeployMethod<ZImburseRegistryContract>(
       Fr.ZERO,
       wallet,
-      ZImburseEscrowContractArtifact,
-      ZImburseEscrowContract.at,
+      ZImburseRegistryContractArtifact,
+      ZImburseRegistryContract.at,
       Array.from(arguments).slice(1)
     );
   }
@@ -89,15 +88,16 @@ export class ZImburseEscrowContract extends ContractBase {
   public static deployWithPublicKeysHash(
     publicKeysHash: Fr,
     wallet: Wallet,
-    registry: AztecAddressLike,
-    usdc_token: AztecAddressLike,
-    title: string
+    usdc: AztecAddressLike,
+    escrow_contract_id: FieldLike,
+    verifier_ids: FieldLike[],
+    dkim_key_hashes: FieldLike[]
   ) {
-    return new DeployMethod<ZImburseEscrowContract>(
+    return new DeployMethod<ZImburseRegistryContract>(
       publicKeysHash,
       wallet,
-      ZImburseEscrowContractArtifact,
-      ZImburseEscrowContract.at,
+      ZImburseRegistryContractArtifact,
+      ZImburseRegistryContract.at,
       Array.from(arguments).slice(2)
     );
   }
@@ -106,16 +106,16 @@ export class ZImburseEscrowContract extends ContractBase {
    * Creates a tx to deploy a new instance of this contract using the specified constructor method.
    */
   public static deployWithOpts<
-    M extends keyof ZImburseEscrowContract["methods"]
+    M extends keyof ZImburseRegistryContract["methods"]
   >(
     opts: { publicKeysHash?: Fr; method?: M; wallet: Wallet },
-    ...args: Parameters<ZImburseEscrowContract["methods"][M]>
+    ...args: Parameters<ZImburseRegistryContract["methods"][M]>
   ) {
-    return new DeployMethod<ZImburseEscrowContract>(
+    return new DeployMethod<ZImburseRegistryContract>(
       opts.publicKeysHash ?? Fr.ZERO,
       opts.wallet,
-      ZImburseEscrowContractArtifact,
-      ZImburseEscrowContract.at,
+      ZImburseRegistryContractArtifact,
+      ZImburseRegistryContract.at,
       Array.from(arguments).slice(1),
       opts.method ?? "constructor"
     );
@@ -125,29 +125,52 @@ export class ZImburseEscrowContract extends ContractBase {
    * Returns this contract's artifact.
    */
   public static get artifact(): ContractArtifact {
-    return ZImburseEscrowContractArtifact;
+    return ZImburseRegistryContractArtifact;
   }
 
   public static get storage(): ContractStorageLayout<
-    "definition" | "recurring_entitlements" | "entitlement_nullifiers"
+    | "definition"
+    | "escrow_registry"
+    | "dkim_registry"
+    | "managed_escrows"
+    | "participants"
+    | "participant_escrows"
   > {
     return {
       definition: {
         slot: new Fr(1n),
       },
-      recurring_entitlements: {
+      escrow_registry: {
+        slot: new Fr(4n),
+      },
+      dkim_registry: {
+        slot: new Fr(5n),
+      },
+      managed_escrows: {
         slot: new Fr(6n),
       },
-      entitlement_nullifiers: {
+      participants: {
         slot: new Fr(7n),
       },
+      participant_escrows: {
+        slot: new Fr(8n),
+      },
     } as ContractStorageLayout<
-      "definition" | "recurring_entitlements" | "entitlement_nullifiers"
+      | "definition"
+      | "escrow_registry"
+      | "dkim_registry"
+      | "managed_escrows"
+      | "participants"
+      | "participant_escrows"
     >;
   }
 
   public static get notes(): ContractNotes<
-    "AddressNote" | "TransparentNote" | "TokenNote" | "RecurringEntitlementNote"
+    | "AddressNote"
+    | "TransparentNote"
+    | "TokenNote"
+    | "RecurringEntitlementNote"
+    | "ParticipantNote"
   > {
     return {
       AddressNote: {
@@ -162,16 +185,40 @@ export class ZImburseEscrowContract extends ContractBase {
       RecurringEntitlementNote: {
         id: new NoteSelector(3639716131),
       },
+      ParticipantNote: {
+        id: new NoteSelector(3017618054),
+      },
     } as ContractNotes<
       | "AddressNote"
       | "TransparentNote"
       | "TokenNote"
       | "RecurringEntitlementNote"
+      | "ParticipantNote"
     >;
   }
 
   /** Type-safe wrappers for the public methods exposed by the contract. */
   public declare methods: {
+    /** check_and_register_participant(participant: struct, participant_name: string, escrow: struct) */
+    check_and_register_participant: ((
+      participant: AztecAddressLike,
+      participant_name: string,
+      escrow: AztecAddressLike
+    ) => ContractFunctionInteraction) &
+      Pick<ContractMethod, "selector">;
+
+    /** check_dkim_key_hash_private(dkim_key_hash: field) */
+    check_dkim_key_hash_private: ((
+      dkim_key_hash: FieldLike
+    ) => ContractFunctionInteraction) &
+      Pick<ContractMethod, "selector">;
+
+    /** check_dkim_key_hash_public(dkim_key_hash: field) */
+    check_dkim_key_hash_public: ((
+      dkim_key_hash: FieldLike
+    ) => ContractFunctionInteraction) &
+      Pick<ContractMethod, "selector">;
+
     /** compute_note_hash_and_optionally_a_nullifier(contract_address: struct, nonce: field, storage_slot: field, note_type_id: field, compute_nullifier: boolean, serialized_note: array) */
     compute_note_hash_and_optionally_a_nullifier: ((
       contract_address: AztecAddressLike,
@@ -183,31 +230,43 @@ export class ZImburseEscrowContract extends ContractBase {
     ) => ContractFunctionInteraction) &
       Pick<ContractMethod, "selector">;
 
-    /** constructor(registry: struct, usdc_token: struct, title: string) */
+    /** constructor(usdc: struct, escrow_contract_id: field, verifier_ids: array, dkim_key_hashes: array) */
     constructor: ((
-      registry: AztecAddressLike,
-      usdc_token: AztecAddressLike,
-      title: string
+      usdc: AztecAddressLike,
+      escrow_contract_id: FieldLike,
+      verifier_ids: FieldLike[],
+      dkim_key_hashes: FieldLike[]
     ) => ContractFunctionInteraction) &
       Pick<ContractMethod, "selector">;
 
-    /** get_admin_private() */
-    get_admin_private: (() => ContractFunctionInteraction) &
+    /** get_escrow_class_id() */
+    get_escrow_class_id: (() => ContractFunctionInteraction) &
       Pick<ContractMethod, "selector">;
 
-    /** get_registration_params() */
-    get_registration_params: (() => ContractFunctionInteraction) &
+    /** get_escrow_registry_status(escrow_contract: struct) */
+    get_escrow_registry_status: ((
+      escrow_contract: AztecAddressLike
+    ) => ContractFunctionInteraction) &
       Pick<ContractMethod, "selector">;
 
-    /** get_title() */
-    get_title: (() => ContractFunctionInteraction) &
+    /** get_managed_escrows(admin: struct, page_index: integer) */
+    get_managed_escrows: ((
+      admin: AztecAddressLike,
+      page_index: bigint | number
+    ) => ContractFunctionInteraction) &
       Pick<ContractMethod, "selector">;
 
-    /** give_recurring_entitlement(to: struct, amount: field, verifier_id: integer) */
-    give_recurring_entitlement: ((
-      to: AztecAddressLike,
-      amount: FieldLike,
-      verifier_id: bigint | number
+    /** get_participant_escrows(participant: struct, page_index: integer) */
+    get_participant_escrows: ((
+      participant: AztecAddressLike,
+      page_index: bigint | number
+    ) => ContractFunctionInteraction) &
+      Pick<ContractMethod, "selector">;
+
+    /** get_participants(escrow: struct, page_index: integer) */
+    get_participants: ((
+      escrow: AztecAddressLike,
+      page_index: bigint | number
     ) => ContractFunctionInteraction) &
       Pick<ContractMethod, "selector">;
 
@@ -215,23 +274,32 @@ export class ZImburseEscrowContract extends ContractBase {
     public_dispatch: ((selector: FieldLike) => ContractFunctionInteraction) &
       Pick<ContractMethod, "selector">;
 
-    /** reimburse_linode(body: array, body_hash_index: integer, body_length: integer, header: array, header_length: integer, pubkey: array, pubkey_redc: array, signature: array, from_index: integer, subject_index: integer, amount_index: integer, amount_length: integer, date_index: integer, receipt_id_length: integer, claim_secret_hash: field) */
-    reimburse_linode: ((
-      body: (bigint | number)[],
-      body_hash_index: bigint | number,
-      body_length: bigint | number,
-      header: (bigint | number)[],
-      header_length: bigint | number,
-      pubkey: FieldLike[],
-      pubkey_redc: FieldLike[],
-      signature: FieldLike[],
-      from_index: bigint | number,
-      subject_index: bigint | number,
-      amount_index: bigint | number,
-      amount_length: bigint | number,
-      date_index: bigint | number,
-      receipt_id_length: bigint | number,
-      claim_secret_hash: FieldLike
+    /** register_dkim(verifier_id: field, dkim_key_hash: field) */
+    register_dkim: ((
+      verifier_id: FieldLike,
+      dkim_key_hash: FieldLike
+    ) => ContractFunctionInteraction) &
+      Pick<ContractMethod, "selector">;
+
+    /** register_dkim_bulk(verifier_ids: array, dkim_key_hashes: array) */
+    register_dkim_bulk: ((
+      verifier_ids: FieldLike[],
+      dkim_key_hashes: FieldLike[]
+    ) => ContractFunctionInteraction) &
+      Pick<ContractMethod, "selector">;
+
+    /** register_escrow(escrow_contract: struct) */
+    register_escrow: ((
+      escrow_contract: AztecAddressLike
+    ) => ContractFunctionInteraction) &
+      Pick<ContractMethod, "selector">;
+
+    /** register_participant(participant: struct, participant_name: string, admin: struct, escrow: struct) */
+    register_participant: ((
+      participant: AztecAddressLike,
+      participant_name: string,
+      admin: AztecAddressLike,
+      escrow: AztecAddressLike
     ) => ContractFunctionInteraction) &
       Pick<ContractMethod, "selector">;
   };
@@ -265,39 +333,22 @@ export class ZImburseEscrowContract extends ContractBase {
   }
 
   public static get events(): {
-    RecurringReimbursementClaimed: {
+    DKIMKeyHashRegistered: {
       decode: (
         payload: L1EventPayload | UnencryptedL2Log | undefined
-      ) => RecurringReimbursementClaimed | undefined;
+      ) => DKIMKeyHashRegistered | undefined;
       eventSelector: EventSelector;
       fieldNames: string[];
     };
   } {
     return {
-      RecurringReimbursementClaimed: {
+      DKIMKeyHashRegistered: {
         decode: this.decodeEvent(
-          EventSelector.fromSignature(
-            "RecurringReimbursementClaimed((Field),Field,u8,Field)"
-          ),
+          EventSelector.fromSignature("DKIMKeyHashRegistered(Field,Field)"),
           {
             fields: [
               {
-                name: "claimant",
-                type: {
-                  fields: [
-                    {
-                      name: "inner",
-                      type: {
-                        kind: "field",
-                      },
-                    },
-                  ],
-                  kind: "struct",
-                  path: "address_note::aztec::protocol_types::address::aztec_address::AztecAddress",
-                },
-              },
-              {
-                name: "amount",
+                name: "dkim_key_hash",
                 type: {
                   kind: "field",
                 },
@@ -305,26 +356,18 @@ export class ZImburseEscrowContract extends ContractBase {
               {
                 name: "verifier_id",
                 type: {
-                  kind: "integer",
-                  sign: "unsigned",
-                  width: 8,
-                },
-              },
-              {
-                name: "datetime",
-                type: {
                   kind: "field",
                 },
               },
             ],
             kind: "struct",
-            path: "ZImburseEscrow::RecurringReimbursementClaimed",
+            path: "ZImburseRegistry::DKIMKeyHashRegistered",
           }
         ),
         eventSelector: EventSelector.fromSignature(
-          "RecurringReimbursementClaimed((Field),Field,u8,Field)"
+          "DKIMKeyHashRegistered(Field,Field)"
         ),
-        fieldNames: ["claimant", "amount", "verifier_id", "datetime"],
+        fieldNames: ["dkim_key_hash", "verifier_id"],
       },
     };
   }

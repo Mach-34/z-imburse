@@ -1,18 +1,18 @@
 #!/bin/bash
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 
-# check_versions() {
-
-# }
+## Adds the compiled token contract
+get_token_contract_bytecode() {
+    token_bytecode_path="${CONTRACT_DIR}/../node_modules/@aztec/noir-contracts.js/artifacts/token_contract-Token.json"
+    cp $token_bytecode_path "${CONTRACT_DIR}/target"
+}
 
 ## Compile a contract artifact
 ## $1: the directory/ contract name in snake case
 compile_artifact() {
-
-    pushd "$project" >/dev/null
     ### determine if the project is a contract
-    [[ -f Nargo.toml ]] || { popd >/dev/null; return 1; }
-    grep -q 'type = "contract"' "Nargo.toml" || { popd >/dev/null; return 1; }
+    [[ -f $project/Nargo.toml ]] || return 1
+    grep -q 'type = "contract"' "$project/Nargo.toml" || return 1
 
     ### get pascal case for project name from snake case
     case "$OSTYPE" in
@@ -26,11 +26,8 @@ compile_artifact() {
         ;;
     esac
 
-    ### Compile the contract
-    aztec-nargo compile --silence-warnings
-
     ### Generate typescript bindings
-    aztec codegen ./target/$project-$contract_name.json -o .
+    aztec codegen ./target/$project-$contract_name.json -o ./target
 
     echo "Compiled $contract_name bytecode and typescript bindings"
 
@@ -38,6 +35,7 @@ compile_artifact() {
     case "$OSTYPE" in
     darwin*)
         # macOS
+        contract_name=$(echo "$project" | sed '' 's/_\([a-z]\)/\U\1/g' | sed 's/^\([a-z]\)/\U\1/')
         sed -i '' "s|target/${project}-${contract_name}.json|./${contract_name}.json|" $contract_name.ts
         # do not align last line as it adds extra whitespace
         sed -i '' '
@@ -50,29 +48,37 @@ compile_artifact() {
     *)
         # Linux
         contract_name=$(echo "$project" | sed 's/_\([a-z]\)/\U\1/g' | sed 's/^\([a-z]\)/\U\1/')
-        sed -i "s|target/${project}-${contract_name}.json|./${contract_name}.json|" $contract_name.ts
-        sed -i "/export const ${contract_name}ContractArtifact = loadContractArtifact(${contract_name}ContractArtifactJson as NoirCompiledContract);/i \\/\/@ts-ignore" $contract_name.ts
+        sed -i "s|./${project}-${contract_name}.json|./${contract_name}.json|" target/$contract_name.ts
+        sed -i "/export const ${contract_name}ContractArtifact = loadContractArtifact(${contract_name}ContractArtifactJson as NoirCompiledContract);/i \\/\/@ts-ignore" target/$contract_name.ts
         ;;
     esac
 
     ## Move artifacts
-    mv $contract_name.ts ../../src/artifacts/contracts
-    mv target/$project-$contract_name.json ../../src/artifacts/contracts/$contract_name.json
-    popd >/dev/null
+    cp target/$contract_name.ts ../src/artifacts/contracts
+    cp target/$project-$contract_name.json ../src/artifacts/contracts/$contract_name.json
 }
 
 ### MAIN
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
-
+CONTRACT_DIR="${SCRIPT_DIR}/../contracts"
 ### Check the versions of aztec dependencies
 
 ### Compile the ZImburse workspace
-cd $SCRIPT_DIR/../contracts
+cd $CONTRACT_DIR
 
-for project in *; do
-    if [ -d "$project" ]; then
-        compile_artifact "$project"
-    fi
-done
+### Compile the contract
+aztec-nargo compile --silence-warnings
+
+### Only run codegen if "true" is passed as an argument
+if [ "$1" == "true" ]; then
+    for project in *; do
+        if [ -d "$project" ]; then
+            compile_artifact "$project"
+        fi
+    done
+else
+    ### Otherwise compiling for TXE and dont need abi but do need token bytecode
+    get_token_contract_bytecode
+fi
 
 echo "Z-Imburse Artifact Compilation Complete!"

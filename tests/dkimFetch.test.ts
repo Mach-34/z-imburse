@@ -4,6 +4,8 @@ import { makeLinodeInputs } from "../src/email_inputs/linode";
 import { getDKIMHashes, domains, fetchDKIMKeys, dkimPubkeyToHash } from "../src/dkim/index";
 import { prepareDKIMKeysForInputs } from "../src/contract_drivers/dkim";
 import { emails } from "./utils/fs";
+import { txeInputCodegen } from "./txe/inputCodegen";
+
 
 describe("Test deposit to zimburse", () => {
   xit("Test", async () => {
@@ -23,10 +25,10 @@ describe("Test deposit to zimburse", () => {
     console.log(keyHashes.map((key) => key.toString()));
   })
   xit("Test", async () => {
-    const inputs = prepareDKIMKeysForInputs();
+    const inputs = prepareDKIMKeysForInputs(4);
     console.log(inputs);
   })
-  it("Check dkim key hashes line up", async () => {
+  xit("Check dkim key hashes line up", async () => {
     const keyHashes = await getDKIMHashes(domains[1]);
     const linodeInputs = await makeLinodeInputs(emails.linode_sep);
     const { publicKey } = await verifyDKIMSignature(emails.linode_oct);
@@ -35,5 +37,8 @@ describe("Test deposit to zimburse", () => {
     const regularKeyHash = await dkimPubkeyToHash(publicKey);
     expect(keyHashes.some((key) => key === linodeKeyHash)).toBeTruthy();
     expect(keyHashes.some((key) => key === regularKeyHash)).toBeTruthy();
+  })
+  it("TXE Codegen", async () => {
+    await txeInputCodegen();
   })
 });

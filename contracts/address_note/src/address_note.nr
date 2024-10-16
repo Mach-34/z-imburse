@@ -1,8 +1,7 @@
 use dep::aztec::{
     protocol_types::{address::AztecAddress, constants::GENERATOR_INDEX__NOTE_NULLIFIER, hash::poseidon2_hash_with_separator},
     note::{note_header::NoteHeader, note_interface::NullifiableNote, utils::compute_note_hash_for_nullify},
-    oracle::random::random, keys::getters::get_nsk_app, context::PrivateContext,
-    macros::notes::note
+    oracle::random::random, keys::getters::get_nsk_app, context::PrivateContext, macros::notes::note
 };
 
 // docs:start:address_note_def
@@ -51,7 +50,9 @@ impl Eq for AddressNote {
 
 impl AddressNote {
     pub fn new(address: AztecAddress, npk_m_hash: Field) -> Self {
-        let randomness = unsafe { random() };
+        let randomness = unsafe {
+            random()
+        };
         AddressNote { address, npk_m_hash, randomness, header: NoteHeader::empty() }
     }
     // docs:end:address_note_def

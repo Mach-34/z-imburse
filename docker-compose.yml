@@ -20,7 +20,8 @@ services:
     ports:
       - "${PXE_PORT:-8080}:${PXE_PORT:-8080}"
     environment:
-      DEBUG: # Loaded from the user shell if explicitly set
+      LOG_LEL: debug
+      DEBUG: aztec:*
       HOST_WORKDIR: "${PWD}" # Loaded from the user shell to show log files absolute path in host
       ETHEREUM_HOST: ${ETHEREUM_HOST:-http://ethereum:${ANVIL_PORT:-8545}}
       L1_CHAIN_ID: 31337
@@ -39,6 +40,9 @@ services:
       - ethereum
     command: "start --sandbox"
   pxe_1:
+    environment:
+      LOG_LEL: debug
+      DEBUG: aztec:*
     image: "aztecprotocol/aztec"
     ports:
       - "${PXE_PORT:-8081}:${PXE_PORT:-8081}"
@@ -49,6 +53,9 @@ services:
     command: "start --pxe --port 8081 --pxe.nodeUrl=http://aztec:8080/"
     restart: on-failure
   pxe_2:
+    environment:
+      LOG_LEL: debug
+      DEBUG: aztec:*
     image: "aztecprotocol/aztec"
     ports:
       - "${PXE_PORT:-8082}:${PXE_PORT:-8082}"
@@ -59,6 +66,9 @@ services:
     command: "start --pxe --port 8082 --pxe.nodeUrl=http://aztec:8080/"
     restart: on-failure
   pxe_3:
+    environment:
+      LOG_LEL: debug
+      DEBUG: aztec:*
     image: "aztecprotocol/aztec"
     ports:
       - "${PXE_PORT:-8083}:${PXE_PORT:-8083}"

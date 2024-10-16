@@ -3,5 +3,4 @@ export {
   MultiCallEntrypointContract,
 } from "@aztec/noir-contracts.js";
 export { ZImburseEscrowContract} from "./ZImburseEscrow";
-export { ZImburseEscrowRegistryContract } from "./ZImburseEscrowRegistry";
-export { ZImburseDkimRegistryContract } from "./ZImburseDkimRegistry";
+export { ZImburseRegistryContract } from "./ZImburseRegistry";

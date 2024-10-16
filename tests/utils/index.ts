@@ -13,8 +13,7 @@ import {
   MultiCallEntrypointContract,
   TokenContract,
   ZImburseEscrowContract,
-  ZImburseEscrowRegistryContract,
-  ZImburseDkimRegistryContract,
+  ZImburseRegistryContract,
 } from "../../src/artifacts/contracts/index";
 import { prepareDKIMKeysForInputs } from "../../src/contract_drivers/dkim";
 
@@ -31,8 +30,7 @@ export async function setup(
   verbose = true
 ): Promise<{
   usdc: TokenContract;
-  dkimRegistry: ZImburseDkimRegistryContract;
-  escrowRegistry: ZImburseEscrowRegistryContract;
+  registry: ZImburseRegistryContract;
   escrows: ZImburseEscrowContract[];
 }> {
   if (numEscrows != escrowAdmin.length) {
@@ -50,44 +48,36 @@ export async function setup(
     .send()
     .deployed();
   if (verbose) console.log(`Deployed USDC token at ${usdc.address}`);
-  // deploy dkim registry
-  const dkimKeys = prepareDKIMKeysForInputs();
-  const dkimRegistry = await ZImburseDkimRegistryContract.deploy(
+  // deploy registry contract
+  const dkimKeys = prepareDKIMKeysForInputs(4);
+  const escrowClassId = getEscrowContractClassID();
+  const registry = await ZImburseRegistryContract.deploy(
     superuser,
+    usdc.address,
+    escrowClassId,
     dkimKeys[0].map((key) => key.id),
     dkimKeys[0].map((key) => key.keyHash)
   )
     .send()
     .deployed();
-  if (verbose) console.log(`Deployed DKIM Registry at ${dkimRegistry.address}`);
+  if (verbose)
+    console.log(`Deployed Z-Imburse Registry at ${registry.address}`);
   // add remaining keys to registry
   for (let i = 1; i < dkimKeys.length; i++) {
     // cannot be batched as there is a max of 64 notes per tx
-    await dkimRegistry.methods.register_dkim_bulk(
+    await registry.methods.register_dkim_bulk(
       dkimKeys[i].map((key) => key.id),
       dkimKeys[i].map((key) => key.keyHash)
     ).send().wait();
     console.log(`Added batch ${i} to DKIM Registry`);
   }
-  // deploy registry contract
-  const escrowClassId = getEscrowContractClassID();
-  const escrowRegistry = await ZImburseEscrowRegistryContract.deploy(
-    superuser,
-    dkimRegistry.address,
-    usdc.address,
-    escrowClassId
-  )
-    .send()
-    .deployed();
-  if (verbose)
-    console.log(`Deployed Z-Imburse Registry at ${escrowRegistry.address}`);
+  
   // deploy escrow contracts
   const escrows: ZImburseEscrowContract[] = [];
   for (let i = 0; i < numEscrows; i++) {
     const escrow = await ZImburseEscrowContract.deploy(
       escrowAdmin[i],
-      dkimRegistry.address,
-      escrowRegistry.address,
+      registry.address,
       usdc.address,
       `Escrow ${i}`
     )
@@ -100,8 +90,7 @@ export async function setup(
 
   return {
     usdc,
-    dkimRegistry,
-    escrowRegistry,
+    registry,
     escrows,
   };
 }

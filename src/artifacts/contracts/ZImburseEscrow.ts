@@ -38,6 +38,13 @@ import ZImburseEscrowContractArtifactJson from './ZImburseEscrow.json' assert { 
 export const ZImburseEscrowContractArtifact = loadContractArtifact(ZImburseEscrowContractArtifactJson as NoirCompiledContract);
 
 
+      export type RecurringReimbursementClaimed = {
+        claimant: AztecAddressLike
+amount: FieldLike
+verifier_id: (bigint | number)
+datetime: FieldLike
+      }
+    
 
 /**
  * Type-safe interface for contract ZImburseEscrow;
@@ -70,14 +77,14 @@ export class ZImburseEscrowContract extends ContractBase {
   /**
    * Creates a tx to deploy a new instance of this contract.
    */
-  public static deploy(wallet: Wallet, dkimRegistry: AztecAddressLike, escrowRegistry: AztecAddressLike, usdc_token: AztecAddressLike, title: string) {
+  public static deploy(wallet: Wallet, registry: AztecAddressLike, usdc_token: AztecAddressLike, title: string) {
     return new DeployMethod<ZImburseEscrowContract>(Fr.ZERO, wallet, ZImburseEscrowContractArtifact, ZImburseEscrowContract.at, Array.from(arguments).slice(1));
   }
 
   /**
    * Creates a tx to deploy a new instance of this contract using the specified public keys hash to derive the address.
    */
-  public static deployWithPublicKeysHash(publicKeysHash: Fr, wallet: Wallet, dkimRegistry: AztecAddressLike, escrowRegistry: AztecAddressLike, usdc_token: AztecAddressLike, title: string) {
+  public static deployWithPublicKeysHash(publicKeysHash: Fr, wallet: Wallet, registry: AztecAddressLike, usdc_token: AztecAddressLike, title: string) {
     return new DeployMethod<ZImburseEscrowContract>(publicKeysHash, wallet, ZImburseEscrowContractArtifact, ZImburseEscrowContract.at, Array.from(arguments).slice(2));
   }
 
@@ -108,15 +115,18 @@ export class ZImburseEscrowContract extends ContractBase {
   }
   
 
-  public static get storage(): ContractStorageLayout<'definition' | 'entitlements'> {
+  public static get storage(): ContractStorageLayout<'definition' | 'recurring_entitlements' | 'entitlement_nullifiers'> {
       return {
         definition: {
       slot: new Fr(1n),
     },
-entitlements: {
+recurring_entitlements: {
+      slot: new Fr(6n),
+    },
+entitlement_nullifiers: {
       slot: new Fr(7n),
     }
-      } as ContractStorageLayout<'definition' | 'entitlements'>;
+      } as ContractStorageLayout<'definition' | 'recurring_entitlements' | 'entitlement_nullifiers'>;
     }
     
 
@@ -144,24 +154,103 @@ RecurringEntitlementNote: {
     /** compute_note_hash_and_optionally_a_nullifier(contract_address: struct, nonce: field, storage_slot: field, note_type_id: field, compute_nullifier: boolean, serialized_note: array) */
     compute_note_hash_and_optionally_a_nullifier: ((contract_address: AztecAddressLike, nonce: FieldLike, storage_slot: FieldLike, note_type_id: FieldLike, compute_nullifier: boolean, serialized_note: FieldLike[]) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
-    /** constructor(dkimRegistry: struct, escrowRegistry: struct, usdc_token: struct, title: string) */
-    constructor: ((dkimRegistry: AztecAddressLike, escrowRegistry: AztecAddressLike, usdc_token: AztecAddressLike, title: string) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+    /** constructor(registry: struct, usdc_token: struct, title: string) */
+    constructor: ((registry: AztecAddressLike, usdc_token: AztecAddressLike, title: string) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
     /** get_admin_private() */
     get_admin_private: (() => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
+    /** get_registration_params() */
+    get_registration_params: (() => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+
     /** get_title() */
     get_title: (() => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
-    /** give_entitlement(to: struct, amount: field) */
-    give_entitlement: ((to: AztecAddressLike, amount: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+    /** give_recurring_entitlement(to: struct, amount: field, verifier_id: integer) */
+    give_recurring_entitlement: ((to: AztecAddressLike, amount: FieldLike, verifier_id: (bigint | number)) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
     /** public_dispatch(selector: field) */
     public_dispatch: ((selector: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
-    /** redeem_linode_entitlement(body: array, body_hash_index: integer, body_length: integer, header: array, header_length: integer, pubkey: array, pubkey_redc: array, signature: array, from_index: integer, subject_index: integer, amount_index: integer, amount_length: integer, date_index: integer, receipt_id_length: integer, claim_secret_hash: field) */
-    redeem_linode_entitlement: ((body: (bigint | number)[], body_hash_index: (bigint | number), body_length: (bigint | number), header: (bigint | number)[], header_length: (bigint | number), pubkey: FieldLike[], pubkey_redc: FieldLike[], signature: FieldLike[], from_index: (bigint | number), subject_index: (bigint | number), amount_index: (bigint | number), amount_length: (bigint | number), date_index: (bigint | number), receipt_id_length: (bigint | number), claim_secret_hash: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+    /** reimburse_linode(body: array, body_hash_index: integer, body_length: integer, header: array, header_length: integer, pubkey: array, pubkey_redc: array, signature: array, from_index: integer, subject_index: integer, amount_index: integer, amount_length: integer, date_index: integer, receipt_id_length: integer, claim_secret_hash: field) */
+    reimburse_linode: ((body: (bigint | number)[], body_hash_index: (bigint | number), body_length: (bigint | number), header: (bigint | number)[], header_length: (bigint | number), pubkey: FieldLike[], pubkey_redc: FieldLike[], signature: FieldLike[], from_index: (bigint | number), subject_index: (bigint | number), amount_index: (bigint | number), amount_length: (bigint | number), date_index: (bigint | number), receipt_id_length: (bigint | number), claim_secret_hash: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
   };
 
+  
+    // Partial application is chosen is to avoid the duplication of so much codegen.
+    private static decodeEvent<T>(
+      eventSelector: EventSelector,
+      eventType: AbiType,
+    ): (payload: L1EventPayload | UnencryptedL2Log | undefined) => T | undefined {
+      return (payload: L1EventPayload | UnencryptedL2Log | undefined): T | undefined => {
+        if (payload === undefined) {
+          return undefined;
+        }
+
+        if (payload instanceof L1EventPayload) {
+          if (!eventSelector.equals(payload.eventTypeId)) {
+            return undefined;
+          }
+          return decodeFromAbi([eventType], payload.event.items) as T;
+        } else {
+          let items = [];
+          for (let i = 0; i < payload.data.length; i += 32) {
+            items.push(new Fr(payload.data.subarray(i, i + 32)));
+          }
+
+          return decodeFromAbi([eventType], items) as T;
+        }
+      };
+    }
+
+    public static get events(): { RecurringReimbursementClaimed: {decode: (payload: L1EventPayload | UnencryptedL2Log | undefined) => RecurringReimbursementClaimed | undefined, eventSelector: EventSelector, fieldNames: string[] } } {
+    return {
+      RecurringReimbursementClaimed: {
+        decode: this.decodeEvent(EventSelector.fromSignature('RecurringReimbursementClaimed((Field),Field,u8,Field)'), {
+    "fields": [
+        {
+            "name": "claimant",
+            "type": {
+                "fields": [
+                    {
+                        "name": "inner",
+                        "type": {
+                            "kind": "field"
+                        }
+                    }
+                ],
+                "kind": "struct",
+                "path": "address_note::aztec::protocol_types::address::aztec_address::AztecAddress"
+            }
+        },
+        {
+            "name": "amount",
+            "type": {
+                "kind": "field"
+            }
+        },
+        {
+            "name": "verifier_id",
+            "type": {
+                "kind": "integer",
+                "sign": "unsigned",
+                "width": 8
+            }
+        },
+        {
+            "name": "datetime",
+            "type": {
+                "kind": "field"
+            }
+        }
+    ],
+    "kind": "struct",
+    "path": "ZImburseEscrow::RecurringReimbursementClaimed"
+}),
+        eventSelector: EventSelector.fromSignature('RecurringReimbursementClaimed((Field),Field,u8,Field)'),
+        fieldNames: ["claimant","amount","verifier_id","datetime"],
+      }
+    };
+  }
   
 }

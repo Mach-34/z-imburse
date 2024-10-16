@@ -197,23 +197,45 @@ contract ZImburseRegistry {
         storage.escrow_registry.at(escrow_contract).initialize(true);
     }
 
-    #[private]
-    fn check_and_register_participant(participant: AztecAddress, participant_name: str<60>, escrow: AztecAddress) {
-        // check that the sender is the admin
-        let escrow_admin = ZImburseEscrow::at(escrow).get_admin_private().view(&mut context);
-        assert(escrow_admin == context.msg_sender(), "Sender is not the admin of the escrow contract");
-        // check that the escrow address is registered
-        let registration_status = storage.escrow_registry.at(escrow).read_private();
-        assert(registration_status, "Escrow contract has not been registered");
-        // check if the participant has already been registered
-        let options = NoteGetterOptions::new().select(AddressNote::properties().address, Comparator.EQ, participant).set_limit(1);
-        let participant_exists = storage.participants.at(escrow).get_notes(options).len() == 0;
-        // if the participant has not been registered, enqueue a private call to register the participant
-        // do this instead of if statement here to make adding first time expensive but cheap if already registered
-        if participant_exists {
-            ZImburseRegistry::at(context.this_address()).register_participant(participant, participant_name, context.msg_sender(), escrow).call(&mut context);
-        }
-    }
+    // #[private]
+    // fn check_and_register_participant(participant: AztecAddress, participant_name: str<60>, escrow: AztecAddress) {
+    //     // check that the sender is an escrow
+    //     let is_registered = storage.escrow_registry.at(context.msg_sender()).read_private();
+    //     assert(is_registered, "Sender is not an escrow contract");
+    //     // check if the participant has already been registered
+    //     let options = NoteGetterOptions::new().select(AddressNote::properties().address, Comparator.EQ, participant).set_limit(1);
+    //     let participant_exists = storage.participants.at(escrow).get_notes(options).len() == 0;
+    //     // if the participant has not been registered, enqueue a private call to register the participant
+    //     // do this instead of if statement here to make adding first time expensive but cheap if already registered
+    //     if participant_exists {
+    //         let admin_keys = get_public_keys(admin);
+    //         let participant_keys = get_public_keys(participant);
+    //         // add escrow to the participant's set of escrows
+    //         let mut escrow_note = AddressNote::new(escrow, participant_keys.npk_m.hash());
+    //         storage.participant_escrows.insert(&mut escrow_note).emit(
+    //             encode_and_encrypt_note(
+    //                 &mut context,
+    //                 admin_keys.ovpk_m,
+    //                 participant_keys.ivpk_m,
+    //                 participant
+    //             )
+    //         );
+    //         // add the participant to the admin set of participants
+    //         let mut participant_note = ParticipantNote::new(
+    //         participant,
+    //         participant_name,
+    //         admin_keys.npk_m.hash()
+    //     );
+    //     storage.participants.at(escrow).insert(&mut participant_note).emit(
+    //         encode_and_encrypt_note_unconstrained(
+    //             &mut context,
+    //             admin_keys.ovpk_m,
+    //             admin_keys.ivpk_m,
+    //             admin
+    //         )
+    //     );
+    //     }
+    // }
 
     #[private]
     #[interal]
@@ -223,32 +245,7 @@ contract ZImburseRegistry {
         admin: AztecAddress,
         escrow: AztecAddress
     ) {
-        let admin_keys = get_public_keys(admin);
-        let participant_keys = get_public_keys(participant);
-        // add escrow to the participant's set of escrows
-        let mut escrow_note = AddressNote::new(escrow, participant_keys.npk_m.hash());
-        storage.participant_escrows.insert(&mut escrow_note).emit(
-            encode_and_encrypt_note(
-                &mut context,
-                admin_keys.ovpk_m,
-                participant_keys.ivpk_m,
-                participant
-            )
-        );
-        // add the participant to the admin set of participants
-        let mut participant_note = ParticipantNote::new(
-            participant,
-            participant_name,
-            admin_keys.npk_m.hash()
-        );
-        storage.participants.at(escrow).insert(&mut participant_note).emit(
-            encode_and_encrypt_note_unconstrained(
-                &mut context,
-                admin_keys.ovpk_m,
-                admin_keys.ivpk_m,
-                admin
-            )
-        );
+        
     }
 
     // todo: add ability to remove participant

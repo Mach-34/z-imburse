@@ -7,18 +7,27 @@ mod verifiers;
 
 #[aztec]
 contract ZImburseEscrow {
-    use std::meta::derive;
-    use dep::aztec::prelude::{AztecAddress, PrivateSet, SharedImmutable, Map};
-    use dep::aztec::encrypted_logs::{
-        encrypted_note_emission::{encode_and_encrypt_note, encode_and_encrypt_note_unconstrained},
-        encrypted_event_emission::encode_and_encrypt_event
+    use std::{
+        meta::derive,
+        collections::bounded_vec::BoundedVec
     };
-    use dep::aztec::macros::{storage::storage,  events::event, functions::{private, public, internal, view, initializer}};
-    use dep::aztec::keys::getters::get_public_keys;
-    use dep::aztec::note::{note_getter_options::NoteGetterOptions, note_viewer_options::NoteViewerOptions};
-    use dep::aztec::oracle::{random::random, notes::check_nullifier_exists};
-    use dep::aztec::utils::comparison::Comparator;
-    use dep::aztec::protocol_types::traits::Serialize;
+    use dep::aztec::{
+        encrypted_logs::{
+            encrypted_note_emission::{encode_and_encrypt_note, encode_and_encrypt_note_unconstrained},
+            encrypted_event_emission::encode_and_encrypt_event
+        },
+        keys::getters::get_public_keys,
+        macros::{storage::storage,  events::event, functions::{private, public, internal, view, initializer}},
+        note::{
+            note_getter_options::NoteGetterOptions,
+            note_viewer_options::NoteViewerOptions,
+            constants::MAX_NOTES_PER_PAGE
+        },
+        oracle::{random::random, notes::check_nullifier_exists, debug_log::debug_log_format},
+        prelude::{AztecAddress, PrivateSet, SharedImmutable, Map},
+        protocol_types::traits::Serialize,
+        utils::comparison::Comparator,
+    };
     use dep::token::Token;
     use dep::address_note::address_note::AddressNote;
     use dep::zimburse_verifiers::{
@@ -42,6 +51,13 @@ contract ZImburseEscrow {
         amount: Field,
         verifier_id: u8,
         datetime: Field
+    }
+
+    #[event]
+    #[derive(Serialize)]
+    struct EntitlementRevoked {
+        verifier_id: u8,
+        amount: Field
     }
     
     
@@ -80,12 +96,12 @@ contract ZImburseEscrow {
     #[private]
     fn give_recurring_entitlement(to: AztecAddress, amount: Field, verifier_id: u8) {
         // check that no receipt exists for this recipient and verifier
-        // let options =  NoteGetterOptions::new()
-                // .select(EntitlementReceiptNote::properties().recipient, dep::aztec::utils::comparison::Comparator::EQ, to)
-                // .select(EntitlementReceiptNote::properties().verifier_id, dep::aztec::utils::comparison::Comparator::EQ, verifier_id)
-                // .set_limit(1);
-        // let notes = storage.entitlement_receipts.get_notes(options);
-        // assert(notes.len() == 0, "An entitlement already exists for this recipient and verifier");
+        let options =  NoteGetterOptions::new()
+                .select(RecurringEntitlementNote::properties().recipient, Comparator.EQ, to)
+                .select(RecurringEntitlementNote::properties().verifier_id, Comparator.EQ, verifier_id)
+                .set_limit(1);
+        let notes = storage.recurring_entitlements.at(context.msg_sender()).get_notes(options);
+        assert(notes.len() == 0, "An entitlement already exists for this recipient and verifier");
         // check is escrow admin
         let admin = storage.definition.read_private().admin;
         assert(context.msg_sender() == admin, "Only the escrow admin can give entitlements");
@@ -123,31 +139,6 @@ contract ZImburseEscrow {
         )
     }
 
-    // #[private]
-    // fn nullify_recurring_entitlement(to: AztecAddress, verifier_id: u8) {
-    //     // check is escrow admin
-    //     let admin = storage.definition.read_private().admin;
-    //     assert(context.msg_sender() == admin, "Only the escrow admin can give entitlements");
-
-    //     // get note receipt note for user and verifier type
-    //     // pop notes to destroy them
-    //     // let notes = storage.entitlement_receipts.pop_notes(
-    //     //     NoteGetterOptions::new()
-    //     //         .select(EntitlementReceiptNote::properties().recipient, Comparator::EQ, to)
-    //     //         .select(EntitlementReceiptNote::properties().verifier_id, Comparator::EQ, verifier_id)
-    //     //         .set_limit(1)
-    //     // );
-    //     // assert(notes.len() == 1, "No entitlements to nullify");
-    //     // let note = notes.get_unchecked(0);
-    //     // check that the revocation nullifier has not been emitted
-    //     // let revocation_nullifier = note.compute_revocation_nullifier();
-    //     // let revocation_nullifier_exists = storage.entitlement_nullifiers.at(revocation_nullifier).read_private();
-    //     // assert(!revocation_nullifier_exists, "Entitlement has been revoked");
-
-    //     // // emit the nullifier
-    //     // ZImburseEscrow::at(context.this_address()).emit_entitlement_nullifier(revocation_nullifier).enqueue(&mut context);
-    // }
-
     #[private]
     fn reimburse_linode(
         // email inputs
@@ -169,27 +160,33 @@ contract ZImburseEscrow {
         claim_secret_hash: Field,
     ) -> Field {
         // retrieve a Linode hosting entitlement
+        dep::aztec::oracle::debug_log::debug_log_format("Getting Note", []);
         let notes = storage.recurring_entitlements.at(context.msg_sender()).get_notes(
             NoteGetterOptions::new()
-                // .select(RecurringEntitlementNote::properties().verifier_id, Comparator.EQ, receipt_verifier_id::LINODE)
+                .select(RecurringEntitlementNote::properties().verifier_id, Comparator.EQ, verifiers::LINODE)
                 .set_limit(1)
         );
+        dep::aztec::oracle::debug_log::debug_log_format("Got number of notes: ", [notes.len() as Field]);
         assert(notes.len() == 1, "No entitlements to redeem");
         let note = notes.get_unchecked(0);
         assert(note.recipient == context.msg_sender(), "Entitlement does not belong to the sender");
-        
+        dep::aztec::oracle::debug_log::debug_log_format("Constrained sender", []);
+
         // ensure the note has not been nullified by the admin
         // todo: switch for nullifier non-inclusion check once out of txe
         let note_nullifier = note.compute_nullifier(&mut context, note.compute_note_hash());
-        context.historical_header.prove_nullifier_non_inclusion(note_nullifier);
-        // let exists = check_nullifier_exists(note.compute_nullifier(&mut context, note.compute_note_hash()));
-        // assert(!exists, "Entitlement has been nullified");
+        dep::aztec::oracle::debug_log::debug_log_format("Computed nullifier: {0}", [note_nullifier]);
+        // context.historical_header.prove_nullifier_non_inclusion(note_nullifier);
+        dep::aztec::oracle::debug_log::debug_log_format("Proved nullifier non-inclusion", []);
+        let exists = check_nullifier_exists(note.compute_nullifier(&mut context, note.compute_note_hash()));
+        assert(!exists, "Entitlement has been nullified");
 
         // // verify linode billing receipt and extract amount, date, keyhash
         // // todo: create a new function with pop_capsule to handle custom logic & inputs per email
         let linode_receipt_result = verify_linode_billing_receipt(
             body, body_hash_index, body_length, header, header_length, pubkey, pubkey_redc, signature, from_index, subject_index, amount_index, amount_length, date_index, receipt_id_length
         );
+        dep::aztec::oracle::debug_log::debug_log_format("Verified email", []);
         let dkim_key_hash = linode_receipt_result[0];
         let unix_month = linode_receipt_result[1]; // month and year
         // billed amount returns 2 decimals, so multiply billed_amount by 10,000
@@ -202,6 +199,7 @@ contract ZImburseEscrow {
             (registered_verifier_id as u8) == verifiers::LINODE,
             "DKIM key is not registered for Linode"
         );
+        dep::aztec::oracle::debug_log::debug_log_format("Anchored DKIM keyhash", []);
 
         // determine the amount to reimburse
         let amount_to_reimburse = if note.max_value >= billed_amount {
@@ -222,16 +220,22 @@ contract ZImburseEscrow {
             get_public_keys(note.admin).ivpk_m,
             note.admin
         ));
+        dep::aztec::oracle::debug_log::debug_log_format("Emitted reimbursement claimed event to admin", []);
+
 
         // check that this entitlement has not been emitted for this month and add it
         // todo: check the nullifier non-inclusion once out of txe
         // constrained to use the year/month unix timestamp computed by email verifier
         // todo: silo nullifiers to contract address
         let recurring_nullifier = note.derive_recurring_nullifier(unix_month);
+        dep::aztec::oracle::debug_log::debug_log_format("Computed recurring nullifier: {0}", [recurring_nullifier]);
+        let recurring_nullifier_exists = check_nullifier_exists(recurring_nullifier);
+        assert(!recurring_nullifier_exists, "Entitlement has already been claimed for this month");
         // let recurring_nullifier_exists = storage.entitlement_nullifiers.at(recurring_nullifier).read_private();
-        // assert(!recurring_nullifier_exists, "Entitlement has already been redeemed for this month");
-        context.historical_header.prove_nullifier_non_inclusion(recurring_nullifier);
-        context.push_nullifier(recurring_nullifier);
+        // context.historical_header.prove_nullifier_non_inclusion(recurring_nullifier);
+        dep::aztec::oracle::debug_log::debug_log_format("Proved recurring nullifier was not included", []);
+        // context.push_nullifier(recurring_nullifier);
+        dep::aztec::oracle::debug_log::debug_log_format("Pushed recurring nullifier", []);
 
         // release funds from escrow by shielding in public
         // todo: do we need a private event? or is it sufficient to instantly claim?
@@ -244,33 +248,43 @@ contract ZImburseEscrow {
 
     
 
-    // /**
-    //  * Emit the nullifier for a recurring entitlement
-    //  *
-    //  * @param from - the address to revoke entitlement for
-    //  * @param verifier_type - the verifier type to revoke entitlement for
-    //  */
-    // #[private]
-    // pub fn revoke_recurring_entitlement(from: AztecAddress, verifier_type: u8) {
-    //     // check is escrow admin
-    //     let defintion = storage.definition.read_private();
-    //     assert(context.msg_sender() == defintion.admin, "Only the escrow admin can revoke entitlements");
+    /**
+     * Emit the nullifier for a recurring entitlement
+     *
+     * @param from - the address to revoke entitlement for
+     * @param verifier_type - the verifier type to revoke entitlement for
+     */
+    #[private]
+    pub fn revoke_recurring_entitlement(from: AztecAddress, verifier_type: u8) {
+        // check is escrow admin
+        let defintion = storage.definition.read_private();
+        assert(context.msg_sender() == defintion.admin, "Only the escrow admin can revoke entitlements");
 
-    //     // try to pop a note for this recipient
-    //     // should automatically emit the nullifier
-    //     let notes = storage.recurring_entitlements.at(context.msg_sender()).pop_notes(
-    //         NoteGetterOptions::new()
-    //             .select(RecurringEntitlementNote::properties().verifier_id, Comparator::EQ, verifier_type)
-    //             .select(RecurringEntitlementNote::properties().recipient, Comparator::EQ, from)
-    //             .set_limit(1)
-    //     );
+        // try to pop a note for this recipient
+        // should automatically emit the nullifier
+        let notes = storage.recurring_entitlements.at(context.msg_sender()).pop_notes(
+            NoteGetterOptions::new()
+                .select(RecurringEntitlementNote::properties().verifier_id, Comparator.EQ, verifier_type)
+                .select(RecurringEntitlementNote::properties().recipient, Comparator.EQ, from)
+                .set_limit(1)
+        );
         
-    //     // ensure the note is to/ from correctly
-    //     assert(notes.len() == 1, "No entitlements to revoke");
-    //     let note = notes.get_unchecked(0);
-    //     assert(note.recipient == from, "Entitlement does not belong to the recipient");
-    //     // todo: emit event to recipient
-    // }
+        // ensure the note is to/ from correctly
+        assert(notes.len() == 1, "No entitlements to revoke");
+        let note = notes.get_unchecked(0);
+        assert(note.recipient == from, "Entitlement does not belong to the recipient");
+        
+        // emit event to notify recipient of revocation
+        EntitlementRevoked {
+            verifier_id: verifier_type,
+            amount: note.max_value.to_integer()
+        }.emit(encode_and_encrypt_event(
+            &mut context,
+            get_public_keys(context.msg_sender()).ovpk_m,
+            get_public_keys(from).ivpk_m,
+            from
+        ));
+    }
 
     /**
      * Get the title of the Z-Imburse escrow
@@ -303,6 +317,52 @@ contract ZImburseEscrow {
     pub fn get_registration_params() -> [AztecAddress; 3] {
         let definition = storage.definition.read_private();
         [definition.registry, definition.usdc, definition.admin]
+    }
+
+    /**
+     * Get all entitlements for a given user
+     *
+     * @param at - the address the entitlements are mapped at (needed to segregate admin and user entitlements)
+     * @param user - the user to get entitlements for
+     * @param offset - the offset to start getting entitlements from
+     * @return 
+     *         - array of verifiers
+     *         - array of amounts
+     *         - whether the limit was reached for the query
+     */
+    unconstrained pub fn get_recurring_entitlements_by_user(at: AztecAddress, user: AztecAddress, offset: u32) -> (
+        BoundedVec<RecurringEntitlementNote, MAX_NOTES_PER_PAGE>,
+        bool
+    ) {
+        let options = NoteViewerOptions::new()
+            .select(RecurringEntitlementNote::properties().recipient, Comparator.EQ, user)
+            .set_offset(offset)
+            .set_limit(MAX_NOTES_PER_PAGE);
+        let notes = storage.recurring_entitlements.at(at).view_notes(options);        
+        (notes, notes.len() == MAX_NOTES_PER_PAGE)
+    }
+
+    /**
+     * Get all entitlements for a given verifier type
+     *
+     * @param at - the address the entitlements are mapped at (needed to segregate admin and user entitlements)
+     * @param user - the user to get entitlements for
+     * @param offset - the offset to start getting entitlements from
+     * @return 
+     *         - array of users
+     *         - array of amounts
+     *         - whether the limit was reached for the query
+     */
+    unconstrained pub fn get_recurring_entitlements_by_verifier(at: AztecAddress, verifier_id: u8, offset: u32) -> (
+        BoundedVec<RecurringEntitlementNote, MAX_NOTES_PER_PAGE>,
+        bool
+    ) {
+        let options = NoteViewerOptions::new()
+            .select(RecurringEntitlementNote::properties().verifier_id, Comparator.EQ, verifier_id)
+            .set_offset(offset)
+            .set_limit(MAX_NOTES_PER_PAGE);
+        let notes = storage.recurring_entitlements.at(at).view_notes(options);
+        (notes, notes.len() == MAX_NOTES_PER_PAGE)
     }
 
     // #[private]

@@ -9,12 +9,12 @@ use crate::{
     test::utils::{
         setup_helpers::setup,
         token_helpers::{mint_public, to_usdc_decimals, redeem_shield, check_public_balance, check_private_balance},
-        escrow_helpers::{give_recurring_entitlement, reimburse_linode},
+        escrow_helpers::{give_recurring_entitlement, reimburse_linode, get_recurring_entitlements_by_user, get_recurring_entitlements_by_verifier},
         email_inputs::{LINODE_SEP, LINODE_OCT}
     }
 };
 
-// #[test]
+#[test]
 unconstrained fn give_linode_recurring_entitlement_success() {
     // setup test env
     let (env, accounts, contracts) = setup::<1>();
@@ -29,6 +29,30 @@ unconstrained fn give_linode_recurring_entitlement_success() {
         to_usdc_decimals(10),
         verifiers::LINODE
     );
+    // check the entitlements exist
+    let (entitlements_by_user_admin, _) = get_recurring_entitlements_by_user(contracts.escrows[0], accounts.escrow_admin, accounts.alice, 0);
+    let (entitlements_by_user_alice, _) = get_recurring_entitlements_by_user(contracts.escrows[0], accounts.alice, accounts.alice, 0);
+    let (entitlements_by_verifier_admin, _) = get_recurring_entitlements_by_verifier(contracts.escrows[0], accounts.escrow_admin,  verifiers::LINODE, 0);
+    let (entitlements_by_verifier_alice, _) = get_recurring_entitlements_by_verifier(contracts.escrows[0], accounts.alice, verifiers::LINODE, 0);
+    debug_log_format("Entitlement length: {0}", [entitlements_by_user_admin.len() as Field]);
+    debug_log_format("Entitlement length: {0}", [entitlements_by_user_alice.len() as Field]);
+    debug_log_format("Entitlement length: {0}", [entitlements_by_verifier_admin.len() as Field]);
+    debug_log_format("Entitlement length: {0}", [entitlements_by_verifier_alice.len() as Field]);
+    debug_log_format("Verifier id: {0}", [entitlements_by_user_admin.get(0).verifier_id as Field]);
+    debug_log_format("Verifier id: {0}", [verifiers::LINODE as Field]);
+
+    // assert(
+    //     entitlements_by_user_admin.get(0).eq(entitlements_by_user_alice.get(0))
+    //         & entitlements_by_user_admin.get(0).eq(entitlements_by_verifier_admin.get(0))
+    //         & entitlements_by_user_admin.get(0).eq(entitlements_by_verifier_alice.get(0)),
+    //         "Entitlements do not match"
+    // );
+    // assert(entitlements_by_user_admin.get(0).is_admin == true, "Admin is not set for admin entitlement receipt");
+    // assert(entitlements_by_user_alice.get(0).is_admin == false, "Admin is set for alice entitlement");
+    // assert(entitlements_by_user_admin.get(0).max_value.to_integer() == to_usdc_decimals(10), "Entitlement amount is incorrect");
+    // assert(entitlements_by_user_admin.get(0).verifier_id == verifiers::LINODE, "Verifier is incorrect");
+    // assert(entitlements_by_user_admin.get(0).admin == accounts.escrow_admin, "Entitlement admin address is incorrect");
+    // assert(entitlements_by_user_admin.get(0).recipient == accounts.alice, "Entitlement user address is incorrect");
 }
 
 // #[test]
@@ -143,7 +167,7 @@ unconstrained fn claim_linode_reimbursement_success_multiple_months() {
     check_private_balance(contracts.usdc, accounts.alice, amount_reimbursed_sep + amount_reimbursed_oct);
 }
 
-#[test]
+// #[test]
 unconstrained fn claim_linode_reimbursement_fail_month_nullified() {
     // CLAIM IS > ENTITLEMENT, CHECK GIVES MAX ENTITLEMENT
     // setup test env

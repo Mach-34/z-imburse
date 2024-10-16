@@ -1,48 +1,9 @@
 use crate::constants::{
-   LB_FROM_LEN, LB_PAYMENT_TEXT_LEN, LB_SUBJECT_FIXED_END_LEN, LB_SUBJECT_FIXED_START_LEN, LINODE_BILLING_FROM, LINODE_BILLING_PAYMENT_TEXT,
-   LINODE_BILLING_SUBJECT_FIXED_END, LINODE_BILLING_SUBJECT_FIXED_START, MAX_BILLED_AMOUNT, MAX_LINODE_EMAIL_BODY_LENGTH,
-    MAX_LINODE_EMAIL_HEADER_LENGTH, DATE_HEADER_FIELD_MAX_LENGTH, DATE_LENGTH_DETERMINATION_INDEX, DATE_HEADER_FIELD_START
+    DATE_HEADER_FIELD_MAX_LENGTH, DATE_LENGTH_DETERMINATION_INDEX, DATE_HEADER_FIELD_START
 };
+use crate::linode::constants::MAX_LINODE_EMAIL_HEADER_LENGTH;
+
 use dep::date_parser::{parse_date_string, to_unix_month, DATETIME_LENGTH};
-
-/**
-* Check that email is from linode billing address
-*/
-pub fn check_from_linode_billing(index: u32, header: [u8; MAX_LINODE_EMAIL_HEADER_LENGTH]) {
-    // check the first char is "f" or "F"
-    assert((header[index] == 0x66) | (header[index] != 0x46), "Email sender not found.");
-
-    // check the remaing chars are the expected Linode billing
-    let from_bytes = LINODE_BILLING_FROM.as_bytes();
-    for i in 0..LB_FROM_LEN {
-        assert(header[i + index + 1] == from_bytes[i], "Email not from Linode billing.");
-    }
-
-    // check for CRLF
-    assert(header[LB_FROM_LEN + index + 1] == 0x0D, "Invalid CRLF sequence");
-    assert(header[LB_FROM_LEN + index + 2] == 0x0A, "Invalid CRLF sequence");
-}
-
-/**
-* Check that email subject is linode billing receipt
-*/
-pub fn check_subject_billing_receipt(index: u32, header: [u8; MAX_LINODE_EMAIL_HEADER_LENGTH], receipt_id_length: u32) {
-    // check the first char is "s" or "S"
-    assert((header[index] == 0x73) | (header[index] == 0x53), "Email subject not found");
-
-    let fixed_start_bytes = LINODE_BILLING_SUBJECT_FIXED_START.as_bytes();
-    // check chars in fixed section start
-    for i in 0..LB_SUBJECT_FIXED_START_LEN {
-        assert(header[i + index + 1] == fixed_start_bytes[i], "Email subject is not Linode billing receipt");
-    }
-
-    let fixed_end_bytes = LINODE_BILLING_SUBJECT_FIXED_END.as_bytes();
-    // check chars in fixed section end
-    for i in 0..LB_SUBJECT_FIXED_END_LEN {
-        let headerIndex = i + index + receipt_id_length + LB_SUBJECT_FIXED_START_LEN;
-        assert(header[headerIndex] == fixed_end_bytes[i], "Email subject is not Linode billing receipt");
-    }
-}
 
 /**
  * Constrains a span to be a full header field
@@ -135,57 +96,31 @@ pub fn is_number_constraint(num: u8) {
 }
 
 /**
-* Extract the amount billed by Linode as a u32
+* Check whether or not character is quoted printable linebreak
+* - 0x3D "="
+* - 0xD "\r"
+* - 0xA "\n"
 */
-pub fn extract_billed_amount(body: [u8; MAX_LINODE_EMAIL_BODY_LENGTH], index: u32, amount_length: u32) -> u32 {
-
-    // ensure billed amount follows valid payment text sequence
-    let payment_text_bytes = LINODE_BILLING_PAYMENT_TEXT.as_bytes();
-    for i in 0..LB_PAYMENT_TEXT_LEN {
-        assert(body[(index - LB_PAYMENT_TEXT_LEN) + i] == payment_text_bytes[i], "Invalid payment text sequence.");
-    }
-
-    let mut amount: Field = 0;
-    let fixed_values = 4; // '$', '.', and two decimals
-    let commas: Field = ((amount_length - fixed_values - 1) / 4) as Field; // account for 
-    let mut power: Field = amount_length as Field - commas - 3; // 3 represents '$' and '.' and power is equal to numberic len - 1
-
-    // ensure first character is '$'
-    assert(body[index] == 36);
-
-    // if second character is a zero then decrement power
-    if body[index + 1] == 48 {
-        power = power - 1;
-    }
-
-    for i in 1..MAX_BILLED_AMOUNT {
-        if i < amount_length {
-            let byte = body[index + i];
-            // check that byte is not a comma or period
-            if (byte != 44) & (byte != 46) {
-                amount = amount + ((byte as Field - 48) * (10 as Field).pow_32(power));
-                power = power - 1;
-            }
-        }
-    }
-    amount as u32
+fn is_qp_linebreak_char(byte: u8) -> bool {
+    (byte == 0x3D) | (byte == 0xD) | (byte == 0xA)
 }
 
-// #[test]
-// fn value_extraction() {
-//     let index = 0;
-//     let mut body: [u8; MAX_LINODE_EMAIL_BODY_LENGTH] = [0; MAX_LINODE_EMAIL_BODY_LENGTH];
-//     let val = "$4,123.00";
-//     let bytes = val.as_bytes();
-//     for i in 0..bytes.len() {
-//         body[i] = bytes[i];
-//     }
-//     let extracted = extract_billed_amount(body, index, bytes.len());
-//     println(extracted);
-// }
-
-// #[test]
-// fn test_payment_string_bytes() {
-//  let bytes = LINODE_BILLING_PAYMENT_TEXT.as_bytes();
-//  println(bytes);
-// }
+/**
+* Check whether email body using quoted printable encoding contains a certain text sequence. Handles
+* 3 character linebreak sequences: "=\r\n"
+*/
+fn check_qp_sequence<let MAX_LEN: u32, let REVERT_MSG_LEN: u32, let SEQ_LEN: u32>(
+    body: [u8; MAX_LEN], 
+    start_index: u32,
+    sequence: [u8; SEQ_LEN],
+    revert_msg: str<REVERT_MSG_LEN>
+) {
+    let mut checked_bytes = 0;
+    for i in 0..SEQ_LEN + 3 {
+        let byte = body[start_index + i];
+        if !is_qp_linebreak_char(byte) & (checked_bytes <= SEQ_LEN - 4)  {
+            assert(body[start_index + i] == sequence[i], revert_msg);
+            checked_bytes = checked_bytes + 1;
+        }
+    }
+}

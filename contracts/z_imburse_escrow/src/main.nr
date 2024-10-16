@@ -31,8 +31,7 @@ contract ZImburseEscrow {
     use dep::token::Token;
     use dep::address_note::address_note::AddressNote;
     use dep::zimburse_verifiers::{
-        constants::{MAX_LINODE_EMAIL_BODY_LENGTH, MAX_LINODE_EMAIL_HEADER_LENGTH},
-        linode::verify_linode_billing_receipt,
+        linode::{constants::{MAX_LINODE_EMAIL_BODY_LENGTH, MAX_LINODE_EMAIL_HEADER_LENGTH}, main::verify_linode_billing_receipt},
         zkemail::KEY_LIMBS_2048
     };
     use crate::{

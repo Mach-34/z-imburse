@@ -46,7 +46,7 @@ contract ZImburseRegistry {
         dkim_registry: Map<Field, SharedImmutable<Field, Context>, Context>,
         managed_escrows: PrivateSet<AddressNote, Context>,
         participants: Map<AztecAddress, PrivateSet<ParticipantNote, Context>, Context>,
-        participant_escrows: Map<AztecAddress, PrivateSet<AddressNote, Context>, Context>
+        participant_escrows: PrivateSet<AddressNote, Context>,
     }
 
     /**
@@ -298,7 +298,7 @@ contract ZImburseRegistry {
      * @return managed_escrows - the list of managed escrows
      * @return page_limit_reached - whether the page limit has been reached (keep calling until this is true)
      */
-    unconstrained fn get_managed_escrows(offset: u32) -> pub (BoundedVec<AztecAddress, MAX_NOTES_PER_PAGE>, bool) {
+    unconstrained pub fn get_managed_escrows(offset: u32) -> pub (BoundedVec<AztecAddress, MAX_NOTES_PER_PAGE>, bool) {
         let mut options = NoteViewerOptions::new().set_offset(offset);
         let notes = storage.managed_escrows.view_notes(options);
         let mut managed_escrows = BoundedVec::new();
@@ -318,16 +318,16 @@ contract ZImburseRegistry {
      * @return participant_escrows - the list of enrolled escrows
      * @return page_limit_reached - whether the page limit has been reached (keep calling until this is true)
      */
-    unconstrained fn get_participant_escrows(
+    unconstrained pub fn get_participant_escrows(
         participant: AztecAddress,
         offset: u32
-    ) -> pub ([AztecAddress; MAX_NOTES_PER_PAGE], bool) {
+    ) -> pub (BoundedVec<AztecAddress, MAX_NOTES_PER_PAGE>, bool) {
         let mut options = NoteViewerOptions::new().set_offset(offset);
         let notes = storage.participant_escrows.view_notes(options);
-        let mut participant_escrows: [AztecAddress; MAX_NOTES_PER_PAGE] = [AztecAddress::from_field(0); MAX_NOTES_PER_PAGE];
+        let mut participant_escrows: BoundedVec<AztecAddress, MAX_NOTES_PER_PAGE> = BoundedVec::new();
         for i in 0..notes.len() {
             if i < notes.len() {
-                participant_escrows[i] = notes.get_unchecked(i).address;
+                participant_escrows.push(notes.get_unchecked(i).address);
             }
         }
         (participant_escrows, notes.len() == MAX_NOTES_PER_PAGE)
@@ -343,10 +343,9 @@ contract ZImburseRegistry {
      */
     unconstrained fn get_participants(
         escrow: AztecAddress,
-        page_index: u32
+        offset: u32
     ) -> pub (BoundedVec<ParticipantNote, MAX_NOTES_PER_PAGE>, bool) {
-        let offset = page_index * MAX_NOTES_PER_PAGE;
-        let mut options = NoteViewerOptions::new();
+        let mut options = NoteViewerOptions::new().set_offset(offset);
         let notes = storage.participants.at(escrow).view_notes(options);
         (notes, notes.len() == MAX_NOTES_PER_PAGE)
     }

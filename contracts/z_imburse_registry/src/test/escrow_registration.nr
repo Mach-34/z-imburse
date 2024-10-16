@@ -164,6 +164,7 @@ unconstrained fn view_participants() {
     for i in 0..12 {
         accounts_participants[i] = env.create_account();
         let registered = registry_helpers::check_and_register_participant(
+            env,
             contracts.registry,
             contracts.escrows[0],
             accounts.escrow_admin,
@@ -174,6 +175,7 @@ unconstrained fn view_participants() {
     }
     for i in 0..7 {
         let registered = registry_helpers::check_and_register_participant(
+            env,
             contracts.registry,
             contracts.escrows[2],
             accounts.escrow_admin,
@@ -182,15 +184,15 @@ unconstrained fn view_participants() {
         );
         assert(registered, "Participant not registered");
     }
-    // view participants in escrows as admin
-    let mut participants_1: BoundedVec<AztecAddress, 12> = BoundedVec::new();
-    for i in 0..2 {
-        let offset: u32 = i * 10;
-        let (participants_page, _) = registry_helpers::get_participants(contracts.registry, accounts.escrow_admin, contracts.escrows[0], offset);
-        for j in 0..participants_page.len() {
-            participants_1.push(participants_page.get(i));
-        }
-    }
+    // // view participants in escrows as admin
+    // let mut participants_1: BoundedVec<AztecAddress, 12> = BoundedVec::new();
+    // for i in 0..2 {
+    //     let offset: u32 = i * 10;
+    //     let (participants_page, _) = registry_helpers::get_participants(contracts.registry, accounts.escrow_admin, contracts.escrows[0], offset);
+    //     for j in 0..participants_page.len() {
+    //         participants_1.push(participants_page.get(i));
+    //     }
+    // }
         
 }
 

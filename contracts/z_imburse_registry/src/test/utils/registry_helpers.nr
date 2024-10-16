@@ -31,13 +31,14 @@ unconstrained pub fn register_escrow(
 
 
 unconstrained pub fn check_and_register_participant(
+    env: &mut TestEnvironment,
     registry_address: AztecAddress,
     escrow_address: AztecAddress,
-    admin: AztecAddress,
+    escrow_admin: AztecAddress,
     participant: AztecAddress,
     username: str<60>
 ) -> bool {
-    let escrow_registry = ZImburseRegistry::at(escrow_registry_address);
+    let escrow_registry = ZImburseRegistry::at(registry_address);
     env.impersonate(escrow_admin);
     let check_and_register_participant_iface = escrow_registry.check_and_register_participant(
         participant,

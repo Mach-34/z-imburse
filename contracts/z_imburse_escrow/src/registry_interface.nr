@@ -14,12 +14,8 @@ pub fn check_dkim_key_hash_private(
     registry_address: AztecAddress,
     dkim_key_hash: Field
 ) -> u8 {
-    let function_selector = comptime { 
+    let function_selector = comptime {
         FunctionSelector::from_signature("check_dkim_key_hash_private(Field)")
     };
-    context.static_call_private_function(
-        registry_address,
-        function_selector,
-        [dkim_key_hash]
-    ).unpack::<1>()[0] as u8
+    context.static_call_private_function(registry_address, function_selector, [dkim_key_hash]).unpack::<1>()[0] as u8
 }

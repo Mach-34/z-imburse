@@ -33,12 +33,7 @@ impl RegistryDefinition {
      * @param escrow_contract_id The ID of the escrow contract
      * @return The new escrow registry definition
      */
-    pub fn new(
-        admin: AztecAddress,
-        usdc: AztecAddress,
-        escrow_contract_id: Field
-    ) -> Self {
+    pub fn new(admin: AztecAddress, usdc: AztecAddress, escrow_contract_id: Field) -> Self {
         RegistryDefinition { admin, usdc, escrow_contract_id }
     }
 }
- 

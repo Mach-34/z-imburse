@@ -1,13 +1,12 @@
 use dep::aztec::{
     hash::compute_secret_hash,
     oracle::{random::random, execution::{get_block_number, get_contract_address}},
-    note::constants::MAX_NOTES_PER_PAGE,
-    prelude::AztecAddress,
+    note::constants::MAX_NOTES_PER_PAGE, prelude::AztecAddress,
     test::helpers::{cheatcodes, test_environment::TestEnvironment}
 };
 use std::collections::bounded_vec::BoundedVec;
 use dep::z_imburse_escrow::{ZImburseEscrow, types::recurring_entitlement_note::RecurringEntitlementNote};
-use dep::zimburse_verifiers::constants::LinodeBillingParams;
+use dep::zimburse_verifiers::linode::constants::LinodeBillingParams;
 use crate::test::utils::token_helpers::add_shielded_note;
 
 /**
@@ -30,11 +29,7 @@ unconstrained pub fn give_recurring_entitlement(
 ) {
     env.impersonate(escrow_admin);
     let escrow = ZImburseEscrow::at(escrow_address);
-    let give_recurring_entitlement_call_iface = escrow.give_recurring_entitlement(
-        recipient,
-        amount,
-        verifier
-    );
+    let give_recurring_entitlement_call_iface = escrow.give_recurring_entitlement(recipient, amount, verifier);
     env.call_private_void(give_recurring_entitlement_call_iface);
     cheatcodes::advance_blocks_by(1);
 }
@@ -60,7 +55,9 @@ unconstrained pub fn reimburse_linode(
 ) -> (Field, Field) {
     env.impersonate(claimant);
     // get claim hash
-    let secret = unsafe { random() };
+    let secret = unsafe {
+        random()
+    };
     let claim_hash = compute_secret_hash(secret);
     let escrow = ZImburseEscrow::at(escrow_address);
 

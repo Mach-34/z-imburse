@@ -1,17 +1,16 @@
-use dep::aztec::{
-    test::helpers::cheatcodes,
-    hash::compute_secret_hash,
-    oracle::debug_log::{debug_log, debug_log_format}
-};
+use dep::aztec::{test::helpers::cheatcodes, hash::compute_secret_hash, oracle::debug_log::{debug_log, debug_log_format}};
 use dep::z_imburse_escrow::ZImburseEscrow;
 use crate::{
     verifiers,
     test::utils::{
-        setup_helpers::setup,
-        token_helpers::{mint_public, to_usdc_decimals, redeem_shield, check_public_balance, check_private_balance},
-        escrow_helpers::{give_recurring_entitlement, reimburse_linode, get_recurring_entitlements_by_user, get_recurring_entitlements_by_verifier},
-        email_inputs::{LINODE_SEP, LINODE_OCT}
-    }
+    setup_helpers::setup,
+    token_helpers::{mint_public, to_usdc_decimals, redeem_shield, check_public_balance, check_private_balance},
+    escrow_helpers::{
+    give_recurring_entitlement, reimburse_linode, get_recurring_entitlements_by_user,
+    get_recurring_entitlements_by_verifier
+},
+    email_inputs::{LINODE_SEP, LINODE_OCT}
+}
 };
 
 #[test]
@@ -19,7 +18,13 @@ unconstrained fn give_linode_recurring_entitlement_success() {
     // setup test env
     let (env, accounts, contracts) = setup::<1>();
     // mint tokens to the escrow
-    mint_public(env, contracts.usdc, accounts.superuser, contracts.escrows[0], to_usdc_decimals(100000));
+    mint_public(
+        env,
+        contracts.usdc,
+        accounts.superuser,
+        contracts.escrows[0],
+        to_usdc_decimals(100000)
+    );
     // give entitlement to reimburse linode receipt to alice
     give_recurring_entitlement(
         env,
@@ -32,15 +37,34 @@ unconstrained fn give_linode_recurring_entitlement_success() {
     // check the entitlements exist
     let (entitlements_by_user_admin, _) = get_recurring_entitlements_by_user(contracts.escrows[0], accounts.escrow_admin, accounts.alice, 0);
     let (entitlements_by_user_alice, _) = get_recurring_entitlements_by_user(contracts.escrows[0], accounts.alice, accounts.alice, 0);
-    let (entitlements_by_verifier_admin, _) = get_recurring_entitlements_by_verifier(contracts.escrows[0], accounts.escrow_admin,  verifiers::LINODE, 0);
+    let (entitlements_by_verifier_admin, _) = get_recurring_entitlements_by_verifier(
+        contracts.escrows[0],
+        accounts.escrow_admin,
+        verifiers::LINODE,
+        0
+    );
     let (entitlements_by_verifier_alice, _) = get_recurring_entitlements_by_verifier(contracts.escrows[0], accounts.alice, verifiers::LINODE, 0);
-    debug_log_format("Entitlement length: {0}", [entitlements_by_user_admin.len() as Field]);
-    debug_log_format("Entitlement length: {0}", [entitlements_by_user_alice.len() as Field]);
-    debug_log_format("Entitlement length: {0}", [entitlements_by_verifier_admin.len() as Field]);
-    debug_log_format("Entitlement length: {0}", [entitlements_by_verifier_alice.len() as Field]);
-    debug_log_format("Verifier id: {0}", [entitlements_by_user_admin.get(0).verifier_id as Field]);
+    debug_log_format(
+        "Entitlement length: {0}",
+        [entitlements_by_user_admin.len() as Field]
+    );
+    debug_log_format(
+        "Entitlement length: {0}",
+        [entitlements_by_user_alice.len() as Field]
+    );
+    debug_log_format(
+        "Entitlement length: {0}",
+        [entitlements_by_verifier_admin.len() as Field]
+    );
+    debug_log_format(
+        "Entitlement length: {0}",
+        [entitlements_by_verifier_alice.len() as Field]
+    );
+    debug_log_format(
+        "Verifier id: {0}",
+        [entitlements_by_user_admin.get(0).verifier_id as Field]
+    );
     debug_log_format("Verifier id: {0}", [verifiers::LINODE as Field]);
-
     // assert(
     //     entitlements_by_user_admin.get(0).eq(entitlements_by_user_alice.get(0))
     //         & entitlements_by_user_admin.get(0).eq(entitlements_by_verifier_admin.get(0))
@@ -62,7 +86,13 @@ unconstrained fn claim_linode_reimbursement_success() {
     let (env, accounts, contracts) = setup::<1>();
     // mint tokens to the escrow
     let amount = to_usdc_decimals(10);
-    mint_public(env, contracts.usdc, accounts.superuser, contracts.escrows[0], amount);
+    mint_public(
+        env,
+        contracts.usdc,
+        accounts.superuser,
+        contracts.escrows[0],
+        amount
+    );
     // give entitlement to reimburse linode receipt to alice
     give_recurring_entitlement(
         env,
@@ -95,7 +125,13 @@ unconstrained fn claim_linode_reimbursement_max_value_success() {
     let (env, accounts, contracts) = setup::<1>();
     // mint tokens to the escrow
     let amount_entitled = to_usdc_decimals(25);
-    mint_public(env, contracts.usdc, accounts.superuser, contracts.escrows[0], amount_entitled);
+    mint_public(
+        env,
+        contracts.usdc,
+        accounts.superuser,
+        contracts.escrows[0],
+        amount_entitled
+    );
     // give entitlement to reimburse linode receipt to alice
     give_recurring_entitlement(
         env,
@@ -115,9 +151,19 @@ unconstrained fn claim_linode_reimbursement_max_value_success() {
         LINODE_SEP
     );
     // check the balance of the escrow has decremented
-    check_public_balance(contracts.usdc, contracts.escrows[0], amount_entitled - amount_reimbursed);
+    check_public_balance(
+        contracts.usdc,
+        contracts.escrows[0],
+        amount_entitled - amount_reimbursed
+    );
     // claim the reimbursement
-    redeem_shield(env, contracts.usdc, accounts.alice, amount_reimbursed, claim_secret);
+    redeem_shield(
+        env,
+        contracts.usdc,
+        accounts.alice,
+        amount_reimbursed,
+        claim_secret
+    );
     // check the balance of alice has incremented
     check_private_balance(contracts.usdc, accounts.alice, amount_reimbursed);
 }
@@ -129,7 +175,13 @@ unconstrained fn claim_linode_reimbursement_success_multiple_months() {
     let (env, accounts, contracts) = setup::<1>();
     // mint tokens to the escrow
     let amount = to_usdc_decimals(10);
-    mint_public(env, contracts.usdc, accounts.superuser, contracts.escrows[0], amount * 2);
+    mint_public(
+        env,
+        contracts.usdc,
+        accounts.superuser,
+        contracts.escrows[0],
+        amount * 2
+    );
     // give entitlement to reimburse linode receipt to alice
     give_recurring_entitlement(
         env,
@@ -148,7 +200,11 @@ unconstrained fn claim_linode_reimbursement_success_multiple_months() {
         LINODE_SEP
     );
     // check the balance of the escrow has decremented
-    check_public_balance(contracts.usdc, contracts.escrows[0], amount * 2 - amount_reimbursed_sep);
+    check_public_balance(
+        contracts.usdc,
+        contracts.escrows[0],
+        amount * 2 - amount_reimbursed_sep
+    );
 
     // reimburse linode for month 2 with the entitlement
     let (claim_secret_oct, amount_reimbursed_oct) = reimburse_linode(
@@ -159,12 +215,32 @@ unconstrained fn claim_linode_reimbursement_success_multiple_months() {
         LINODE_OCT
     );
     // check the balance of the escrow has decremented
-    check_public_balance(contracts.usdc, contracts.escrows[0], amount * 2 - amount_reimbursed_sep - amount_reimbursed_oct);
+    check_public_balance(
+        contracts.usdc,
+        contracts.escrows[0],
+        amount * 2 - amount_reimbursed_sep - amount_reimbursed_oct
+    );
     // claim both reimbursements
-    redeem_shield(env, contracts.usdc, accounts.alice, amount_reimbursed_sep, claim_secret_sep);
-    redeem_shield(env, contracts.usdc, accounts.alice, amount_reimbursed_oct, claim_secret_oct);
+    redeem_shield(
+        env,
+        contracts.usdc,
+        accounts.alice,
+        amount_reimbursed_sep,
+        claim_secret_sep
+    );
+    redeem_shield(
+        env,
+        contracts.usdc,
+        accounts.alice,
+        amount_reimbursed_oct,
+        claim_secret_oct
+    );
     // check the balance of alice has incremented
-    check_private_balance(contracts.usdc, accounts.alice, amount_reimbursed_sep + amount_reimbursed_oct);
+    check_private_balance(
+        contracts.usdc,
+        accounts.alice,
+        amount_reimbursed_sep + amount_reimbursed_oct
+    );
 }
 
 // #[test]
@@ -174,7 +250,13 @@ unconstrained fn claim_linode_reimbursement_fail_month_nullified() {
     let (env, accounts, contracts) = setup::<1>();
     // mint tokens to the escrow
     let amount = to_usdc_decimals(10);
-    mint_public(env, contracts.usdc, accounts.superuser, contracts.escrows[0], amount * 2);
+    mint_public(
+        env,
+        contracts.usdc,
+        accounts.superuser,
+        contracts.escrows[0],
+        amount * 2
+    );
     // give entitlement to reimburse linode receipt to alice
     give_recurring_entitlement(
         env,
@@ -206,7 +288,13 @@ unconstrained fn nullify_entitlement() {
     let (env, accounts, contracts) = setup::<1>();
     // mint tokens to the escrow
     let amount = to_usdc_decimals(10);
-    mint_public(env, contracts.usdc, accounts.superuser, contracts.escrows[0], amount);
+    mint_public(
+        env,
+        contracts.usdc,
+        accounts.superuser,
+        contracts.escrows[0],
+        amount
+    );
     // give entitlement to reimburse linode receipt to alice
     give_recurring_entitlement(
         env,

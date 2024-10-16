@@ -4,8 +4,7 @@ use dep::aztec::{
     hash::poseidon2_hash_with_separator, traits::{Serialize, Deserialize}
 },
     note::{note_header::NoteHeader, note_interface::NullifiableNote, utils::compute_note_hash_for_nullify},
-    oracle::random::random, keys::getters::get_nsk_app, context::PrivateContext,
-    macros::notes::note
+    oracle::random::random, keys::getters::get_nsk_app, context::PrivateContext, macros::notes::note
 };
 use dep::compressed_string::CompressedString;
 
@@ -56,7 +55,9 @@ impl Eq for ParticipantNote {
 
 impl ParticipantNote {
     pub fn new(address: AztecAddress, name: str<NAME_LENGTH>, npk_m_hash: Field) -> Self {
-        let randomness = unsafe { random()};
+        let randomness = unsafe {
+            random()
+        };
         let name_serialized: CompressedString<NAME_SERIALIZED_LENGTH, NAME_LENGTH> = CompressedString::from_string(name);
         ParticipantNote { address, name: name_serialized.value, npk_m_hash, randomness, header: NoteHeader::empty() }
     }

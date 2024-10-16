@@ -51,12 +51,7 @@ impl EscrowDefinition {
         usdc: AztecAddress,
         title: str<TITLE_LENGTH>
     ) -> Self {
-        EscrowDefinition {
-            registry,
-            admin,
-            usdc,
-            title: CompressedString::from_string(title)
-        }
+        EscrowDefinition { registry, admin, usdc, title: CompressedString::from_string(title) }
     }
 
     /**

@@ -1,20 +1,13 @@
 use dep::aztec::protocol_types::{
-    address::AztecAddress,
-    traits::{Serialize, Deserialize},
-    constants::GENERATOR_INDEX__NOTE_NULLIFIER,
-    hash::{poseidon2_hash_with_separator, poseidon2_hash_bytes},
-    utils::field::field_from_bytes,
-    scalar::Scalar,
-    point::Point
+    address::AztecAddress, traits::{Serialize, Deserialize}, constants::GENERATOR_INDEX__NOTE_NULLIFIER,
+    hash::{poseidon2_hash_with_separator, poseidon2_hash_bytes}, utils::field::field_from_bytes,
+    scalar::Scalar, point::Point
 };
 use dep::aztec::note::utils::compute_note_hash_for_nullify;
 use dep::aztec::oracle::random::random;
 use dep::aztec::macros::notes::note_custom_interface;
 use dep::aztec::prelude::{NoteHeader, NullifiableNote, NoteInterface, PrivateContext};
-use dep::aztec::keys::{
-    getters::{get_public_keys, get_nsk_app},
-    point_to_symmetric_key::point_to_symmetric_key
-};
+use dep::aztec::keys::{getters::{get_public_keys, get_nsk_app}, point_to_symmetric_key::point_to_symmetric_key};
 use dep::compressed_string::CompressedString;
 use std::embedded_curve_ops::multi_scalar_mul;
 use std::hash::from_field_unsafe;
@@ -40,14 +33,14 @@ pub struct RecurringEntitlementNote {
 }
 
 impl NoteInterface<RECURRING_ENTITLEMENT_NOTE_LENGTH> for RecurringEntitlementNote {
-    
+
     fn serialize_content(self) -> [Field; RECURRING_ENTITLEMENT_NOTE_LENGTH] {
         // serialize max_value and verifier_id together
         let max_value_bytes: [u8; 16] = self.max_value.to_le_bytes();
         let mut packed_bytes: [u8; 17] = [0; 17];
         for i in 0..16 {
             packed_bytes[i] = max_value_bytes[i];
-        };
+        }
         packed_bytes[16] = self.is_admin as u8;
         let packed = field_from_bytes(packed_bytes, true);
         // return serialized content
@@ -100,8 +93,9 @@ impl NoteInterface<RECURRING_ENTITLEMENT_NOTE_LENGTH> for RecurringEntitlementNo
         buffer
     }
 
-    fn get_note_type_id() -> Field { 
-        comptime {
+    fn get_note_type_id() -> Field {
+        comptime
+        {
             let bytes = "RecurringEntitlementNote".as_bytes();
             let hash = poseidon2_hash_bytes(bytes);
             let hash_bytes = hash.to_be_bytes::<4>();
@@ -109,7 +103,7 @@ impl NoteInterface<RECURRING_ENTITLEMENT_NOTE_LENGTH> for RecurringEntitlementNo
         }
     }
 
-     fn get_header(self) -> NoteHeader {
+    fn get_header(self) -> NoteHeader {
         self.header
     }
 
@@ -183,15 +177,7 @@ impl RecurringEntitlementNote {
         max_value: U128,
         randomness: Field
     ) -> Self {
-        Self {
-            admin,
-            recipient,
-            is_admin,
-            verifier_id,
-            max_value,
-            randomness,
-            header: NoteHeader::empty()
-        }
+        Self { admin, recipient, is_admin, verifier_id, max_value, randomness, header: NoteHeader::empty() }
     }
 
     /**
@@ -206,9 +192,9 @@ impl RecurringEntitlementNote {
         let base_nullifier_secret = self.derive_nullifier_secret();
         poseidon2_hash_with_separator(
             [
-                base_nullifier_secret,
-                timestamp
-            ],
+            base_nullifier_secret,
+            timestamp
+        ],
             GENERATOR_INDEX__NOTE_NULLIFIER as Field
         )
     }

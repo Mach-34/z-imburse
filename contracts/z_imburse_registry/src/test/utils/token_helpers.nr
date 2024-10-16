@@ -2,7 +2,7 @@ use dep::aztec::{
     prelude::AztecAddress,
     oracle::{execution::{get_block_number, get_contract_address}, storage::storage_read},
     test::helpers::{cheatcodes, test_environment::TestEnvironment},
-    protocol_types::storage::map::derive_storage_slot_in_map,
+    protocol_types::storage::map::derive_storage_slot_in_map
 };
 use dep::token::{Token, types::transparent_note::TransparentNote};
 use crate::test::utils::setup_helpers::USDC_DECIMALS;
@@ -41,12 +41,7 @@ unconstrained pub fn to_usdc_decimals(amount: Field) -> Field {
  * @param amount - The amount of USDC tokens in the note
  * @param claim_hash - The hash of the secret used to claim the note
  */
-unconstrained pub fn add_shielded_note(
-    env: &mut TestEnvironment,
-    usdc: AztecAddress,
-    amount: Field,
-    claim_hash: Field
-) {
+unconstrained pub fn add_shielded_note(env: &mut TestEnvironment, usdc: AztecAddress, amount: Field, claim_hash: Field) {
     env.add_note(
         &mut TransparentNote::new(amount, claim_hash),
         Token::storage_layout().pending_shields.slot,

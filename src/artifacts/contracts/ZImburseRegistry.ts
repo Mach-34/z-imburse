@@ -34,30 +34,30 @@ import {
   type WrappedFieldLike,
 } from '@aztec/aztec.js';
 import ZImburseRegistryContractArtifactJson from './ZImburseRegistry.json' assert { type: 'json' };
-//@ts-ignore
+// @ts-ignore
 export const ZImburseRegistryContractArtifact = loadContractArtifact(ZImburseRegistryContractArtifactJson as NoirCompiledContract);
 
 
-      export type DKIMKeyHashRegistered = {
-        dkim_key_hash: FieldLike
-verifier_id: FieldLike
-      }
-    
+export type DKIMKeyHashRegistered = {
+  dkim_key_hash: FieldLike
+  verifier_id: FieldLike
+}
+
 
 /**
  * Type-safe interface for contract ZImburseRegistry;
  */
 export class ZImburseRegistryContract extends ContractBase {
-  
+
   private constructor(
     instance: ContractInstanceWithAddress,
     wallet: Wallet,
   ) {
     super(instance, ZImburseRegistryContractArtifact, wallet);
   }
-  
 
-  
+
+
   /**
    * Creates a contract instance.
    * @param address - The deployed contract's address.
@@ -71,7 +71,7 @@ export class ZImburseRegistryContract extends ContractBase {
     return Contract.at(address, ZImburseRegistryContract.artifact, wallet) as Promise<ZImburseRegistryContract>;
   }
 
-  
+
   /**
    * Creates a tx to deploy a new instance of this contract.
    */
@@ -102,65 +102,65 @@ export class ZImburseRegistryContract extends ContractBase {
       opts.method ?? 'constructor',
     );
   }
-  
 
-  
+
+
   /**
    * Returns this contract's artifact.
    */
   public static get artifact(): ContractArtifact {
     return ZImburseRegistryContractArtifact;
   }
-  
+
 
   public static get storage(): ContractStorageLayout<'definition' | 'escrow_registry' | 'dkim_registry' | 'managed_escrows' | 'participants' | 'participant_escrows'> {
-      return {
-        definition: {
-      slot: new Fr(1n),
-    },
-escrow_registry: {
-      slot: new Fr(4n),
-    },
-dkim_registry: {
-      slot: new Fr(5n),
-    },
-managed_escrows: {
-      slot: new Fr(6n),
-    },
-participants: {
-      slot: new Fr(7n),
-    },
-participant_escrows: {
-      slot: new Fr(8n),
-    }
-      } as ContractStorageLayout<'definition' | 'escrow_registry' | 'dkim_registry' | 'managed_escrows' | 'participants' | 'participant_escrows'>;
-    }
-    
+    return {
+      definition: {
+        slot: new Fr(1n),
+      },
+      escrow_registry: {
+        slot: new Fr(4n),
+      },
+      dkim_registry: {
+        slot: new Fr(5n),
+      },
+      managed_escrows: {
+        slot: new Fr(6n),
+      },
+      participants: {
+        slot: new Fr(7n),
+      },
+      participant_escrows: {
+        slot: new Fr(8n),
+      }
+    } as ContractStorageLayout<'definition' | 'escrow_registry' | 'dkim_registry' | 'managed_escrows' | 'participants' | 'participant_escrows'>;
+  }
+
 
   public static get notes(): ContractNotes<'AddressNote' | 'TransparentNote' | 'TokenNote' | 'RecurringEntitlementNote' | 'ParticipantNote'> {
     return {
       AddressNote: {
-          id: new NoteSelector(2232136525),
-        },
-TransparentNote: {
-          id: new NoteSelector(3193649735),
-        },
-TokenNote: {
-          id: new NoteSelector(2350566847),
-        },
-RecurringEntitlementNote: {
-          id: new NoteSelector(3639716131),
-        },
-ParticipantNote: {
-          id: new NoteSelector(3017618054),
-        }
+        id: new NoteSelector(2232136525),
+      },
+      TransparentNote: {
+        id: new NoteSelector(3193649735),
+      },
+      TokenNote: {
+        id: new NoteSelector(2350566847),
+      },
+      RecurringEntitlementNote: {
+        id: new NoteSelector(3639716131),
+      },
+      ParticipantNote: {
+        id: new NoteSelector(3017618054),
+      }
     } as ContractNotes<'AddressNote' | 'TransparentNote' | 'TokenNote' | 'RecurringEntitlementNote' | 'ParticipantNote'>;
   }
-  
+
 
   /** Type-safe wrappers for the public methods exposed by the contract. */
   public declare methods: {
-    
+
     /** check_and_register_participant(participant: struct, participant_name: string, escrow: struct) */
     check_and_register_participant: ((participant: AztecAddressLike, participant_name: string, escrow: AztecAddressLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
@@ -182,14 +182,14 @@ ParticipantNote: {
     /** get_escrow_registry_status(escrow_contract: struct) */
     get_escrow_registry_status: ((escrow_contract: AztecAddressLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
-    /** get_managed_escrows(admin: struct, page_index: integer) */
-    get_managed_escrows: ((admin: AztecAddressLike, page_index: (bigint | number)) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+    /** get_managed_escrows(offset: integer) */
+    get_managed_escrows: ((offset: (bigint | number)) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
-    /** get_participant_escrows(participant: struct, page_index: integer) */
-    get_participant_escrows: ((participant: AztecAddressLike, page_index: (bigint | number)) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+    /** get_participant_escrows(participant: struct, offset: integer) */
+    get_participant_escrows: ((participant: AztecAddressLike, offset: (bigint | number)) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
-    /** get_participants(escrow: struct, page_index: integer) */
-    get_participants: ((escrow: AztecAddressLike, page_index: (bigint | number)) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+    /** get_participants(escrow: struct, offset: integer) */
+    get_participants: ((escrow: AztecAddressLike, offset: (bigint | number)) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
     /** public_dispatch(selector: field) */
     public_dispatch: ((selector: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
@@ -207,58 +207,58 @@ ParticipantNote: {
     register_participant: ((participant: AztecAddressLike, participant_name: string, admin: AztecAddressLike, escrow: AztecAddressLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
   };
 
-  
-    // Partial application is chosen is to avoid the duplication of so much codegen.
-    private static decodeEvent<T>(
-      eventSelector: EventSelector,
-      eventType: AbiType,
-    ): (payload: L1EventPayload | UnencryptedL2Log | undefined) => T | undefined {
-      return (payload: L1EventPayload | UnencryptedL2Log | undefined): T | undefined => {
-        if (payload === undefined) {
+
+  // Partial application is chosen is to avoid the duplication of so much codegen.
+  private static decodeEvent<T>(
+    eventSelector: EventSelector,
+    eventType: AbiType,
+  ): (payload: L1EventPayload | UnencryptedL2Log | undefined) => T | undefined {
+    return (payload: L1EventPayload | UnencryptedL2Log | undefined): T | undefined => {
+      if (payload === undefined) {
+        return undefined;
+      }
+
+      if (payload instanceof L1EventPayload) {
+        if (!eventSelector.equals(payload.eventTypeId)) {
           return undefined;
         }
-
-        if (payload instanceof L1EventPayload) {
-          if (!eventSelector.equals(payload.eventTypeId)) {
-            return undefined;
-          }
-          return decodeFromAbi([eventType], payload.event.items) as T;
-        } else {
-          let items = [];
-          for (let i = 0; i < payload.data.length; i += 32) {
-            items.push(new Fr(payload.data.subarray(i, i + 32)));
-          }
-
-          return decodeFromAbi([eventType], items) as T;
+        return decodeFromAbi([eventType], payload.event.items) as T;
+      } else {
+        let items = [];
+        for (let i = 0; i < payload.data.length; i += 32) {
+          items.push(new Fr(payload.data.subarray(i, i + 32)));
         }
-      };
-    }
 
-    public static get events(): { DKIMKeyHashRegistered: {decode: (payload: L1EventPayload | UnencryptedL2Log | undefined) => DKIMKeyHashRegistered | undefined, eventSelector: EventSelector, fieldNames: string[] } } {
-    return {
-      DKIMKeyHashRegistered: {
-        decode: this.decodeEvent(EventSelector.fromSignature('DKIMKeyHashRegistered(Field,Field)'), {
-    "fields": [
-        {
-            "name": "dkim_key_hash",
-            "type": {
-                "kind": "field"
-            }
-        },
-        {
-            "name": "verifier_id",
-            "type": {
-                "kind": "field"
-            }
-        }
-    ],
-    "kind": "struct",
-    "path": "ZImburseRegistry::DKIMKeyHashRegistered"
-}),
-        eventSelector: EventSelector.fromSignature('DKIMKeyHashRegistered(Field,Field)'),
-        fieldNames: ["dkim_key_hash","verifier_id"],
+        return decodeFromAbi([eventType], items) as T;
       }
     };
   }
-  
+
+  public static get events(): { DKIMKeyHashRegistered: { decode: (payload: L1EventPayload | UnencryptedL2Log | undefined) => DKIMKeyHashRegistered | undefined, eventSelector: EventSelector, fieldNames: string[] } } {
+    return {
+      DKIMKeyHashRegistered: {
+        decode: this.decodeEvent(EventSelector.fromSignature('DKIMKeyHashRegistered(Field,Field)'), {
+          "fields": [
+            {
+              "name": "dkim_key_hash",
+              "type": {
+                "kind": "field"
+              }
+            },
+            {
+              "name": "verifier_id",
+              "type": {
+                "kind": "field"
+              }
+            }
+          ],
+          "kind": "struct",
+          "path": "ZImburseRegistry::DKIMKeyHashRegistered"
+        }),
+        eventSelector: EventSelector.fromSignature('DKIMKeyHashRegistered(Field,Field)'),
+        fieldNames: ["dkim_key_hash", "verifier_id"],
+      }
+    };
+  }
+
 }

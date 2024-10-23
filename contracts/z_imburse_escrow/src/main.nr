@@ -80,17 +80,17 @@ contract ZImburseEscrow {
     #[private]
     fn give_recurring_entitlement(to: AztecAddress, amount: Field, verifier_id: u8) {
         // check that no receipt exists for this recipient and verifier
-        let options = NoteGetterOptions::new().select(
-            RecurringEntitlementNote::properties().recipient,
-            Comparator.EQ,
-            to
-        ).select(
-            RecurringEntitlementNote::properties().verifier_id,
-            Comparator.EQ,
-            verifier_id
-        ).set_limit(1);
-        let notes = storage.recurring_entitlements.at(context.msg_sender()).get_notes(options);
-        assert(notes.len() == 0, "An entitlement already exists for this recipient and verifier");
+        // let options = NoteGetterOptions::new().select(
+        //     RecurringEntitlementNote::properties().recipient,
+        //     Comparator.EQ,
+        //     to
+        // ).select(
+        //     RecurringEntitlementNote::properties().verifier_id,
+        //     Comparator.EQ,
+        //     verifier_id
+        // ).set_limit(1);
+        // let notes = storage.recurring_entitlements.at(context.msg_sender()).get_notes(options);
+        // assert(notes.len() == 0, "An entitlement already exists for this recipient and verifier");
         // check is escrow admin
         let admin = storage.definition.read_private().admin;
         assert(context.msg_sender() == admin, "Only the escrow admin can give entitlements");
@@ -108,8 +108,10 @@ contract ZImburseEscrow {
         let mut entitlement_recipient = RecurringEntitlementNote::new(admin, to, false, verifier_id, amount, blinding_factor);
         storage.recurring_entitlements.at(to).insert(&mut entitlement_recipient).emit(encode_and_encrypt_note(&mut context, admin_keys.ovpk_m, recipient_keys.ivpk_m, to));
         // add the note for the admin
-        let mut entitlement_sender = RecurringEntitlementNote::new(admin, to, true, verifier_id, amount, blinding_factor);
-        storage.recurring_entitlements.at(admin).insert(&mut entitlement_sender).emit(encode_and_encrypt_note(&mut context, admin_keys.ovpk_m, admin_keys.ivpk_m, admin))
+        // let mut entitlement_sender = RecurringEntitlementNote::new(admin, to, true, verifier_id, amount, blinding_factor);
+        // storage.recurring_entitlements.at(admin).insert(&mut entitlement_sender).emit(
+        //     encode_and_encrypt_note_unconstrained(&mut context, admin_keys.ovpk_m, admin_keys.ivpk_m, admin)
+        // )
     }
 
     #[private]
@@ -364,5 +366,16 @@ contract ZImburseEscrow {
     //     let options = NoteGetterOptions::new()
     //         .set
     // }
+
+    unconstrained pub fn get_recurring_entitlements(at: AztecAddress) -> BoundedVec<RecurringEntitlementNote, MAX_NOTES_PER_PAGE> {
+        // let options = NoteViewerOptions::new().select(
+        //     RecurringEntitlementNote::properties().verifier_id,
+        //     Comparator.EQ,
+        //     verifier_id
+        // ).set_offset(offset).set_limit(MAX_NOTES_PER_PAGE);
+        let options = NoteViewerOptions::new();
+        let notes = storage.recurring_entitlements.at(at).view_notes(options);
+        notes
+    }
 }
 

@@ -35,7 +35,8 @@ compile_artifact() {
     case "$OSTYPE" in
     darwin*)
         # macOS
-        contract_name=$(echo "$project" | sed '' 's/_\([a-z]\)/\U\1/g' | sed 's/^\([a-z]\)/\U\1/')
+        echo $project
+        contract_name=$(echo "$project" | tr '_' ' ' | awk '{for(i=1;i<=NF;i++)sub(/./,toupper(substr($i,1,1)),$i)}1' | tr -d ' ')
         sed -i '' "s|target/${project}-${contract_name}.json|./${contract_name}.json|" $contract_name.ts
         # do not align last line as it adds extra whitespace
         sed -i '' '

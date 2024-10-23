@@ -4,7 +4,7 @@
             "src",
             "tests"
         ],
-        "target": "ESNext",
+        "target": "ES2020",
         "lib": [
             "dom",
             "esnext",
@@ -12,7 +12,7 @@
         ],
         "types": ["jest", "node"],
         "module": "ESNext",
-        "moduleResolution": "Bundler",
+        "moduleResolution": "Node",
         "strict": true,
         "declaration": true,
         "allowSyntheticDefaultImports": true,

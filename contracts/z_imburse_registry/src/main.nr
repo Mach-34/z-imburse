@@ -205,7 +205,7 @@ contract ZImburseRegistry {
     }
 
     #[private]
-    fn check_and_register_participant(participant: AztecAddress, participant_name: str<60>, escrow: AztecAddress) -> bool{
+    fn check_and_register_participant(participant: AztecAddress, participant_name: str<60>, escrow: AztecAddress) -> bool {
         // todo: switch to check that the sender is an escrow
         // check that sender is admin
         let admin = storage.definition.read_private().admin;

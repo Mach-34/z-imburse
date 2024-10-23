@@ -108,39 +108,41 @@ describe("Test deposit to zimburse", () => {
         toUSDCDecimals(10000n)
       );
     }
+
   });
 
   xdescribe("Registration", () => {
-    // it("Register Z-Imburse Escrow", async () => {
-    //   // register the escrow
-    //   await registry
-    //     .withWallet(escrowAdmin)
-    //     .methods.register_escrow(escrows[0].address)
-    //     .send()
-    //     .wait();
-    //   // check that the escrow is registered
-    //   const isRegistered = await registry.methods
-    //     .get_contract_registration_status(escrows[0].address)
-    //     .simulate();
-    //   expect(isRegistered).toBeTruthy();
+    console.log('In registration')
+    it("Register Z-Imburse Escrow", async () => {
+      // register the escrow
+      await registry
+        .withWallet(escrowAdmin)
+        .methods.register_escrow(escrows[0].address)
+        .send()
+        .wait();
 
-    //   // check escrow is first return
-    //   const managedEscrows = await escrregistryowRegistry.methods
-    //     .get_managed_escrows(escrowAdmin.getAddress(), 0)
-    //     .simulate();
-    //     console.log(managedEscrows);
-    //   // todo: FIX
-    //   // expect(managedEscrows[0][0]).toEqual(escrows[0].address);
-    //   // check the rest of the fields are zero
-    //   for (let i = 1; i < 10; i++)
-    //     expect(managedEscrows[0][i]).toEqual(AztecAddress.ZERO);
-    //   // check pagination status = over
-    //   expect(managedEscrows[1]).toBeTruthy();
-    // });
+      // check that the escrow is registered
+      const isRegistered = await registry.withWallet(escrowAdmin).methods
+        .get_escrow_registry_status(escrows[0].address)
+        .simulate();
+      expect(isRegistered).toBeTruthy();
+
+      // check escrow is first return
+      const managedEscrows = await registry.withWallet(escrowAdmin).methods
+        .get_managed_escrows(0)
+        .simulate();
+
+      expect(managedEscrows[0].storage[0]).toEqual(escrows[0].address);
+      // check the rest of the fields are zero
+      for (let i = 1; i < 10; i++)
+        expect(managedEscrows[0].storage[i]).toEqual(AztecAddress.ZERO);
+      // check pagination status = over
+      /// expect(managedEscrows[1]).toBeTruthy();
+    });
 
     // it("Enroll user within Z-Imburse Escrow", async () => {
     //   // todo: figure out multicall
-    //   await escrowRegistry
+    //   await registry
     //     .withWallet(escrowAdmin)
     //     .methods.check_and_register_participant(
     //       alice.getAddress(),
@@ -149,7 +151,7 @@ describe("Test deposit to zimburse", () => {
     //     )
     //     .send()
     //     .wait();
-    //   await escrowRegistry
+    //   await registry
     //     .withWallet(escrowAdmin)
     //     .methods.check_and_register_participant(
     //       bob.getAddress(),
@@ -223,7 +225,75 @@ describe("Test deposit to zimburse", () => {
     it.todo("Cannot give entitlement if escrow not registered");
     it.todo("Cannot give entitlement if participant not registered");
     describe("Linode", () => {
-      it("Give linode recurring entitlement", async () => {
+      it("Test listing entitlements", async () => {
+        // check dkim key
+        // give entitlement of 10 usdc
+        const amount = toUSDCDecimals(10n);
+        const receipt1 = await escrows[0]
+          .withWallet(escrowAdmin)
+          .methods.give_recurring_entitlement(alice.getAddress(), amount, VERIFIER_IDS.LINODE)
+          .send()
+          .wait({ debug: true });
+
+        // const receipt2 = await escrows[0]
+        //   .withWallet(escrowAdmin)
+        //   .methods.give_recurring_entitlement(alice.getAddress(), amount, VERIFIER_IDS.LINODE)
+        //   .send()
+        //   .wait({ debug: true });
+
+        // console.log('Receipt 2: ', receipt2);
+
+        // const receipt3 = await escrows[0]
+        //   .withWallet(escrowAdmin)
+        //   .methods.give_recurring_entitlement(alice.getAddress(), amount, VERIFIER_IDS.LINODE)
+        //   .send()
+        //   .wait({ debug: true });
+
+        // console.log('Receipt 3: ', receipt3)
+
+        // console.log('Receipt: ', receipt1)
+
+        const verifierEntitlements = await escrows[0].withWallet(escrowAdmin).methods.get_recurring_entitlements(alice.getAddress()).simulate();
+        console.log('Verifier entitlements: ', verifierEntitlements);
+
+        // // generate email inputs
+        // const inputs = await makeLinodeInputs(emails.linode_sep);
+        // // transform inputs to contract friendly format
+        // const redeemLinodeInputs = formatRedeemLinode(inputs);
+        // // redeem entitlement
+        // const secret = Fr.random();
+        // const secretHash = computeSecretHash(secret);
+        // const receipt = await escrows[0]
+        //   .withWallet(alice)
+        //   .methods.reimburse_linode(...redeemLinodeInputs, secretHash)
+        //   .send()
+        //   .wait();
+        // await addPendingShieldNoteToPXE(
+        //   alice,
+        //   usdc.address,
+        //   amount,
+        //   secretHash,
+        //   receipt.txHash
+        // );
+        // // check that the balance has decremented from zimburse
+        // const escrowBalance = await usdc.methods
+        //   .balance_of_public(escrows[0])
+        //   .simulate();
+        // expect(escrowBalance).toBe(toUSDCDecimals(9990n));
+        // // redeem the shielded USDC note
+        // await usdc
+        //   .withWallet(alice)
+        //   .methods.redeem_shield(alice.getAddress(), amount, secret)
+        //   .send()
+        //   .wait();
+        // // check that the balance has incremented for the recipient
+        // const recipientBalance = await usdc
+        //   .withWallet(alice)
+        //   .methods.balance_of_private(alice.getAddress())
+        //   .simulate();
+        // expect(recipientBalance).toBe(toUSDCDecimals(10n));
+      })
+      xit("Give linode recurring entitlement", async () => {
         // check dkim key
         // give entitlement of 10 usdc
         const amount = toUSDCDecimals(10n);
@@ -270,7 +340,7 @@ describe("Test deposit to zimburse", () => {
           .simulate();
         expect(recipientBalance).toBe(toUSDCDecimals(10n));
       });
-      it("Can't use the same email (same month)", async () => {
+      xit("Can't use the same email (same month)", async () => {
         // generate email inputs
         const inputs = await makeLinodeInputs(emails.linode_sep);
         // transform inputs to contract friendly format

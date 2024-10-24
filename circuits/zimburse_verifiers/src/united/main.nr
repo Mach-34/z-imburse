@@ -2,31 +2,29 @@ use crate::united::{
     constants::{MAX_EMAIL_BODY_LENGTH, MAX_EMAIL_HEADER_LENGTH, PURCHASE_SUMMARY_INDICE_LEN},
     utils::{check_from_united_receipts, check_subject_united_flight_receipt, extract_billed_amount}
 };
-use dep::zkemail::{dkim::verify_dkim_2048, KEY_LIMBS_2048, get_body_hash_by_index, base64::body_hash_base64_decode};
+use dep::zkemail::{dkim::RSAPubkey, KEY_LIMBS_2048, headers::body_hash::get_body_hash};
 use std::hash::pedersen_hash;
 
 /// USE UNTIL WE HAVE AZTEC-NARGO v0.35.0
 // use crate::sha256_var::sha256_var;
 
 pub fn verify_united_flight_receipt(
-    body: [u8; MAX_EMAIL_BODY_LENGTH],
-    body_hash_index: u32,
-    body_length: u32, 
-    header: [u8; MAX_EMAIL_HEADER_LENGTH], 
-    header_length: u32,
-    pubkey: [Field; KEY_LIMBS_2048],
-    pubkey_redc: [Field; KEY_LIMBS_2048],
+    header: BoundedVec<u8, MAX_EMAIL_HEADER_LENGTH>,
+    pubkey: RSAPubkey<KEY_LIMBS_2048>,
     signature: [Field; KEY_LIMBS_2048],
+    body_hash_index: u32,
+    body: BoundedVec<u8, MAX_EMAIL_HEADER_LENGTH>,
+    body_length: u32,
     from_index: u32,
     subject_index: u32,
     purchase_summary_indices: [u32; PURCHASE_SUMMARY_INDICE_LEN]
 ) -> [Field; 2] {
     // check the body and header lengths are within bounds
-    assert(header_length <= MAX_EMAIL_HEADER_LENGTH);
-    assert(body_length <= MAX_EMAIL_BODY_LENGTH);
+    assert(header.len() <= MAX_EMAIL_HEADER_LENGTH);
+    assert(body.len() <= MAX_EMAIL_BODY_LENGTH);
 
     // verify the dkim signature over the header
-    verify_dkim_2048(header, header_length, pubkey, pubkey_redc, signature);
+    pubkey.verify_dkim_signature(header, signature);
 
     // extract body hash and decode from base64
     // let body_hash_encoded = get_body_hash_by_index(header, body_hash_index);

@@ -1,12 +1,14 @@
-import { CircuitInput } from "@mach-34/zkemail-nr";
+import { CircuitInput } from "@zk-email/zkemail-nr";
 
 export type AmericanAirlinesInputs = { from_index: number, subject_index: number, total_cost_indices: number[] } & CircuitInput;
 
 export type FrontierInputs = { from_index: number, purchase_total_indices: number[], subject_index: number } & CircuitInput;
 
 export type LinodeInputs = {
-    amount_index: number;
-    amount_length: number;
+    amount_sequence: {
+        index: number,
+        length: number
+    };
     from_index: number;
     subject_index: number;
     date_index: number

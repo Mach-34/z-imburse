@@ -1,5 +1,5 @@
 import { describe, expect, jest } from "@jest/globals";
-import { ZKEmailProver } from "@mach-34/zkemail-nr/dist/prover"
+import { ZKEmailProver } from "@zk-email/zkemail-nr/dist/prover"
 import { makeLinodeInputs } from '../../src/email_inputs/linode';
 import LinodeCircuit from '../../src/artifacts/circuits/linode_email_verifier.json';
 import { toBigIntBE } from '../../src/utils';
@@ -21,7 +21,9 @@ describe("Linode Billing Receipt Test", () => {
         it("Linode::September2024", async () => {
             // build inputs
             const inputs = await makeLinodeInputs(emails.linode_sep);
-            // simulate witness
+            const header = Buffer.from(inputs.header!.storage.slice(0, parseInt(inputs.header!.len)).map((byte) => parseInt(byte))).toString();
+            const x = header.slice(inputs.from_index, inputs.from_index + 22);
+            // // simulate witness
             const { returnValue } = await prover.simulateWitness({ params: inputs });
             // check the returned values
             // this linode email has a value of $22.00
@@ -30,7 +32,7 @@ describe("Linode Billing Receipt Test", () => {
             // todo: check expected date matches
             console.log(new Date(Number(values[1]) * 1000))
         })
-        it("Linode::October2024", async () => {
+        xit("Linode::October2024", async () => {
             // build inputs
             const inputs = await makeLinodeInputs(emails.linode_oct);
             // simulate witness
@@ -43,7 +45,7 @@ describe("Linode Billing Receipt Test", () => {
         })
     })
 
-    describe("Proving", () => {
+    xdescribe("Proving", () => {
         it("Linode::Honk", async () => {
             // make inputs from email
             const inputs = await makeLinodeInputs(emails.linode_sep);

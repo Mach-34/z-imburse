@@ -35,6 +35,7 @@ import {
 } from '@aztec/aztec.js';
 import ZImburseRegistryContractArtifactJson from './ZImburseRegistry.json' assert { type: 'json' };
 //@ts-ignore
+//@ts-ignore
 export const ZImburseRegistryContractArtifact = loadContractArtifact(ZImburseRegistryContractArtifactJson as NoirCompiledContract);
 
 
@@ -182,14 +183,14 @@ ParticipantNote: {
     /** get_escrow_registry_status(escrow_contract: struct) */
     get_escrow_registry_status: ((escrow_contract: AztecAddressLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
-    /** get_managed_escrows(admin: struct, page_index: integer) */
-    get_managed_escrows: ((admin: AztecAddressLike, page_index: (bigint | number)) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+    /** get_managed_escrows(offset: integer) */
+    get_managed_escrows: ((offset: (bigint | number)) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
-    /** get_participant_escrows(participant: struct, page_index: integer) */
-    get_participant_escrows: ((participant: AztecAddressLike, page_index: (bigint | number)) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+    /** get_participant_escrows(participant: struct, offset: integer) */
+    get_participant_escrows: ((participant: AztecAddressLike, offset: (bigint | number)) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
-    /** get_participants(escrow: struct, page_index: integer) */
-    get_participants: ((escrow: AztecAddressLike, page_index: (bigint | number)) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+    /** get_participants(escrow: struct, offset: integer) */
+    get_participants: ((escrow: AztecAddressLike, offset: (bigint | number)) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
     /** public_dispatch(selector: field) */
     public_dispatch: ((selector: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;

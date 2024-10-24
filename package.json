@@ -39,7 +39,7 @@
     "@aztec/circuits.js": "^0.57.0",
     "@aztec/noir-contracts.js": "^0.57.0",
     "@jest/globals": "^29.7.0",
-    "@mach-34/zkemail-nr": "^1.1.2",
+    "@zk-email/zkemail-nr": "^1.2.1",
     "node-forge": "^1.3.1"
   },
   "jest": {

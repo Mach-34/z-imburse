@@ -35,8 +35,15 @@ import {
 } from '@aztec/aztec.js';
 import ZImburseEscrowContractArtifactJson from './ZImburseEscrow.json' assert { type: 'json' };
 //@ts-ignore
+//@ts-ignore
 export const ZImburseEscrowContractArtifact = loadContractArtifact(ZImburseEscrowContractArtifactJson as NoirCompiledContract);
 
+
+      export type EntitlementRevoked = {
+        verifier_id: (bigint | number)
+amount: FieldLike
+      }
+    
 
       export type RecurringReimbursementClaimed = {
         claimant: AztecAddressLike
@@ -160,6 +167,12 @@ RecurringEntitlementNote: {
     /** get_admin_private() */
     get_admin_private: (() => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
+    /** get_recurring_entitlements_by_user(at: struct, user: struct, offset: integer) */
+    get_recurring_entitlements_by_user: ((at: AztecAddressLike, user: AztecAddressLike, offset: (bigint | number)) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+
+    /** get_recurring_entitlements_by_verifier(at: struct, verifier_id: integer, offset: integer) */
+    get_recurring_entitlements_by_verifier: ((at: AztecAddressLike, verifier_id: (bigint | number), offset: (bigint | number)) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+
     /** get_registration_params() */
     get_registration_params: (() => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
@@ -174,6 +187,9 @@ RecurringEntitlementNote: {
 
     /** reimburse_linode(body: array, body_hash_index: integer, body_length: integer, header: array, header_length: integer, pubkey: array, pubkey_redc: array, signature: array, from_index: integer, subject_index: integer, amount_index: integer, amount_length: integer, date_index: integer, receipt_id_length: integer, claim_secret_hash: field) */
     reimburse_linode: ((body: (bigint | number)[], body_hash_index: (bigint | number), body_length: (bigint | number), header: (bigint | number)[], header_length: (bigint | number), pubkey: FieldLike[], pubkey_redc: FieldLike[], signature: FieldLike[], from_index: (bigint | number), subject_index: (bigint | number), amount_index: (bigint | number), amount_length: (bigint | number), date_index: (bigint | number), receipt_id_length: (bigint | number), claim_secret_hash: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+
+    /** revoke_recurring_entitlement(from: struct, verifier_type: integer) */
+    revoke_recurring_entitlement: ((from: AztecAddressLike, verifier_type: (bigint | number)) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
   };
 
   
@@ -203,9 +219,33 @@ RecurringEntitlementNote: {
       };
     }
 
-    public static get events(): { RecurringReimbursementClaimed: {decode: (payload: L1EventPayload | UnencryptedL2Log | undefined) => RecurringReimbursementClaimed | undefined, eventSelector: EventSelector, fieldNames: string[] } } {
+    public static get events(): { EntitlementRevoked: {decode: (payload: L1EventPayload | UnencryptedL2Log | undefined) => EntitlementRevoked | undefined, eventSelector: EventSelector, fieldNames: string[] }, RecurringReimbursementClaimed: {decode: (payload: L1EventPayload | UnencryptedL2Log | undefined) => RecurringReimbursementClaimed | undefined, eventSelector: EventSelector, fieldNames: string[] } } {
     return {
-      RecurringReimbursementClaimed: {
+      EntitlementRevoked: {
+        decode: this.decodeEvent(EventSelector.fromSignature('EntitlementRevoked(u8,Field)'), {
+    "fields": [
+        {
+            "name": "verifier_id",
+            "type": {
+                "kind": "integer",
+                "sign": "unsigned",
+                "width": 8
+            }
+        },
+        {
+            "name": "amount",
+            "type": {
+                "kind": "field"
+            }
+        }
+    ],
+    "kind": "struct",
+    "path": "ZImburseEscrow::EntitlementRevoked"
+}),
+        eventSelector: EventSelector.fromSignature('EntitlementRevoked(u8,Field)'),
+        fieldNames: ["verifier_id","amount"],
+      },
+RecurringReimbursementClaimed: {
         decode: this.decodeEvent(EventSelector.fromSignature('RecurringReimbursementClaimed((Field),Field,u8,Field)'), {
     "fields": [
         {

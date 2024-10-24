@@ -1,4 +1,4 @@
-use dep::zkemail::{KEY_LIMBS_2048};
+use dep::zkemail::{KEY_LIMBS_2048, Sequence, dkim::RSAPubkey};
 
 global MAX_LINODE_EMAIL_BODY_LENGTH: u32 = 832;
 global MAX_LINODE_EMAIL_HEADER_LENGTH: u32 = 640;
@@ -26,18 +26,15 @@ global LINODE_BILLING_PAYMENT_TEXT: str<LB_PAYMENT_TEXT_LEN> = "This is your rec
 global MAX_BILLED_AMOUNT = 13;
 
 struct LinodeBillingParams {
-    body: [u8; MAX_LINODE_EMAIL_BODY_LENGTH],
-    body_hash_index: u32,
-    body_length: u32,
-    header: [u8; MAX_LINODE_EMAIL_HEADER_LENGTH],
-    header_length: u32,
-    pubkey: [Field; KEY_LIMBS_2048],
-    pubkey_redc: [Field; KEY_LIMBS_2048],
+    header: BoundedVec<u8, MAX_LINODE_EMAIL_HEADER_LENGTH>,
+    body: BoundedVec<u8, MAX_LINODE_EMAIL_BODY_LENGTH>,
+    pubkey: RSAPubkey<KEY_LIMBS_2048>,
     signature: [Field; KEY_LIMBS_2048],
+    dkim_header_sequence: Sequence,
+    body_hash_index: u32,
     from_index: u32,
     subject_index: u32,
-    amount_index: u32,
-    amount_length: u32,
+    amount_sequence: Sequence,
     date_index: u32,
     receipt_id_length: u32
 }

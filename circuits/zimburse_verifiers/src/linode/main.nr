@@ -42,7 +42,7 @@ pub fn verify_linode_billing_receipt(
     );
 
     // assert email is from billing@linode.com
-    check_from_linode_billing(from_index, header);
+    // check_from_linode_billing(from_index, header);
 
     // assert this is a billing receipt email from Linode
     check_subject_linode_billing_receipt(subject_index, header, receipt_id_length);

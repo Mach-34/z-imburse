@@ -48,7 +48,7 @@ pub fn check_subject_united_flight_receipt(index: u32, header: BoundedVec<u8, MA
     assert(header.get_unchecked(subject_len + index + 8) == 0x0A, "Invalid CRLF sequence");
 }
 
-pub fn extract_billed_amount(amount_sequence: Sequence, body: BoundedVec<u8, MAX_EMAIL_HEADER_LENGTH>) -> u32 {
+pub fn extract_billed_amount(body: BoundedVec<u8, MAX_EMAIL_HEADER_LENGTH>, amount_sequence: Sequence) -> Field {
     // check the prefix of the amount sequence
     check_qp_sequence_reverse(
         body,
@@ -61,7 +61,17 @@ pub fn extract_billed_amount(amount_sequence: Sequence, body: BoundedVec<u8, MAX
     // check that the 3rd to last char is .
     assert(amount_utf8.get_unchecked(amount_utf8.len() - 3) == 0x2E, "Amount does not have decimal point");
     // parse the amount
-    0
+    let mut amount: Field = 0;
+    let mut pow = 1;
+    for i in 0..MAX_BILLED_AMOUNT {
+        let byte = amount_utf8.get_unchecked(MAX_BILLED_AMOUNT - i - 1);
+        if ((i < amount_utf8.len()) & (byte != 0x2E)) {
+            let val = (byte - 0x30) as Field;
+            amount = amount + val * pow;
+            pow = pow * 10;
+        }
+    }
+    amount
 }
 
 // /**

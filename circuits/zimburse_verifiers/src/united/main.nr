@@ -4,6 +4,7 @@ use crate::united::{
 };
 use dep::zkemail::{dkim::RSAPubkey, KEY_LIMBS_2048, headers::body_hash::get_body_hash};
 use std::hash::pedersen_hash;
+use zkemail::Sequence;
 
 /// USE UNTIL WE HAVE AZTEC-NARGO v0.35.0
 // use crate::sha256_var::sha256_var;
@@ -14,10 +15,9 @@ pub fn verify_united_flight_receipt(
     signature: [Field; KEY_LIMBS_2048],
     body_hash_index: u32,
     body: BoundedVec<u8, MAX_EMAIL_HEADER_LENGTH>,
-    body_length: u32,
     from_index: u32,
     subject_index: u32,
-    purchase_summary_indices: [u32; PURCHASE_SUMMARY_INDICE_LEN]
+    amount_sequence: Sequence
 ) -> [Field; 2] {
     // check the body and header lengths are within bounds
     assert(header.len() <= MAX_EMAIL_HEADER_LENGTH);
@@ -46,9 +46,9 @@ pub fn verify_united_flight_receipt(
 
     // extract billed amount
     // note: the billed amount has 2 decimals
-    let billed_amount = extract_billed_amount(body, purchase_summary_indices);
+    let billed_amount = extract_billed_amount(body, amount_sequence);
 
     // hash the dkim key used to verify the email
-    let dkim_key_hash = pedersen_hash(pubkey);
-    [dkim_key_hash, billed_amount as Field]
+    let dkim_key_hash = pedersen_hash(pubkey.modulus);
+    [dkim_key_hash, billed_amount]
 }

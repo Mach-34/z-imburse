@@ -3,39 +3,38 @@ use crate::linode::{
     utils::{check_from_linode_billing, check_subject_linode_billing_receipt, extract_billed_amount}
 };
 use crate::utils::extract_datetime;
-use dep::zkemail::{KEY_LIMBS_2048, dkim::verify_dkim_2048, get_body_hash_by_index, base64::body_hash_base64_decode};
-use std::hash::{sha256_var, pedersen_hash};
+use dep::zkemail::{KEY_LIMBS_2048, dkim::RSAPubkey, headers::body_hash::get_body_hash, Sequence};
+use std::{
+    hash::{sha256_var, pedersen_hash},
+    collections::bounded_vec::BoundedVec
+};
 
 pub fn verify_linode_billing_receipt(
-    body: [u8; MAX_LINODE_EMAIL_BODY_LENGTH],
-    body_hash_index: u32,
-    body_length: u32,
-    header: [u8; MAX_LINODE_EMAIL_HEADER_LENGTH],
-    header_length: u32,
-    pubkey: [Field; KEY_LIMBS_2048],
-    pubkey_redc: [Field; KEY_LIMBS_2048],
+    header: BoundedVec<u8, MAX_LINODE_EMAIL_HEADER_LENGTH>,
+    pubkey: RSAPubkey<KEY_LIMBS_2048>,
     signature: [Field; KEY_LIMBS_2048],
+    dkim_header_field_sequence: Sequence,
+    body: BoundedVec<u8, MAX_LINODE_EMAIL_BODY_LENGTH>,
+    body_hash_index: u32,
     from_index: u32,
     subject_index: u32,
-    amount_index: u32,
-    amount_length: u32,
+    amount_sequence: Sequence,
     date_index: u32,
     receipt_id_length: u32,
 ) -> [Field; 3] {
 
     // check the body and header lengths are within bounds
-    assert(header_length <= MAX_LINODE_EMAIL_HEADER_LENGTH);
-    assert(body_length <= MAX_LINODE_EMAIL_BODY_LENGTH);
+    assert(header.len() <= MAX_LINODE_EMAIL_HEADER_LENGTH);
+    assert(body.len() <= MAX_LINODE_EMAIL_BODY_LENGTH);
 
     // verify the dkim signature over the header
-    verify_dkim_2048(header, header_length, pubkey, pubkey_redc, signature);
+    pubkey.verify_dkim_signature(header, signature);
 
     // extract body hash and decode from base64
-    let body_hash_encoded = get_body_hash_by_index(header, body_hash_index);
-    let signed_body_hash = body_hash_base64_decode(body_hash_encoded);
+    let signed_body_hash = get_body_hash(header, dkim_header_field_sequence, body_hash_index);
 
     // compute the hash of the asserted body
-    let computed_body_hash = sha256_var(body, body_length as u64);
+    let computed_body_hash = sha256_var(body.storage, body.len() as u64);
 
     // compare the retrieved body hash to the computed body hash
     assert(
@@ -50,12 +49,12 @@ pub fn verify_linode_billing_receipt(
 
     // extract billed amount
     // note: the billed amount has 2 decimals
-    let billed_amount = extract_billed_amount(body, amount_index, amount_length);
+    let billed_amount = extract_billed_amount(body, amount_sequence);
 
     // extract the timestamp header from the email
-    let datetime = extract_datetime(header, date_index);
+    let datetime = extract_datetime(header.storage, date_index);
     
     // hash the dkim key used to verify the email
-    let dkim_key_hash = pedersen_hash(pubkey);
+    let dkim_key_hash = pedersen_hash(pubkey.modulus);
     [dkim_key_hash, datetime as Field, billed_amount as Field]
 }

@@ -107,13 +107,12 @@ impl NoteInterface<RECURRING_ENTITLEMENT_NOTE_LENGTH> for RecurringEntitlementNo
     fn compute_note_hash(self) -> Field {
         let serialized = self.serialize_content();
         std::embedded_curve_ops::multi_scalar_mul(
-            [GENERATORS[0], GENERATORS[1], GENERATORS[2], GENERATORS[3], GENERATORS[4]],
+            [GENERATORS[0], GENERATORS[1], GENERATORS[2], GENERATORS[3]],
             [
             from_field_unsafe(serialized[0]),
             from_field_unsafe(serialized[1]),
             from_field_unsafe(serialized[2]),
             from_field_unsafe(serialized[3]),
-            from_field_unsafe(self.get_header().storage_slot)
         ]).x
     }
 }
@@ -131,6 +130,8 @@ impl NullifiableNote for RecurringEntitlementNote {
     unconstrained fn compute_nullifier_without_context(self) -> Field {
         let note_hash_for_nullify = compute_note_hash_for_nullify(self);
         let secret = self.randomness; // use as nullifier secret so that admin and recipient can nullify
+        dep::aztec::oracle::debug_log::debug_log_format("\n\nNote_hash_for_nullify: {0}/n secret: {1}\n\n", [note_hash_for_nullify, secret]);
+
         poseidon2_hash_with_separator(
             [note_hash_for_nullify, secret],
             GENERATOR_INDEX__NOTE_NULLIFIER

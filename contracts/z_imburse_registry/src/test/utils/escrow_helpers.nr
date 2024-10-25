@@ -35,6 +35,29 @@ unconstrained pub fn give_recurring_entitlement(
 }
 
 /**
+ * Revoke a recurring entitlement from a user in the escrow
+ *
+ * @param env The test environment
+ * @param escrow_address The address of the deployed escrow contract
+ * @param escrow_admin The address of the escrow admin revoking the entitlement
+ * @param recipient The address of the recipient of the entitlement
+ * @param verifier The verifier to use for the entitlement
+ */
+unconstrained pub fn revoke_recurring_entitlement(
+    env: &mut TestEnvironment,
+    escrow_address: AztecAddress,
+    escrow_admin: AztecAddress,
+    recipient: AztecAddress,
+    verifier: u8
+) {
+    env.impersonate(escrow_admin);
+    let escrow = ZImburseEscrow::at(escrow_address);
+    let revoke_recurring_entitlement_call_iface = escrow.revoke_recurring_entitlement(recipient, verifier);
+    env.call_private_void(revoke_recurring_entitlement_call_iface);
+    cheatcodes::advance_blocks_by(2);
+}
+
+/**
  * Claim a linode recurring entitlement from the escrow
  *
  * @param env The test environment

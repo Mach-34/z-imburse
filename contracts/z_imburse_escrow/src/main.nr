@@ -16,7 +16,7 @@ contract ZImburseEscrow {
         keys::getters::get_public_keys,
         macros::{storage::storage, events::event, functions::{private, public, internal, view, initializer}},
         note::{
-        note_getter_options::NoteGetterOptions, note_viewer_options::NoteViewerOptions,
+        note_getter_options::{NoteStatus, NoteGetterOptions}, note_viewer_options::NoteViewerOptions,
         constants::MAX_NOTES_PER_PAGE
     },
         oracle::{random::random, notes::check_nullifier_exists, debug_log::debug_log_format},
@@ -321,7 +321,7 @@ contract ZImburseEscrow {
             RecurringEntitlementNote::properties().recipient,
             Comparator.EQ,
             user
-        ).set_offset(offset).set_limit(MAX_NOTES_PER_PAGE);
+        ).set_offset(offset).set_limit(MAX_NOTES_PER_PAGE).set_status(NoteStatus.ACTIVE);
         let notes = storage.recurring_entitlements.at(at).view_notes(options);
         (notes, notes.len() == MAX_NOTES_PER_PAGE)
     }
@@ -346,7 +346,7 @@ contract ZImburseEscrow {
             RecurringEntitlementNote::properties().verifier_id,
             Comparator.EQ,
             verifier_id
-        ).set_offset(offset).set_limit(MAX_NOTES_PER_PAGE);
+        ).set_offset(offset).set_limit(MAX_NOTES_PER_PAGE).set_status(NoteStatus.ACTIVE);
         let notes = storage.recurring_entitlements.at(at).view_notes(options);
         (notes, notes.len() == MAX_NOTES_PER_PAGE)
     }

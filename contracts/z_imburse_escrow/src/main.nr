@@ -185,11 +185,18 @@ contract ZImburseEscrow {
         dep::aztec::oracle::debug_log::debug_log_format("Anchored DKIM keyhash", []);
 
         // determine the amount to reimburse
+        dep::aztec::oracle::debug_log::debug_log_format("Billed amount: {0}", [billed_amount.to_field()]);
+        dep::aztec::oracle::debug_log::debug_log_format("Note max value: {0}", [note.max_value.to_field()]);
+        dep::aztec::oracle::debug_log::debug_log_format("Note admin: {0}", [note.admin.to_field()]);
+        dep::aztec::oracle::debug_log::debug_log_format("Note recipient: {0}", [note.recipient.to_field()]);
+        dep::aztec::oracle::debug_log::debug_log_format("Note verifier id: {0}", [note.verifier_id as Field]);
+
         let amount_to_reimburse = if note.max_value >= billed_amount {
             billed_amount.to_field()
         } else {
             note.max_value.to_field()
         };
+        dep::aztec::oracle::debug_log::debug_log_format("Computed amount to reimburse: {0}", [amount_to_reimburse]);
 
         // notify admin of reimbursement
         RecurringReimbursementClaimed {

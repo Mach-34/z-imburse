@@ -14,7 +14,7 @@ use std::hash::from_field_unsafe;
 use dep::generators::GENERATORS;
 
 // serializes verifier_id and max_value into one field element
-global RECURRING_ENTITLEMENT_NOTE_LENGTH: u32 = 5;
+global RECURRING_ENTITLEMENT_NOTE_LENGTH: u32 = 6;
 
 #[note_custom_interface]
 pub struct RecurringEntitlementNote {
@@ -35,42 +35,43 @@ pub struct RecurringEntitlementNote {
 impl NoteInterface<RECURRING_ENTITLEMENT_NOTE_LENGTH> for RecurringEntitlementNote {
 
     fn serialize_content(self) -> [Field; RECURRING_ENTITLEMENT_NOTE_LENGTH] {
-        // serialize max_value and verifier_id together
-        let max_value_bytes: [u8; 16] = self.max_value.to_le_bytes();
-        let mut packed_bytes: [u8; 17] = [0; 17];
-        for i in 0..16 {
-            packed_bytes[i] = max_value_bytes[i];
-        }
-        packed_bytes[16] = self.is_admin as u8;
-        let packed = field_from_bytes(packed_bytes, true);
+        // // serialize max_value and verifier_id together
+        // let max_value_bytes: [u8; 16] = self.max_value.to_be_bytes();
+        // let mut packed_bytes: [u8; 17] = [0; 17];
+        // for i in 0..16 {
+        //     packed_bytes[i] = max_value_bytes[i];
+        // }
+        // packed_bytes[16] = self.is_admin as u8;
+        // let packed = field_from_bytes(packed_bytes, true);
         // return serialized content
         [
             self.admin.to_field(),
             self.recipient.to_field(),
+            self.is_admin as Field,
             self.verifier_id as Field,
-            packed,
+            self.max_value.to_integer(),
             self.randomness
         ]
     }
 
     fn deserialize_content(serialized_note: [Field; RECURRING_ENTITLEMENT_NOTE_LENGTH]) -> RecurringEntitlementNote {
-        // unpack verifier_id and max_value
-        let packed = serialized_note[2];
-        let packed_bytes: [u8; 17] = packed.to_be_bytes();
-        let is_admin = packed_bytes[16] == 1;
-        let mut max_value_bytes: [u8; 16] = [0; 16];
-        for i in 0..16 {
-            max_value_bytes[i] = packed_bytes[i];
-        }
-        let max_value = U128::from_le_bytes(max_value_bytes);
+        // // unpack verifier_id and max_value
+        // let packed = serialized_note[2];
+        // let packed_bytes: [u8; 17] = packed.to_be_bytes();
+        // let is_admin = packed_bytes[16] == 1;
+        // let mut max_value_bytes: [u8; 16] = [0; 16];
+        // for i in 0..16 {
+        //     max_value_bytes[i] = packed_bytes[i];
+        // }
+        // let max_value = U128::from_be_bytes(max_value_bytes);
         // return deserialized note
         RecurringEntitlementNote {
             admin: AztecAddress::from_field(serialized_note[0]),
             recipient: AztecAddress::from_field(serialized_note[1]),
-            is_admin,
-            verifier_id: serialized_note[2] as u8,
-            max_value,
-            randomness: serialized_note[3],
+            is_admin: serialized_note[2] == 1,
+            verifier_id: serialized_note[3] as u8,
+            max_value: U128::from_integer(serialized_note[4]),
+            randomness: serialized_note[5],
             header: NoteHeader::empty()
         }
     }
@@ -114,13 +115,14 @@ impl NoteInterface<RECURRING_ENTITLEMENT_NOTE_LENGTH> for RecurringEntitlementNo
     fn compute_note_hash(self) -> Field {
         let serialized = self.serialize_without_is_admin();
         std::embedded_curve_ops::multi_scalar_mul(
-            [GENERATORS[0], GENERATORS[1], GENERATORS[2], GENERATORS[3], GENERATORS[4], GENERATORS[5]],
+            [GENERATORS[0], GENERATORS[1], GENERATORS[2], GENERATORS[3], GENERATORS[4], GENERATORS[5], GENERATORS[6]],
             [
             from_field_unsafe(serialized[0]),
             from_field_unsafe(serialized[1]),
             from_field_unsafe(serialized[2]),
             from_field_unsafe(serialized[3]),
             from_field_unsafe(serialized[4]),
+            from_field_unsafe(serialized[5]),
             from_field_unsafe(self.get_header().storage_slot)
         ]
         ).x
@@ -234,7 +236,7 @@ impl RecurringEntitlementNote {
         let mut pk: Point = Point::empty();
         if self.is_admin {
             pk = recipient_keys.npk_m.to_point();
-            let nsk_app = get_nsk_app(admin_keys.npk_m.hash());
+            let nsk_app = unsafe { get_nsk_app(admin_keys.npk_m.hash()) };
             sk = from_field_unsafe(nsk_app);
         } else {
             pk = admin_keys.npk_m.to_point();
@@ -252,15 +254,16 @@ impl RecurringEntitlementNote {
     }
 
     fn serialize_without_is_admin(self) -> [Field; RECURRING_ENTITLEMENT_NOTE_LENGTH] {
-        // serialize max_value and verifier_id together
-        let packed_bytes: [u8; 16] = self.max_value.to_le_bytes();
-        let packed = field_from_bytes(packed_bytes, true);
+        // // serialize max_value and verifier_id together
+        // let packed_bytes: [u8; 16] = self.max_value.to_be_bytes();
+        // let packed = field_from_bytes(packed_bytes, true);
         // return serialized content
         [
             self.admin.to_field(),
             self.recipient.to_field(),
+            0,
             self.verifier_id as Field,
-            packed,
+            self.max_value.to_integer(),
             self.randomness
         ]
     }

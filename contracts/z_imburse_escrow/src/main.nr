@@ -136,7 +136,7 @@ contract ZImburseEscrow {
         dep::aztec::oracle::debug_log::debug_log_format("Getting Note", []);
         let notes = storage.recurring_entitlements.at(context.msg_sender()).get_notes(
             NoteGetterOptions::new()
-                // .select(RecurringEntitlementNote::properties().verifier_id, Comparator.EQ, verifiers::LINODE)
+                .select(RecurringEntitlementNote::properties().verifier_id, Comparator.EQ, verifiers::LINODE)
                 .set_limit(1)
         );
         dep::aztec::oracle::debug_log::debug_log_format("Got number of notes: ", [notes.len() as Field]);

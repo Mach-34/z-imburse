@@ -18,7 +18,8 @@ compile() {
 # Loop over every child folder in the examples directory
 cd circuits/library_testers
 for folder in *; do
-    if [ -d "$folder" ]; then
+    # only compile Linode and United for now
+    if [ -d "$folder" ] && [[ "$folder" == "linode_email_verifier" || "$folder" == "united_email_verifier" ]]; then
         compile "$folder"
     fi
 done

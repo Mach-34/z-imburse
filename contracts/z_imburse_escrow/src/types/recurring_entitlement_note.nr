@@ -240,24 +240,45 @@ impl RecurringEntitlementNote {
             sk = from_field_unsafe(nsk_app);
         } else {
             pk = admin_keys.npk_m.to_point();
-            let nsk_app = get_nsk_app(recipient_keys.npk_m.hash());
+            let nsk_app = unsafe { get_nsk_app(recipient_keys.npk_m.hash()) };
             sk = from_field_unsafe(nsk_app);
         }
+        dep::aztec::oracle::debug_log::debug_log_format("Is admin: {0}", [self.is_admin as Field]);
         // derive the shared secret
         let secret_bytes = point_to_symmetric_key(sk, pk);
+        dep::aztec::oracle::debug_log::debug_log_format("Nullifier shared secret: [\n{0}\n{1}\n{2}\n{3}\n{4}\n{5}\n{6}\n]", [
+            secret_bytes[0] as Field,
+            secret_bytes[1] as Field,
+            secret_bytes[2] as Field,
+            secret_bytes[3] as Field,
+            secret_bytes[29] as Field,
+            secret_bytes[30] as Field,
+            secret_bytes[31] as Field
+        ]);
+        dep::aztec::oracle::debug_log::debug_log_format("Recipient: {0}\nAdmin: {1}", [self.recipient.to_field(), self.admin.to_field()]);
+        dep::aztec::oracle::debug_log::debug_log_format("Recipient NPK_M_SECRET: {0}\nAdmin NPK_M_SECRET: {1}", [
+            get_nsk_app(recipient_keys.npk_m.hash()),
+            get_nsk_app(admin_keys.npk_m.hash())
+        ]);
+        dep::aztec::oracle::debug_log::debug_log_format("Recipient Key: [\n{0}\n{1}]", [
+            recipient_keys.npk_m.to_point().x,
+            recipient_keys.npk_m.to_point().y
+        ]);
+        dep::aztec::oracle::debug_log::debug_log_format("Admin Key: [\n{0}\n{1}\n]", [
+            admin_keys.npk_m.to_point().x,
+            admin_keys.npk_m.to_point().y
+        ]);
+        let msm = multi_scalar_mul([pk], [sk]);
+        dep::aztec::oracle::debug_log::debug_log_format("MSM: [\n{0}\n{1}\n]", [msm.x, msm.y]);
         // set the highest byte to be 0 to ensure that the secret is not too large
         let mut resized: [u8; 31] = [0; 31];
         for i in 0..31 {
             resized[i] = secret_bytes[i + 1];
         }
-        field_from_bytes(resized, false)
+        field_from_bytes(resized, true)
     }
 
     fn serialize_without_is_admin(self) -> [Field; RECURRING_ENTITLEMENT_NOTE_LENGTH] {
-        // // serialize max_value and verifier_id together
-        // let packed_bytes: [u8; 16] = self.max_value.to_be_bytes();
-        // let packed = field_from_bytes(packed_bytes, true);
-        // return serialized content
         [
             self.admin.to_field(),
             self.recipient.to_field(),

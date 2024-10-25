@@ -13,7 +13,7 @@ use crate::{
 }
 };
 
-// #[test]
+#[test]
 unconstrained fn give_linode_recurring_entitlement_success() {
     // setup test env
     let (env, accounts, contracts) = setup::<1>();
@@ -79,7 +79,7 @@ unconstrained fn give_linode_recurring_entitlement_success() {
     // assert(entitlements_by_user_admin.get(0).recipient == accounts.alice, "Entitlement user address is incorrect");
 }
 
-// #[test]
+#[test]
 unconstrained fn claim_linode_reimbursement_success() {
     // CLAIM IS > ENTITLEMENT, CHECK GIVES MAX ENTITLEMENT
     // setup test env
@@ -118,7 +118,7 @@ unconstrained fn claim_linode_reimbursement_success() {
     check_private_balance(contracts.usdc, accounts.alice, amount);
 }
 
-// #[test]
+#[test]
 unconstrained fn claim_linode_reimbursement_max_value_success() {
     // CLAIM IS <= ENTITLEMENT, CHECK GIVES CLAIM ($22)
     // setup test env
@@ -169,7 +169,7 @@ unconstrained fn claim_linode_reimbursement_max_value_success() {
     // check_private_balance(contracts.usdc, accounts.alice, amount_reimbursed);
 }
 
-// #[test]
+#[test]
 unconstrained fn claim_linode_reimbursement_success_multiple_months() {
     // CLAIM IS > ENTITLEMENT, CHECK GIVES MAX ENTITLEMENT
     // setup test env
@@ -307,91 +307,91 @@ unconstrained fn nullify_entitlement() {
     );
 }
 
-// #[test]
-unconstrained fn get_entitlements_by_user() {
-    // setup test env
-    let (env, accounts, contracts) = setup::<1>();
-    let amount = to_usdc_decimals(10);
-    // mint tokens to the escrow
-    mint_public(
-        env,
-        contracts.usdc,
-        accounts.superuser,
-        contracts.escrows[0],
-        amount,
-    );
-    // give entitlement to reimburse linode receipt to alice
-    give_recurring_entitlement(
-        env,
-        contracts.escrows[0],
-        accounts.escrow_admin,
-        accounts.alice,
-        amount,
-        verifiers::LINODE
-    );
+// // #[test]
+// unconstrained fn get_entitlements_by_user() {
+//     // setup test env
+//     let (env, accounts, contracts) = setup::<1>();
+//     let amount = to_usdc_decimals(10);
+//     // mint tokens to the escrow
+//     mint_public(
+//         env,
+//         contracts.usdc,
+//         accounts.superuser,
+//         contracts.escrows[0],
+//         amount,
+//     );
+//     // give entitlement to reimburse linode receipt to alice
+//     give_recurring_entitlement(
+//         env,
+//         contracts.escrows[0],
+//         accounts.escrow_admin,
+//         accounts.alice,
+//         amount,
+//         verifiers::LINODE
+//     );
 
-    // check the entitlement receipt exists for admin
-    let (entitlements_admin, _) = get_recurring_entitlements_by_user(contracts.escrows[0], accounts.escrow_admin, accounts.alice, 0);
-    assert(entitlements_admin.len() == 1, "Entitlements length is incorrect");
-    assert(entitlements_admin.get(0).is_admin == true, "Admin is not set for admin entitlement receipt");
-    assert(entitlements_admin.get(0).max_value.to_integer() == amount, "Entitlement amount is incorrect");
-    assert(entitlements_admin.get(0).verifier_id == verifiers::LINODE, "Verifier is incorrect");
-    assert(entitlements_admin.get(0).admin == accounts.escrow_admin, "Entitlement admin address is incorrect");
-    assert(entitlements_admin.get(0).recipient == accounts.alice, "Entitlement user address is incorrect");
+//     // check the entitlement receipt exists for admin
+//     let (entitlements_admin, _) = get_recurring_entitlements_by_user(contracts.escrows[0], accounts.escrow_admin, accounts.alice, 0);
+//     assert(entitlements_admin.len() == 1, "Entitlements length is incorrect");
+//     assert(entitlements_admin.get(0).is_admin == true, "Admin is not set for admin entitlement receipt");
+//     assert(entitlements_admin.get(0).max_value.to_integer() == amount, "Entitlement amount is incorrect");
+//     assert(entitlements_admin.get(0).verifier_id == verifiers::LINODE, "Verifier is incorrect");
+//     assert(entitlements_admin.get(0).admin == accounts.escrow_admin, "Entitlement admin address is incorrect");
+//     assert(entitlements_admin.get(0).recipient == accounts.alice, "Entitlement user address is incorrect");
 
-    // check the entitlement exists for recipient
-    let (entitlements_recipient, _) = get_recurring_entitlements_by_user(contracts.escrows[0], accounts.alice, accounts.alice, 0);
-    assert(entitlements_recipient.len() == 1, "Entitlements length is incorrect");
-    assert(entitlements_recipient.get(0).is_admin == false, "Admin is set for alice entitlement");
-    assert(entitlements_recipient.get(0).max_value.to_integer() == amount, "Entitlement amount is incorrect");
-    assert(entitlements_recipient.get(0).verifier_id == verifiers::LINODE, "Verifier is incorrect");
-    assert(entitlements_recipient.get(0).admin == accounts.escrow_admin, "Entitlement admin address is incorrect");
-    assert(entitlements_recipient.get(0).recipient == accounts.alice, "Entitlement user address is incorrect");
-}
+//     // check the entitlement exists for recipient
+//     let (entitlements_recipient, _) = get_recurring_entitlements_by_user(contracts.escrows[0], accounts.alice, accounts.alice, 0);
+//     assert(entitlements_recipient.len() == 1, "Entitlements length is incorrect");
+//     assert(entitlements_recipient.get(0).is_admin == false, "Admin is set for alice entitlement");
+//     assert(entitlements_recipient.get(0).max_value.to_integer() == amount, "Entitlement amount is incorrect");
+//     assert(entitlements_recipient.get(0).verifier_id == verifiers::LINODE, "Verifier is incorrect");
+//     assert(entitlements_recipient.get(0).admin == accounts.escrow_admin, "Entitlement admin address is incorrect");
+//     assert(entitlements_recipient.get(0).recipient == accounts.alice, "Entitlement user address is incorrect");
+// }
 
-// #[test]
-unconstrained fn get_entitlements_by_verifier_id() {
-    // setup test env
-    let (env    , accounts, contracts) = setup::<1>();
-    let amount = to_usdc_decimals(10);
-    // mint tokens to the escrow
-    mint_public(
-        env,
-        contracts.usdc,
-        accounts.superuser,
-        contracts.escrows[0],
-        amount,
-    );
-    // give entitlement to reimburse linode receipt to alice
-    give_recurring_entitlement(
-        env,
-        contracts.escrows[0],
-        accounts.escrow_admin,
-        accounts.alice,
-        amount,
-        verifiers::LINODE
-    );
+// // #[test]
+// unconstrained fn get_entitlements_by_verifier_id() {
+//     // setup test env
+//     let (env    , accounts, contracts) = setup::<1>();
+//     let amount = to_usdc_decimals(10);
+//     // mint tokens to the escrow
+//     mint_public(
+//         env,
+//         contracts.usdc,
+//         accounts.superuser,
+//         contracts.escrows[0],
+//         amount,
+//     );
+//     // give entitlement to reimburse linode receipt to alice
+//     give_recurring_entitlement(
+//         env,
+//         contracts.escrows[0],
+//         accounts.escrow_admin,
+//         accounts.alice,
+//         amount,
+//         verifiers::LINODE
+//     );
 
-    // check the entitlement receipt exists for admin
-    let (entitlements_admin, _) = get_recurring_entitlements_by_verifier(contracts.escrows[0], accounts.escrow_admin, verifiers::LINODE, 0);
-    assert(entitlements_admin.len() == 1, "Entitlements length is incorrect");
-    assert(entitlements_admin.get(0).is_admin == true, "Admin is not set for admin entitlement receipt");
-    assert(entitlements_admin.get(0).max_value.to_integer() == amount, "Entitlement amount is incorrect");
-    assert(entitlements_admin.get(0).verifier_id == verifiers::LINODE, "Verifier is incorrect");
-    assert(entitlements_admin.get(0).admin == accounts.escrow_admin, "Entitlement admin address is incorrect");
-    assert(entitlements_admin.get(0).recipient == accounts.alice, "Entitlement user address is incorrect");
+//     // check the entitlement receipt exists for admin
+//     let (entitlements_admin, _) = get_recurring_entitlements_by_verifier(contracts.escrows[0], accounts.escrow_admin, verifiers::LINODE, 0);
+//     assert(entitlements_admin.len() == 1, "Entitlements length is incorrect");
+//     assert(entitlements_admin.get(0).is_admin == true, "Admin is not set for admin entitlement receipt");
+//     assert(entitlements_admin.get(0).max_value.to_integer() == amount, "Entitlement amount is incorrect");
+//     assert(entitlements_admin.get(0).verifier_id == verifiers::LINODE, "Verifier is incorrect");
+//     assert(entitlements_admin.get(0).admin == accounts.escrow_admin, "Entitlement admin address is incorrect");
+//     assert(entitlements_admin.get(0).recipient == accounts.alice, "Entitlement user address is incorrect");
 
-    // check the entitlement exists for recipient
-    let (entitlements_recipient, _) = get_recurring_entitlements_by_verifier(contracts.escrows[0], accounts.alice, verifiers::LINODE, 0);
-    assert(entitlements_recipient.len() == 1, "Entitlements length is incorrect");
-    assert(entitlements_recipient.get(0).is_admin == false, "Admin is set for alice entitlement");
-    assert(entitlements_recipient.get(0).max_value.to_integer() == amount, "Entitlement amount is incorrect");
-    assert(entitlements_recipient.get(0).verifier_id == verifiers::LINODE, "Verifier is incorrect");
-    assert(entitlements_recipient.get(0).admin == accounts.escrow_admin, "Entitlement admin address is incorrect");
-    assert(entitlements_recipient.get(0).recipient == accounts.alice, "Entitlement user address is incorrect");
+//     // check the entitlement exists for recipient
+//     let (entitlements_recipient, _) = get_recurring_entitlements_by_verifier(contracts.escrows[0], accounts.alice, verifiers::LINODE, 0);
+//     assert(entitlements_recipient.len() == 1, "Entitlements length is incorrect");
+//     assert(entitlements_recipient.get(0).is_admin == false, "Admin is set for alice entitlement");
+//     assert(entitlements_recipient.get(0).max_value.to_integer() == amount, "Entitlement amount is incorrect");
+//     assert(entitlements_recipient.get(0).verifier_id == verifiers::LINODE, "Verifier is incorrect");
+//     assert(entitlements_recipient.get(0).admin == accounts.escrow_admin, "Entitlement admin address is incorrect");
+//     assert(entitlements_recipient.get(0).recipient == accounts.alice, "Entitlement user address is incorrect");
 
-    // check entitlement nullifiers
-    let nullifier_1 = entitlements_admin.get(0).derive_nullifier_secret();
-    let nullifier_2 = entitlements_recipient.get(0).derive_nullifier_secret();
-    debug_log_format("Nullifier 1: {0}; Nullifier 2: {1}", [nullifier_1, nullifier_2]);
-}
+//     // check entitlement nullifiers
+//     let nullifier_1 = entitlements_admin.get(0).derive_nullifier_secret();
+//     let nullifier_2 = entitlements_recipient.get(0).derive_nullifier_secret();
+//     debug_log_format("Nullifier 1: {0}; Nullifier 2: {1}", [nullifier_1, nullifier_2]);
+// }

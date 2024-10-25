@@ -105,11 +105,11 @@ contract ZImburseEscrow {
         // add the note for the recipient
         // todo: will the header be mutated here or can we skip duplication
         let amount = U128::from_integer(amount);
-        let mut entitlement_recipient = RecurringEntitlementNote::new(admin, to, false, verifier_id, amount, blinding_factor);
-        storage.recurring_entitlements.at(to).insert(&mut entitlement_recipient).emit(encode_and_encrypt_note(&mut context, admin_keys.ovpk_m, recipient_keys.ivpk_m, to));
+        let mut entitlement = RecurringEntitlementNote::new(to, verifier_id, amount, blinding_factor);
+        storage.recurring_entitlements.at(to).insert(&mut entitlement).emit(encode_and_encrypt_note(&mut context, admin_keys.ovpk_m, recipient_keys.ivpk_m, to));
         // add the note for the admin
-        let mut entitlement_sender = RecurringEntitlementNote::new(admin, to, true, verifier_id, amount, blinding_factor);
-        storage.recurring_entitlements.at(admin).insert(&mut entitlement_sender).emit(encode_and_encrypt_note(&mut context, admin_keys.ovpk_m, admin_keys.ivpk_m, admin))
+        // let mut entitlement_sender = RecurringEntitlementNote::new(admin, to, true, verifier_id, amount, blinding_factor);
+        storage.recurring_entitlements.at(admin).insert(&mut entitlement).emit(encode_and_encrypt_note(&mut context, admin_keys.ovpk_m, admin_keys.ivpk_m, admin))
     }
 
     #[private]
@@ -133,7 +133,6 @@ contract ZImburseEscrow {
         claim_secret_hash: Field
     ) -> Field {
         // retrieve a Linode hosting entitlement
-        dep::aztec::oracle::debug_log::debug_log_format("Getting Note", []);
         let notes = storage.recurring_entitlements.at(context.msg_sender()).get_notes(
             NoteGetterOptions::new()
                 .select(RecurringEntitlementNote::properties().verifier_id, Comparator.EQ, verifiers::LINODE)
@@ -141,6 +140,7 @@ contract ZImburseEscrow {
         );
         assert(notes.len() == 1, "No entitlements to redeem");
         let note = notes.get_unchecked(0);
+        assert(note.recipient == context.msg_sender(), "Entitlement does not belong to the recipient");
 
         // ensure the note has not been nullified by the admin
         // todo: switch for nullifier non-inclusion check once out of txe
@@ -175,8 +175,8 @@ contract ZImburseEscrow {
         let billed_amount = U128::from_integer(linode_receipt_result[2] * 10000);
 
         // check the dkim key hash matches the linode verifier id
-        let registry = storage.definition.read_private().registry;
-        let registered_verifier_id = check_dkim_key_hash_private(&mut context, registry, dkim_key_hash);
+        let definition = storage.definition.read_private();
+        let registered_verifier_id = check_dkim_key_hash_private(&mut context, definition.registry, dkim_key_hash);
         assert((registered_verifier_id as u8) == verifiers::LINODE, "DKIM key is not registered for Linode");
 
         // determine the amount to reimburse
@@ -196,8 +196,8 @@ contract ZImburseEscrow {
             encode_and_encrypt_event(
                 &mut context,
                 get_public_keys(context.msg_sender()).ovpk_m,
-                get_public_keys(note.admin).ivpk_m,
-                note.admin
+                get_public_keys(definition.admin).ivpk_m,
+                definition.admin
             )
         );
 

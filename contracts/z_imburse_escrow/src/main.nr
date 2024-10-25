@@ -139,11 +139,8 @@ contract ZImburseEscrow {
                 .select(RecurringEntitlementNote::properties().verifier_id, Comparator.EQ, verifiers::LINODE)
                 .set_limit(1)
         );
-        dep::aztec::oracle::debug_log::debug_log_format("Got number of notes: ", [notes.len() as Field]);
         assert(notes.len() == 1, "No entitlements to redeem");
         let note = notes.get_unchecked(0);
-        assert(note.recipient == context.msg_sender(), "Entitlement does not belong to the sender");
-        dep::aztec::oracle::debug_log::debug_log_format("Constrained sender", []);
 
         // ensure the note has not been nullified by the admin
         // todo: switch for nullifier non-inclusion check once out of txe
@@ -172,7 +169,6 @@ contract ZImburseEscrow {
             date_index,
             receipt_id_length
         );
-        dep::aztec::oracle::debug_log::debug_log_format("Verified email", []);
         let dkim_key_hash = linode_receipt_result[0];
         let unix_month = linode_receipt_result[1]; // month and year
         // billed amount returns 2 decimals, so multiply billed_amount by 10,000
@@ -182,21 +178,13 @@ contract ZImburseEscrow {
         let registry = storage.definition.read_private().registry;
         let registered_verifier_id = check_dkim_key_hash_private(&mut context, registry, dkim_key_hash);
         assert((registered_verifier_id as u8) == verifiers::LINODE, "DKIM key is not registered for Linode");
-        dep::aztec::oracle::debug_log::debug_log_format("Anchored DKIM keyhash", []);
 
         // determine the amount to reimburse
-        dep::aztec::oracle::debug_log::debug_log_format("Billed amount: {0}", [billed_amount.to_field()]);
-        dep::aztec::oracle::debug_log::debug_log_format("Note max value: {0}", [note.max_value.to_field()]);
-        dep::aztec::oracle::debug_log::debug_log_format("Note admin: {0}", [note.admin.to_field()]);
-        dep::aztec::oracle::debug_log::debug_log_format("Note recipient: {0}", [note.recipient.to_field()]);
-        dep::aztec::oracle::debug_log::debug_log_format("Note verifier id: {0}", [note.verifier_id as Field]);
-
         let amount_to_reimburse = if note.max_value >= billed_amount {
             billed_amount.to_field()
         } else {
             note.max_value.to_field()
         };
-        dep::aztec::oracle::debug_log::debug_log_format("Computed amount to reimburse: {0}", [amount_to_reimburse]);
 
         // notify admin of reimbursement
         RecurringReimbursementClaimed {
@@ -212,7 +200,6 @@ contract ZImburseEscrow {
                 note.admin
             )
         );
-        dep::aztec::oracle::debug_log::debug_log_format("Emitted reimbursement claimed event to admin", []);
 
         // check that this entitlement has not been emitted for this month and add it
         // todo: check the nullifier non-inclusion once out of txe
@@ -224,13 +211,11 @@ contract ZImburseEscrow {
         assert(!recurring_nullifier_exists, "Entitlement has already been claimed for this month");
         // let recurring_nullifier_exists = storage.entitlement_nullifiers.at(recurring_nullifier).read_private();
         // context.historical_header.prove_nullifier_non_inclusion(recurring_nullifier);
-        dep::aztec::oracle::debug_log::debug_log_format("Proved recurring nullifier was not included", []);
-        // context.push_nullifier(recurring_nullifier);
-        dep::aztec::oracle::debug_log::debug_log_format("Pushed recurring nullifier", []);
+        // dep::aztec::oracle::debug_log::debug_log_format("Proved recurring nullifier was not included", []);
+        context.push_nullifier(recurring_nullifier);
+        // dep::aztec::oracle::debug_log::debug_log_format("Pushed recurring nullifier", []);
 
         // release funds from escrow by shielding in public
-        // todo: do we need a private event? or is it sufficient to instantly claim?
-        // worry would be waiting/ disconnection
         let token_address = storage.definition.read_private().usdc;
         Token::at(token_address).shield(
             context.this_address(),

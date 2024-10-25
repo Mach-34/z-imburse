@@ -244,7 +244,7 @@ unconstrained fn claim_linode_reimbursement_success_multiple_months() {
     );
 }
 
-#[test]
+#[test(should_fail_with = "Entitlement has already been claimed for this month")]
 unconstrained fn claim_linode_reimbursement_fail_month_nullified() {
     // CLAIM IS > ENTITLEMENT, CHECK GIVES MAX ENTITLEMENT
     // setup test env

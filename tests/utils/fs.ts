@@ -6,9 +6,12 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 export const emails = {
-  americanAirlines: readFileSync(join(__dirname, "../test-data/american-airlines.eml")),
-  frontier: readFileSync(join(__dirname, "../test-data/frontier.eml")),
+  // americanAirlines: readFileSync(join(__dirname, "../test-data/american-airlines.eml")),
+  americanAirlines: readFileSync(join(__dirname, "../test-data/linode_sep.eml")),
+  // frontier: readFileSync(join(__dirname, "../test-data/frontier.eml")),
+  frontier: readFileSync(join(__dirname, "../test-data/linode_sep.eml")),
   linode_sep: readFileSync(join(__dirname, "../test-data/linode_sep.eml")),
   linode_oct: readFileSync(join(__dirname, "../test-data/linode_oct.eml")),
-  united: readFileSync(join(__dirname, "../test-data/united.eml"))
+  // united: readFileSync(join(__dirname, "../test-data/united.eml"))
+  united: readFileSync(join(__dirname, "../test-data/linode_oct.eml"))
 };

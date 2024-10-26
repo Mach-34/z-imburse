@@ -16,7 +16,7 @@ contract ZImburseEscrow {
         keys::getters::get_public_keys,
         macros::{storage::storage, events::event, functions::{private, public, internal, view, initializer}},
         note::{
-        note_getter_options::NoteGetterOptions, note_viewer_options::NoteViewerOptions,
+        note_getter_options::{NoteStatus, NoteGetterOptions}, note_viewer_options::NoteViewerOptions,
         constants::MAX_NOTES_PER_PAGE
     },
         oracle::{random::random, notes::check_nullifier_exists, debug_log::debug_log_format},
@@ -105,11 +105,11 @@ contract ZImburseEscrow {
         // add the note for the recipient
         // todo: will the header be mutated here or can we skip duplication
         let amount = U128::from_integer(amount);
-        let mut entitlement_recipient = RecurringEntitlementNote::new(admin, to, false, verifier_id, amount, blinding_factor);
-        storage.recurring_entitlements.at(to).insert(&mut entitlement_recipient).emit(encode_and_encrypt_note(&mut context, admin_keys.ovpk_m, recipient_keys.ivpk_m, to));
+        let mut entitlement = RecurringEntitlementNote::new(to, verifier_id, amount, blinding_factor);
+        storage.recurring_entitlements.at(to).insert(&mut entitlement).emit(encode_and_encrypt_note(&mut context, admin_keys.ovpk_m, recipient_keys.ivpk_m, to));
         // add the note for the admin
-        let mut entitlement_sender = RecurringEntitlementNote::new(admin, to, true, verifier_id, amount, blinding_factor);
-        storage.recurring_entitlements.at(admin).insert(&mut entitlement_sender).emit(encode_and_encrypt_note(&mut context, admin_keys.ovpk_m, admin_keys.ivpk_m, admin))
+        // let mut entitlement_sender = RecurringEntitlementNote::new(admin, to, true, verifier_id, amount, blinding_factor);
+        storage.recurring_entitlements.at(admin).insert(&mut entitlement).emit(encode_and_encrypt_note(&mut context, admin_keys.ovpk_m, admin_keys.ivpk_m, admin))
     }
 
     #[private]
@@ -133,17 +133,14 @@ contract ZImburseEscrow {
         claim_secret_hash: Field
     ) -> Field {
         // retrieve a Linode hosting entitlement
-        dep::aztec::oracle::debug_log::debug_log_format("Getting Note", []);
         let notes = storage.recurring_entitlements.at(context.msg_sender()).get_notes(
             NoteGetterOptions::new()
-                // .select(RecurringEntitlementNote::properties().verifier_id, Comparator.EQ, verifiers::LINODE)
+                .select(RecurringEntitlementNote::properties().verifier_id, Comparator.EQ, verifiers::LINODE)
                 .set_limit(1)
         );
-        dep::aztec::oracle::debug_log::debug_log_format("Got number of notes: ", [notes.len() as Field]);
         assert(notes.len() == 1, "No entitlements to redeem");
         let note = notes.get_unchecked(0);
-        assert(note.recipient == context.msg_sender(), "Entitlement does not belong to the sender");
-        dep::aztec::oracle::debug_log::debug_log_format("Constrained sender", []);
+        assert(note.recipient == context.msg_sender(), "Entitlement does not belong to the recipient");
 
         // ensure the note has not been nullified by the admin
         // todo: switch for nullifier non-inclusion check once out of txe
@@ -172,17 +169,15 @@ contract ZImburseEscrow {
             date_index,
             receipt_id_length
         );
-        dep::aztec::oracle::debug_log::debug_log_format("Verified email", []);
         let dkim_key_hash = linode_receipt_result[0];
         let unix_month = linode_receipt_result[1]; // month and year
         // billed amount returns 2 decimals, so multiply billed_amount by 10,000
         let billed_amount = U128::from_integer(linode_receipt_result[2] * 10000);
 
         // check the dkim key hash matches the linode verifier id
-        let registry = storage.definition.read_private().registry;
-        let registered_verifier_id = check_dkim_key_hash_private(&mut context, registry, dkim_key_hash);
+        let definition = storage.definition.read_private();
+        let registered_verifier_id = check_dkim_key_hash_private(&mut context, definition.registry, dkim_key_hash);
         assert((registered_verifier_id as u8) == verifiers::LINODE, "DKIM key is not registered for Linode");
-        dep::aztec::oracle::debug_log::debug_log_format("Anchored DKIM keyhash", []);
 
         // determine the amount to reimburse
         let amount_to_reimburse = if note.max_value >= billed_amount {
@@ -201,11 +196,10 @@ contract ZImburseEscrow {
             encode_and_encrypt_event(
                 &mut context,
                 get_public_keys(context.msg_sender()).ovpk_m,
-                get_public_keys(note.admin).ivpk_m,
-                note.admin
+                get_public_keys(definition.admin).ivpk_m,
+                definition.admin
             )
         );
-        dep::aztec::oracle::debug_log::debug_log_format("Emitted reimbursement claimed event to admin", []);
 
         // check that this entitlement has not been emitted for this month and add it
         // todo: check the nullifier non-inclusion once out of txe
@@ -217,13 +211,11 @@ contract ZImburseEscrow {
         assert(!recurring_nullifier_exists, "Entitlement has already been claimed for this month");
         // let recurring_nullifier_exists = storage.entitlement_nullifiers.at(recurring_nullifier).read_private();
         // context.historical_header.prove_nullifier_non_inclusion(recurring_nullifier);
-        dep::aztec::oracle::debug_log::debug_log_format("Proved recurring nullifier was not included", []);
-        // context.push_nullifier(recurring_nullifier);
-        dep::aztec::oracle::debug_log::debug_log_format("Pushed recurring nullifier", []);
+        // dep::aztec::oracle::debug_log::debug_log_format("Proved recurring nullifier was not included", []);
+        context.push_nullifier(recurring_nullifier);
+        // dep::aztec::oracle::debug_log::debug_log_format("Pushed recurring nullifier", []);
 
         // release funds from escrow by shielding in public
-        // todo: do we need a private event? or is it sufficient to instantly claim?
-        // worry would be waiting/ disconnection
         let token_address = storage.definition.read_private().usdc;
         Token::at(token_address).shield(
             context.this_address(),
@@ -329,7 +321,7 @@ contract ZImburseEscrow {
             RecurringEntitlementNote::properties().recipient,
             Comparator.EQ,
             user
-        ).set_offset(offset).set_limit(MAX_NOTES_PER_PAGE);
+        ).set_offset(offset).set_limit(MAX_NOTES_PER_PAGE).set_status(NoteStatus.ACTIVE);
         let notes = storage.recurring_entitlements.at(at).view_notes(options);
         (notes, notes.len() == MAX_NOTES_PER_PAGE)
     }
@@ -354,7 +346,7 @@ contract ZImburseEscrow {
             RecurringEntitlementNote::properties().verifier_id,
             Comparator.EQ,
             verifier_id
-        ).set_offset(offset).set_limit(MAX_NOTES_PER_PAGE);
+        ).set_offset(offset).set_limit(MAX_NOTES_PER_PAGE).set_status(NoteStatus.ACTIVE);
         let notes = storage.recurring_entitlements.at(at).view_notes(options);
         (notes, notes.len() == MAX_NOTES_PER_PAGE)
     }

@@ -3,7 +3,7 @@ use crate::test::utils::{setup_helpers::{setup, deploy_escrow_contract, ESCROW_N
 use crate::ZImburseRegistry;
 use dep::std::collections::bounded_vec::BoundedVec;
 
-// #[test]
+#[test]
 unconstrained fn register_escrow_success() {
     // setup test env
     let (env, accounts, contracts) = setup::<1>();
@@ -16,7 +16,7 @@ unconstrained fn register_escrow_success() {
     );
 }
 
-// #[test(should_fail_with="Escrow contract has already been registered")]
+#[test(should_fail_with="Escrow contract has already been registered")]
 unconstrained fn fail_register_escrow_already_registered() {
     // setup test env
     let (env, accounts, contracts) = setup::<1>();
@@ -36,7 +36,7 @@ unconstrained fn fail_register_escrow_already_registered() {
     );
 }
 
-// #[test(should_fail_with="Escrow contract admin does not match sender of message")]
+#[test(should_fail_with="Escrow contract admin does not match sender of message")]
 unconstrained fn fail_register_not_escrow_admin() {
     // setup test env
     let (env, accounts, contracts) = setup::<1>();
@@ -44,7 +44,7 @@ unconstrained fn fail_register_not_escrow_admin() {
     registry_helpers::register_escrow(env, contracts.registry, contracts.escrows[0], accounts.alice);
 }
 
-// #[test(should_fail_with="Escrow contract class ID does not match expected class ID")]
+#[test(should_fail_with="Escrow contract class ID does not match expected class ID")]
 unconstrained fn fail_register_contract_not_escrow() {
     // setup test env
     let (env, accounts, contracts) = setup::<1>();
@@ -52,7 +52,7 @@ unconstrained fn fail_register_contract_not_escrow() {
     registry_helpers::register_escrow(env, contracts.registry, contracts.usdc, accounts.escrow_admin);
 }
 
-// #[test(should_fail_with="Escrow contract registry does not match this contract")]
+#[test(should_fail_with="Escrow contract registry does not match this contract")]
 unconstrained fn fail_register_escrow_wrong_registry() {
     // setup test env
     let (env, accounts, contracts) = setup::<1>();
@@ -68,7 +68,7 @@ unconstrained fn fail_register_escrow_wrong_registry() {
     registry_helpers::register_escrow(env, contracts.registry, bad_escrow, accounts.escrow_admin);
 }
 
-// #[test(should_fail_with="Escrow contract USDC does not match registry USDC")]
+#[test(should_fail_with="Escrow contract USDC does not match registry USDC")]
 unconstrained fn fail_register_escrow_wrong_usdc() {
     // setup test env
     let (env, accounts, contracts) = setup::<1>();

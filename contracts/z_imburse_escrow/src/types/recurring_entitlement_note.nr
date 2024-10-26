@@ -14,62 +14,55 @@ use std::hash::from_field_unsafe;
 use dep::generators::GENERATORS;
 
 // serializes verifier_id and max_value into one field element
-global RECURRING_ENTITLEMENT_NOTE_LENGTH: u32 = 5;
+global RECURRING_ENTITLEMENT_NOTE_LENGTH: u32 = 4;
 
 #[note_custom_interface]
 pub struct RecurringEntitlementNote {
-    // admin of the escrow contract (really just needed to comply with interface)
-    admin: AztecAddress,
     // the user that is allowed to use this entitlement
     recipient: AztecAddress,
-    // basically a selector for which sk and pk to use when nullifying
-    is_admin: bool,
     // the type of receipt verifier that this entitlement can be used for
     verifier_id: u8,
     // the maximum value that can be withdrawn from the escrow using this entitlement
     max_value: U128,
-    // blinding factor for the note
+    // blinding factor & nullifier secret for the note
     randomness: Field,
 }
 
 impl NoteInterface<RECURRING_ENTITLEMENT_NOTE_LENGTH> for RecurringEntitlementNote {
 
     fn serialize_content(self) -> [Field; RECURRING_ENTITLEMENT_NOTE_LENGTH] {
-        // serialize max_value and verifier_id together
-        let max_value_bytes: [u8; 16] = self.max_value.to_le_bytes();
-        let mut packed_bytes: [u8; 17] = [0; 17];
-        for i in 0..16 {
-            packed_bytes[i] = max_value_bytes[i];
-        }
-        packed_bytes[16] = self.is_admin as u8;
-        let packed = field_from_bytes(packed_bytes, true);
+        // // serialize max_value and verifier_id together
+        // let max_value_bytes: [u8; 16] = self.max_value.to_be_bytes();
+        // let mut packed_bytes: [u8; 17] = [0; 17];
+        // for i in 0..16 {
+        //     packed_bytes[i] = max_value_bytes[i];
+        // }
+        // packed_bytes[16] = self.is_admin as u8;
+        // let packed = field_from_bytes(packed_bytes, true);
         // return serialized content
         [
-            self.admin.to_field(),
             self.recipient.to_field(),
             self.verifier_id as Field,
-            packed,
+            self.max_value.to_integer(),
             self.randomness
         ]
     }
 
     fn deserialize_content(serialized_note: [Field; RECURRING_ENTITLEMENT_NOTE_LENGTH]) -> RecurringEntitlementNote {
-        // unpack verifier_id and max_value
-        let packed = serialized_note[2];
-        let packed_bytes: [u8; 17] = packed.to_be_bytes();
-        let is_admin = packed_bytes[16] == 1;
-        let mut max_value_bytes: [u8; 16] = [0; 16];
-        for i in 0..16 {
-            max_value_bytes[i] = packed_bytes[i];
-        }
-        let max_value = U128::from_le_bytes(max_value_bytes);
+        // // unpack verifier_id and max_value
+        // let packed = serialized_note[2];
+        // let packed_bytes: [u8; 17] = packed.to_be_bytes();
+        // let is_admin = packed_bytes[16] == 1;
+        // let mut max_value_bytes: [u8; 16] = [0; 16];
+        // for i in 0..16 {
+        //     max_value_bytes[i] = packed_bytes[i];
+        // }
+        // let max_value = U128::from_be_bytes(max_value_bytes);
         // return deserialized note
         RecurringEntitlementNote {
-            admin: AztecAddress::from_field(serialized_note[0]),
-            recipient: AztecAddress::from_field(serialized_note[1]),
-            is_admin,
-            verifier_id: serialized_note[2] as u8,
-            max_value,
+            recipient: AztecAddress::from_field(serialized_note[0]),
+            verifier_id: serialized_note[1] as u8,
+            max_value: U128::from_integer(serialized_note[2]),
             randomness: serialized_note[3],
             header: NoteHeader::empty()
         }
@@ -112,24 +105,21 @@ impl NoteInterface<RECURRING_ENTITLEMENT_NOTE_LENGTH> for RecurringEntitlementNo
     }
 
     fn compute_note_hash(self) -> Field {
-        let serialized = self.serialize_without_is_admin();
+        let serialized = self.serialize_content();
         std::embedded_curve_ops::multi_scalar_mul(
-            [GENERATORS[0], GENERATORS[1], GENERATORS[2], GENERATORS[3], GENERATORS[4], GENERATORS[5]],
+            [GENERATORS[0], GENERATORS[1], GENERATORS[2], GENERATORS[3]],
             [
             from_field_unsafe(serialized[0]),
             from_field_unsafe(serialized[1]),
             from_field_unsafe(serialized[2]),
             from_field_unsafe(serialized[3]),
-            from_field_unsafe(serialized[4]),
-            from_field_unsafe(self.get_header().storage_slot)
-        ]
-        ).x
+        ]).x
     }
 }
 
 impl NullifiableNote for RecurringEntitlementNote {
     fn compute_nullifier(self, context: &mut PrivateContext, note_hash_for_nullify: Field) -> Field {
-        let secret = self.derive_nullifier_secret_with_context(context);
+        let secret = self.randomness; // use as nullifier_secret so that admin and recipient can nullify
         poseidon2_hash_with_separator(
             [note_hash_for_nullify, secret],
             GENERATOR_INDEX__NOTE_NULLIFIER as Field
@@ -139,7 +129,9 @@ impl NullifiableNote for RecurringEntitlementNote {
 
     unconstrained fn compute_nullifier_without_context(self) -> Field {
         let note_hash_for_nullify = compute_note_hash_for_nullify(self);
-        let secret = self.derive_nullifier_secret();
+        let secret = self.randomness; // use as nullifier secret so that admin and recipient can nullify
+        dep::aztec::oracle::debug_log::debug_log_format("\n\nNote_hash_for_nullify: {0}/n secret: {1}\n\n", [note_hash_for_nullify, secret]);
+
         poseidon2_hash_with_separator(
             [note_hash_for_nullify, secret],
             GENERATOR_INDEX__NOTE_NULLIFIER
@@ -149,8 +141,7 @@ impl NullifiableNote for RecurringEntitlementNote {
 
 impl Eq for RecurringEntitlementNote {
     fn eq(self, other: Self) -> bool {
-        (self.admin == other.admin)
-            & (self.recipient == other.recipient)
+        (self.recipient == other.recipient)
             & (self.max_value == other.max_value)
             & (self.randomness == other.randomness)
             & (self.verifier_id == other.verifier_id)
@@ -163,21 +154,17 @@ impl RecurringEntitlementNote {
      * Cannot be used to claim a reimbursement, but can be used to nullify the sent entitlement
      *
      * @param recipient - the address of the recipient of the entitlement (NOT THE OWNER OF THE NOTE)
-     * @param npk_m_hash - the nullifying public key hash of the escrow admin (NOT THE RECIPIENT OF THE ENTITLEMENT)
-     *                     note: this is a bit confusing but it is different because nullifcation of reads
      * @param verifier_id - the type of verifier that the entitlement can be used for
      * @param max_value - the maximum value that can be withdrawn from the escrow using the entitlement
      * @param randomness - blinding factor for the note (inputted since must be same between the two notes)
      */
     fn new(
-        admin: AztecAddress,
         recipient: AztecAddress,
-        is_admin: bool,
         verifier_id: u8,
         max_value: U128,
         randomness: Field
     ) -> Self {
-        Self { admin, recipient, is_admin, verifier_id, max_value, randomness, header: NoteHeader::empty() }
+        Self { recipient, verifier_id, max_value, randomness, header: NoteHeader::empty() }
     }
 
     /**
@@ -189,7 +176,7 @@ impl RecurringEntitlementNote {
      * @return - the month nullifier for the note
      */
     fn derive_recurring_nullifier(self, timestamp: Field) -> Field {
-        let base_nullifier_secret = self.derive_nullifier_secret();
+        let base_nullifier_secret = self.randomness; //todo: switch to regular nullifier
         poseidon2_hash_with_separator(
             [
             base_nullifier_secret,
@@ -197,71 +184,5 @@ impl RecurringEntitlementNote {
         ],
             GENERATOR_INDEX__NOTE_NULLIFIER as Field
         )
-    }
-
-    fn derive_nullifier_secret_with_context(self, context: &mut PrivateContext) -> Field {
-        // get pubkeys for the admin and recipient
-        let admin_keys = get_public_keys(self.admin);
-        let recipient_keys = get_public_keys(self.recipient);
-        // determine which sk and pk to use
-        let mut sk: Scalar = Scalar::empty();
-        let mut pk: Point = Point::empty();
-        if self.is_admin {
-            pk = recipient_keys.npk_m.to_point();
-            let nsk_app = context.request_nsk_app(admin_keys.npk_m.hash());
-            sk = from_field_unsafe(nsk_app);
-        } else {
-            pk = admin_keys.npk_m.to_point();
-            let nsk_app = context.request_nsk_app(recipient_keys.npk_m.hash());
-            sk = from_field_unsafe(nsk_app);
-        }
-        // derive the shared secret
-        let secret_bytes = point_to_symmetric_key(sk, pk);
-        // set the highest byte to be 0 to ensure that the secret is not too large
-        let mut resized: [u8; 31] = [0; 31];
-        for i in 0..31 {
-            resized[i] = secret_bytes[i + 1];
-        }
-        field_from_bytes(resized, true)
-    }
-
-    fn derive_nullifier_secret(self) -> Field {
-        // get pubkeys for the admin and recipient
-        let admin_keys = get_public_keys(self.admin);
-        let recipient_keys = get_public_keys(self.recipient);
-        // determine which sk and pk to use
-        let mut sk: Scalar = Scalar::empty();
-        let mut pk: Point = Point::empty();
-        if self.is_admin {
-            pk = recipient_keys.npk_m.to_point();
-            let nsk_app = get_nsk_app(admin_keys.npk_m.hash());
-            sk = from_field_unsafe(nsk_app);
-        } else {
-            pk = admin_keys.npk_m.to_point();
-            let nsk_app = get_nsk_app(recipient_keys.npk_m.hash());
-            sk = from_field_unsafe(nsk_app);
-        }
-        // derive the shared secret
-        let secret_bytes = point_to_symmetric_key(sk, pk);
-        // set the highest byte to be 0 to ensure that the secret is not too large
-        let mut resized: [u8; 31] = [0; 31];
-        for i in 0..31 {
-            resized[i] = secret_bytes[i + 1];
-        }
-        field_from_bytes(resized, false)
-    }
-
-    fn serialize_without_is_admin(self) -> [Field; RECURRING_ENTITLEMENT_NOTE_LENGTH] {
-        // serialize max_value and verifier_id together
-        let packed_bytes: [u8; 16] = self.max_value.to_le_bytes();
-        let packed = field_from_bytes(packed_bytes, true);
-        // return serialized content
-        [
-            self.admin.to_field(),
-            self.recipient.to_field(),
-            self.verifier_id as Field,
-            packed,
-            self.randomness
-        ]
     }
 }

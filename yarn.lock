@@ -1841,7 +1841,7 @@
   resolved "https://registry.yarnpkg.com/@mach-34/noir-bignum-paramgen/-/noir-bignum-paramgen-1.0.2.tgz#9928bd1bc97ed67df654eda836a04ee9640a4761"
   integrity sha512-80+8KcYR4RNxgYGBaJkZlmSDLUJcj0QIpKWUCUrShjqIQh4LGKi/dgf6JdziEzDVxKr4AkmCkA7pdwLcsD5xag==
 
-"@mach-34/zkemail-nr@^1.1.2":
+"@mach-34/zkemail-nr@1.1.2":
   version "1.1.2"
   resolved "https://registry.yarnpkg.com/@mach-34/zkemail-nr/-/zkemail-nr-1.1.2.tgz#67687e79389191db6924c946cfd95e9caba348d2"
   integrity sha512-mXg9jpKVMRRl5fwsyU/dSz2daX3UnpW3d1T2rhrVQCFlrxGINuggswZIRXczyXQ4YSVUcM0dn+qrGK1StxT/1A==

@@ -326,13 +326,13 @@ describe("Test deposit to zimburse", () => {
           .wait();
         // update nullified note
         const blockNum = await alice.getBlockNumber();
-        // const events = alice.getEvents(
-        //   EventType.Encrypted,
-        //   ZImburseEscrowContract.events.EntitlementRevoked,
-        //   blockNum - 5,
-        //   blockNum
-        // );
-        // console.log("Events", events);
+        const events = await alice.getEvents(
+          EventType.Encrypted,
+          TokenContract.events.Transfer,
+          blockNum - 5,
+          blockNum
+        );
+        console.log("Events", events);
         // check notes removed
         adminReceipts = await escrows[0]
           .withWallet(escrowAdmin)

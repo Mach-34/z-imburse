@@ -38,17 +38,17 @@ import ZImburseEscrowContractArtifactJson from './ZImburseEscrow.json' assert { 
 export const ZImburseEscrowContractArtifact = loadContractArtifact(ZImburseEscrowContractArtifactJson as NoirCompiledContract);
 
 
+      export type EntitlementRevoked = {
+        verifier_id: (bigint | number)
+amount: FieldLike
+      }
+    
+
       export type RecurringReimbursementClaimed = {
         claimant: AztecAddressLike
 amount: FieldLike
 verifier_id: (bigint | number)
 datetime: FieldLike
-      }
-    
-
-      export type EntitlementRevoked = {
-        verifier_id: (bigint | number)
-amount: FieldLike
       }
     
 
@@ -218,9 +218,33 @@ RecurringEntitlementNote: {
       };
     }
 
-    public static get events(): { RecurringReimbursementClaimed: {decode: (payload: L1EventPayload | UnencryptedL2Log | undefined) => RecurringReimbursementClaimed | undefined, eventSelector: EventSelector, fieldNames: string[] }, EntitlementRevoked: {decode: (payload: L1EventPayload | UnencryptedL2Log | undefined) => EntitlementRevoked | undefined, eventSelector: EventSelector, fieldNames: string[] } } {
+    public static get events(): { EntitlementRevoked: {decode: (payload: L1EventPayload | UnencryptedL2Log | undefined) => EntitlementRevoked | undefined, eventSelector: EventSelector, fieldNames: string[] }, RecurringReimbursementClaimed: {decode: (payload: L1EventPayload | UnencryptedL2Log | undefined) => RecurringReimbursementClaimed | undefined, eventSelector: EventSelector, fieldNames: string[] } } {
     return {
-      RecurringReimbursementClaimed: {
+      EntitlementRevoked: {
+        decode: this.decodeEvent(EventSelector.fromSignature('EntitlementRevoked(u8,Field)'), {
+    "fields": [
+        {
+            "name": "verifier_id",
+            "type": {
+                "kind": "integer",
+                "sign": "unsigned",
+                "width": 8
+            }
+        },
+        {
+            "name": "amount",
+            "type": {
+                "kind": "field"
+            }
+        }
+    ],
+    "kind": "struct",
+    "path": "ZImburseEscrow::EntitlementRevoked"
+}),
+        eventSelector: EventSelector.fromSignature('EntitlementRevoked(u8,Field)'),
+        fieldNames: ["verifier_id","amount"],
+      },
+RecurringReimbursementClaimed: {
         decode: this.decodeEvent(EventSelector.fromSignature('RecurringReimbursementClaimed((Field),Field,u8,Field)'), {
     "fields": [
         {
@@ -264,30 +288,6 @@ RecurringEntitlementNote: {
 }),
         eventSelector: EventSelector.fromSignature('RecurringReimbursementClaimed((Field),Field,u8,Field)'),
         fieldNames: ["claimant","amount","verifier_id","datetime"],
-      },
-EntitlementRevoked: {
-        decode: this.decodeEvent(EventSelector.fromSignature('EntitlementRevoked(u8,Field)'), {
-    "fields": [
-        {
-            "name": "verifier_id",
-            "type": {
-                "kind": "integer",
-                "sign": "unsigned",
-                "width": 8
-            }
-        },
-        {
-            "name": "amount",
-            "type": {
-                "kind": "field"
-            }
-        }
-    ],
-    "kind": "struct",
-    "path": "ZImburseEscrow::EntitlementRevoked"
-}),
-        eventSelector: EventSelector.fromSignature('EntitlementRevoked(u8,Field)'),
-        fieldNames: ["verifier_id","amount"],
       }
     };
   }

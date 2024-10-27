@@ -57,7 +57,7 @@ contract ZImburseEscrow {
 
     #[event]
     #[derive(Serialize)]
-    struct EntitlementRevoked {
+    struct EntitlementNullified {
         verifier_id: u8,
         amount: Field
     }
@@ -152,6 +152,10 @@ contract ZImburseEscrow {
         // check the msg sender can use the entitlement
         let entitlement = note_wrapped.unwrap();
         assert(entitlement.recipient == sender, "Entitlement does not belong to the caller");
+
+        // check that the entitlement has not been nullified by the admin
+        // entitlement.check_nullifier(&mut context); <-- cant be used in txe
+        entitlement.check_nullifier_txe(&mut context);
 
         // verify linode billing receipt and extract amount, date, keyhash
         let linode_outputs = verify_linode(
@@ -353,8 +357,12 @@ contract ZImburseEscrow {
         // ensure the note is to/ from correctly
         assert(entitlement.recipient == recipient, "Entitlement does not belong to the recipient");
 
+        // broadcast the note nullifier
+        let nullifier = entitlement.compute_nullifier_without_context();
+        context.push_nullifier(nullifier);
+
         // emit event to notify recipient of revocation
-        EntitlementRevoked { verifier_id: verifier_type, amount: entitlement.max_value.to_integer() }.emit(
+        EntitlementNullified { verifier_id: verifier_type, amount: entitlement.max_value.to_integer() }.emit(
             encode_and_encrypt_event(
                 &mut context,
                 get_public_keys(sender).ovpk_m,

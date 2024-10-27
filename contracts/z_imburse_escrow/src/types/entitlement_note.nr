@@ -265,6 +265,25 @@ impl EntitlementNote {
     }
 
     /**
+     * This check is not safe but simulates desired behavior of check_nullifier and can be used in txe
+     */
+    fn check_nullifier_txe(self, context: &mut PrivateContext) {
+        let nullifier = self.compute_nullifier_without_context();
+        let nullifier_exists = unsafe { check_nullifier_exists(nullifier) };
+        assert(!nullifier_exists, "Entitlement has already been claimed");
+    }
+
+    /**
+     * Ensure that the note nullifier has not been used before
+     *
+     * @param context - the private context to use for the oracle call
+     */
+    fn check_nullifier(self, context: &mut PrivateContext) {
+        let nullifier = self.compute_nullifier_without_context();
+        context.historical_header.prove_nullifier_non_inclusion(nullifier);
+    }
+
+    /**
      * Assert that a recurring nullifier has not been used before and emits it
      * @dev uses oracle check_nullifier_exists which is technically unsafe but will be caught by kernel
      *

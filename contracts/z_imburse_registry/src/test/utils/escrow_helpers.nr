@@ -69,7 +69,7 @@ unconstrained pub fn revoke_recurring_entitlement(
  *         - the claim secret used to claim the entitlement
  *         - the amount reimbursed
  */
-unconstrained pub fn reimburse_linode(
+unconstrained pub fn reimburse_linode_recurring(
     env: &mut TestEnvironment,
     escrow_address: AztecAddress,
     usdc_address: AztecAddress,
@@ -85,7 +85,7 @@ unconstrained pub fn reimburse_linode(
     let escrow = ZImburseEscrow::at(escrow_address);
 
     // claim linode entitlement
-    let reimburse_linode_call_iface = escrow.reimburse_linode(
+    let reimburse_linode_recurring_call_iface = escrow.reimburse_linode_recurring(
         linode_inputs.body,
         linode_inputs.body_hash_index,
         linode_inputs.body_length,
@@ -102,7 +102,7 @@ unconstrained pub fn reimburse_linode(
         linode_inputs.receipt_id_length,
         claim_hash
     );
-    let amount_reimbursed = env.call_private(reimburse_linode_call_iface);
+    let amount_reimbursed = env.call_private(reimburse_linode_recurring_call_iface);
     cheatcodes::advance_blocks_by(1);
 
     // add shielded note to the txe

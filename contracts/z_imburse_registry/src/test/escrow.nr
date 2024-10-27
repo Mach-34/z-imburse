@@ -6,7 +6,7 @@ use crate::{
     setup_helpers::setup,
     token_helpers::{mint_public, to_usdc_decimals, redeem_shield, check_public_balance, check_private_balance},
     escrow_helpers::{
-    give_recurring_entitlement, reimburse_linode, get_recurring_entitlements_by_user,
+    give_recurring_entitlement, reimburse_linode_recurring, get_recurring_entitlements_by_user,
     get_recurring_entitlements_by_verifier, revoke_recurring_entitlement
 },
     email_inputs::{LINODE_SEP, LINODE_OCT}
@@ -103,7 +103,7 @@ unconstrained fn claim_linode_reimbursement_success() {
         verifiers::LINODE
     );
     // reimburse linode with the entitlement
-    let (claim_secret, _) = reimburse_linode(
+    let (claim_secret, _) = reimburse_linode_recurring(
         env,
         contracts.escrows[0],
         contracts.usdc,
@@ -143,7 +143,7 @@ unconstrained fn claim_linode_reimbursement_max_value_success() {
     );
     // reimburse linode with the entitlement
     // the actual reimbursement call would contain 
-    let (claim_secret, amount_reimbursed) = reimburse_linode(
+    let (claim_secret, amount_reimbursed) = reimburse_linode_recurring(
         env,
         contracts.escrows[0],
         contracts.usdc,
@@ -193,7 +193,7 @@ unconstrained fn claim_linode_reimbursement_success_multiple_months() {
         verifiers::LINODE
     );
     // reimburse linode for month 1 with the entitlement
-    let (claim_secret_sep, amount_reimbursed_sep) = reimburse_linode(
+    let (claim_secret_sep, amount_reimbursed_sep) = reimburse_linode_recurring(
         env,
         contracts.escrows[0],
         contracts.usdc,
@@ -208,7 +208,7 @@ unconstrained fn claim_linode_reimbursement_success_multiple_months() {
     );
 
     // reimburse linode for month 2 with the entitlement
-    let (claim_secret_oct, amount_reimbursed_oct) = reimburse_linode(
+    let (claim_secret_oct, amount_reimbursed_oct) = reimburse_linode_recurring(
         env,
         contracts.escrows[0],
         contracts.usdc,
@@ -268,7 +268,7 @@ unconstrained fn claim_linode_reimbursement_fail_month_nullified() {
         verifiers::LINODE
     );
     // reimburse linode with the entitlement
-    let (_, _) = reimburse_linode(
+    let (_, _) = reimburse_linode_recurring(
         env,
         contracts.escrows[0],
         contracts.usdc,
@@ -276,7 +276,7 @@ unconstrained fn claim_linode_reimbursement_fail_month_nullified() {
         LINODE_SEP
     );
     // try to claim the reimbursement again
-    let (_, _) = reimburse_linode(
+    let (_, _) = reimburse_linode_recurring(
         env,
         contracts.escrows[0],
         contracts.usdc,
@@ -326,7 +326,7 @@ unconstrained fn revoke_entitlement() {
     assert(entitlements_recipient_after.len() == 0, "Entitlement length is incorrect");
 }
 
-#[test(should_fail_with = "No entitlements to redeem")]
+#[test(should_fail_with = "No recurring entitlements to redeem")]
 unconstrained fn cannot_claim_after_revoked() {
    let (env, accounts, contracts) = setup::<1>();
     // mint tokens to the escrow
@@ -356,7 +356,7 @@ unconstrained fn cannot_claim_after_revoked() {
         verifiers::LINODE
     );
     // attempt to claim the reimbursement
-    let (_, _) = reimburse_linode(
+    let (_, _) = reimburse_linode_recurring(
         env,
         contracts.escrows[0],
         contracts.usdc,

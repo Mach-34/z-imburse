@@ -14,7 +14,7 @@ use std::hash::from_field_unsafe;
 use dep::generators::GENERATORS;
 
 // serializes verifier_id and max_value into one field element
-global ENTITLEMENT_NOTE_LENGTH: u32 = 7;
+global ENTITLEMENT_NOTE_LENGTH: u32 = 8;
 
 #[note_custom_interface]
 pub struct EntitlementNote {
@@ -25,10 +25,12 @@ pub struct EntitlementNote {
     // the maximum value that can be withdrawn from the escrow using this entitlement
     max_value: U128,
     // date range that verified emails can be used for
-    date_start: Field,
-    date_end: Field,
+    date_start: u32,
+    date_end: u32,
     // destination if used for travel
     destination: Field,
+    // whether or not the entitlement is a spot entitlement
+    spot: bool,
     // blinding factor & nullifier secret for the note
     randomness: Field,
 }
@@ -41,9 +43,10 @@ impl NoteInterface<ENTITLEMENT_NOTE_LENGTH> for EntitlementNote {
             self.recipient.to_field(),
             self.verifier_id as Field,
             self.max_value.to_integer(),
-            self.date_start,
-            self.date_end,
+            self.date_start as Field,
+            self.date_end as Field,
             self.destination,
+            self.spot as Field,
             self.randomness
         ]
     }
@@ -53,10 +56,11 @@ impl NoteInterface<ENTITLEMENT_NOTE_LENGTH> for EntitlementNote {
             recipient: AztecAddress::from_field(serialized_note[0]),
             verifier_id: serialized_note[1] as u8,
             max_value: U128::from_integer(serialized_note[2]),
-            date_start: serialized_note[3],
-            date_end: serialized_note[4],
+            date_start: serialized_note[3] as u32,
+            date_end: serialized_note[4] as u32,
             destination: serialized_note[5],
-            randomness: serialized_note[6],
+            spot: serialized_note[6] as bool,
+            randomness: serialized_note[7],
             header: NoteHeader::empty()
         }
     }
@@ -100,7 +104,7 @@ impl NoteInterface<ENTITLEMENT_NOTE_LENGTH> for EntitlementNote {
     fn compute_note_hash(self) -> Field {
         let serialized = self.serialize_content();
         std::embedded_curve_ops::multi_scalar_mul(
-            [GENERATORS[0], GENERATORS[1], GENERATORS[2], GENERATORS[3], GENERATORS[4], GENERATORS[5], GENERATORS[6]],
+            [GENERATORS[0], GENERATORS[1], GENERATORS[2], GENERATORS[3], GENERATORS[4], GENERATORS[5], GENERATORS[6], GENERATORS[7]],
             [
             from_field_unsafe(serialized[0]),
             from_field_unsafe(serialized[1]),
@@ -109,6 +113,7 @@ impl NoteInterface<ENTITLEMENT_NOTE_LENGTH> for EntitlementNote {
             from_field_unsafe(serialized[4]),
             from_field_unsafe(serialized[5]),
             from_field_unsafe(serialized[6]),
+            from_field_unsafe(serialized[7]),
             // do not use slot so it can be used for the nullifier
         ]).x
     }
@@ -127,8 +132,6 @@ impl NullifiableNote for EntitlementNote {
     unconstrained fn compute_nullifier_without_context(self) -> Field {
         let note_hash_for_nullify = compute_note_hash_for_nullify(self);
         let secret = self.randomness; // use as nullifier secret so that admin and recipient can nullify
-        dep::aztec::oracle::debug_log::debug_log_format("\n\nNote_hash_for_nullify: {0}/n secret: {1}\n\n", [note_hash_for_nullify, secret]);
-
         poseidon2_hash_with_separator(
             [note_hash_for_nullify, secret],
             GENERATOR_INDEX__NOTE_NULLIFIER
@@ -144,7 +147,6 @@ impl Eq for EntitlementNote {
             & (self.verifier_id == other.verifier_id)
     }
 }
-
 impl EntitlementNote {
     
     /**
@@ -159,8 +161,8 @@ impl EntitlementNote {
         recipient: AztecAddress,
         verifier_id: u8,
         max_value: U128,
-        date_start: Field,
-        date_end: Field,
+        date_start: u32,
+        date_end: u32,
         destination: str<31>,
         randomness: Field
     ) -> Self {
@@ -171,6 +173,7 @@ impl EntitlementNote {
             date_start,
             date_end,
             destination: CompressedString::from_string(destination).value[0],
+            spot: true,
             randomness,
             header: NoteHeader::empty()
         }
@@ -198,6 +201,7 @@ impl EntitlementNote {
             date_start: 0,
             date_end: 0,
             destination: 0,
+            spot: false,
             randomness,
             header: NoteHeader::empty()
         }
@@ -230,10 +234,19 @@ impl EntitlementNote {
      * @return - the month nullifier for the note
      */
     fn derive_recurring_nullifier(self, timestamp: Field) -> Field {
-        let base_nullifier_secret = self.randomness; //todo: switch to regular nullifier
         poseidon2_hash_with_separator(
             [self.randomness, timestamp],
             GENERATOR_INDEX__NOTE_NULLIFIER as Field
         )
+    }
+
+    /**
+     * Check if a given timestamp is within the date range of the entitlement
+     *
+     * @param timestamp - the timestamp to check
+     * @return true if the timestamp is within the date range, false otherwise
+     */
+    fn check_date(self, timestamp: u32) -> bool {
+        (timestamp >= self.date_start) & (timestamp <= self.date_end)
     }
 }

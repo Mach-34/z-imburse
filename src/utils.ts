@@ -1,4 +1,19 @@
 import { USDC_TOKEN } from './constants';
+
+
+export const decodeQuotedPrintable = (str: string) => {
+  // Remove soft line breaks
+  str = str.replace(/=\r\n/g, '').replace(/=\n/g, '').replace(/=\r/g, '');
+
+  // Decode encoded characters
+  str = str.replace(/=([A-Fa-f0-9]{2})/g, (_, hex) => {
+    return String.fromCharCode(parseInt(hex, 16));
+  });
+
+  return str;
+}
+
+
 // re-exported from bb.js/bigint-array
 export function toBigIntBE(bytes: Uint8Array) {
   // A Buffer in node, *is* a Uint8Array. We can't refuse it's type.

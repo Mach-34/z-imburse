@@ -4,7 +4,7 @@ use crate::linode::{
     LINODE_BILLING_FROM, LINODE_BILLING_SUBJECT_FIXED_END, LINODE_BILLING_SUBJECT_FIXED_START,
     LINODE_BILLING_PAYMENT_TEXT, MAX_BILLED_AMOUNT, MAX_LINODE_EMAIL_BODY_LENGTH,
     MAX_LINODE_EMAIL_HEADER_LENGTH
-    }
+}
 };
 use zkemail::Sequence;
 
@@ -20,7 +20,7 @@ pub fn check_from_linode_billing(index: u32, header: BoundedVec<u8, MAX_LINODE_E
     // check the remaing chars are the expected Linode billing
     let from_bytes = LINODE_BILLING_FROM.as_bytes();
     for i in 0..LB_FROM_LEN {
-        assert(header.get_unchecked(i) == from_bytes[i], "Email not from Linode billing.");
+        assert(header.get_unchecked(index + 1 + i) == from_bytes[i], "Email not from Linode billing.");
     }
 
     // check for CRLF

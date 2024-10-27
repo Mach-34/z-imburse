@@ -1,6 +1,4 @@
-use crate::constants::{
-    DATE_HEADER_FIELD_MAX_LENGTH, DATE_LENGTH_DETERMINATION_INDEX, DATE_HEADER_FIELD_START
-};
+use crate::constants::{DATE_HEADER_FIELD_MAX_LENGTH, DATE_LENGTH_DETERMINATION_INDEX, DATE_HEADER_FIELD_START};
 use crate::linode::constants::MAX_LINODE_EMAIL_HEADER_LENGTH;
 
 use dep::date_parser::{parse_date_string, to_unix_month, DATETIME_LENGTH};
@@ -14,11 +12,7 @@ use zkemail::Sequence;
  * @param index: the index that the header field begins at
  * @param length: the length of the header field
  */
-pub fn constrain_header_field<let MAX_HEADER_LENGTH: u32>(
-    header: [u8; MAX_LINODE_EMAIL_HEADER_LENGTH],
-    index: u32,
-    length: u32
-) {
+pub fn constrain_header_field<let MAX_HEADER_LENGTH: u32>(header: [u8; MAX_LINODE_EMAIL_HEADER_LENGTH], index: u32, length: u32) {
     // check that the field does not lie outside of the max 
     assert(index + length <= header.len(), "Header field out of bounds");
     // if not the first field in the header, ensure the header field is preceded by a CRLF
@@ -115,7 +109,7 @@ fn is_soft_linebreak(window: [u8; 3]) -> bool {
 * 3 character linebreak sequences: "=\r\n"
 */
 fn check_qp_sequence<let MAX_LEN: u32, let REVERT_MSG_LEN: u32, let SEQ_LEN: u32>(
-    text: BoundedVec<u8, MAX_LEN>, 
+    text: BoundedVec<u8, MAX_LEN>,
     start_index: u32,
     sequence: [u8; SEQ_LEN],
     revert_msg: str<REVERT_MSG_LEN>
@@ -137,7 +131,7 @@ fn check_qp_sequence<let MAX_LEN: u32, let REVERT_MSG_LEN: u32, let SEQ_LEN: u32
 }
 
 fn check_qp_sequence_reverse<let MAX_LEN: u32, let REVERT_MSG_LEN: u32, let SEQ_LEN: u32>(
-    text: BoundedVec<u8, MAX_LEN>, 
+    text: BoundedVec<u8, MAX_LEN>,
     start_index: u32,
     sequence: [u8; SEQ_LEN],
     revert_msg: str<REVERT_MSG_LEN>
@@ -152,14 +146,14 @@ fn check_qp_sequence_reverse<let MAX_LEN: u32, let REVERT_MSG_LEN: u32, let SEQ_
         if is_soft_linebreak(window) {
             index = index - 3;
         }
-        assert(sequence[SEQ_LEN - i] == text.get_unchecked(index), revert_msg);
+        assert(sequence[SEQ_LEN - i - 1] == text.get_unchecked(index), revert_msg);
         index = index - 1;
     }
 }
 
 fn remove_soft_line_break<let MAX_TEXT_LEN: u32, let MAX_SEQ_LEN: u32>(
     text: BoundedVec<u8, MAX_TEXT_LEN>,
-    sequence: Sequence,
+    sequence: Sequence
 ) -> BoundedVec<u8, MAX_SEQ_LEN> {
     let mut decoded = BoundedVec::new();
     let mut index = sequence.index;

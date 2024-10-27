@@ -12,7 +12,19 @@ global UNITED_FLIGHT_RECEIPT_FROM: [u8; 42] = comptime { "from:United Airlines <
 
 // expected sequence in the subject of an email header for United eTicket receipt
 // "subject: eTicket Itinerary and Receipt for Confirmation"
-global UNITED_FLIGHT_RECEIPT_SUBJECT: [u8; 54] = comptime { "subject:eTicket Itinerary and Receipt for Confirmation".as_bytes() }; 
+global UNITED_FLIGHT_RECEIPT_SUBJECT: [u8; 54] = comptime { "subject:eTicket Itinerary and Receipt for Confirmation".as_bytes() };
 
-global TOTAL_BILLED_HTML_PREFIX: [u8; 184] = comptime { "Total:</td><td style=3D\"padding-right:10px; padding-top:12px; padding-bottom:10px; text-align: right; font-weight: 600; font-size: 20px; font-family: &#39;Open Sans&#39;, sans-serif;\">".as_bytes() };
-global TOTAL_BILLED_HTML_POSTFIX: [u8; 5] = comptime { "</td>".as_bytes() };
+global TOTAL_BILLED_PREFIX_LENGTH = 184;
+global TOTAL_BILLED_POSTFIX_LENGTH = 9;
+global TOTAL_BILLED_HTML_PREFIX: [u8; TOTAL_BILLED_PREFIX_LENGTH] = comptime { "Total:</td><td style=3D\"padding-right:10px; padding-top:12px; padding-bottom:10px; text-align: right; font-weight: 600; font-size: 20px; font-family: &#39;Open Sans&#39;, sans-serif;\">".as_bytes() };
+global TOTAL_BILLED_HTML_POSTFIX: [u8; TOTAL_BILLED_POSTFIX_LENGTH] = comptime { " USD</td>".as_bytes() };
+
+global ARRIVAL_DATE_PREFIX_LENGTH = 195;
+global ARRIVAL_DATE_POSTFIX_LENGTH = 5;
+global ARRIVAL_DATE_HTML_PREFIX: [u8; ARRIVAL_DATE_PREFIX_LENGTH] = comptime { "2nd bag weight and dimensions</td></tr><tr><td style=3D\"font-family: &#39;Open Sans&#39;, sans-serif; text-align: left; font-size: 12px; padding-bottom:5px; padding-top: 5px; padding-left:10px;\">".as_bytes() };
+global ARRIVAL_DATE_HTML_POSTFIX: [u8; ARRIVAL_DATE_POSTFIX_LENGTH] = comptime { "<br/>".as_bytes() };
+
+global DEST_AIRPORT_PREFIX_LENGTH = 5;
+global DEST_AIPORT_POSTFIX_LENGTH = 5;
+global DEST_AIRPORT_HTML_PREFIX: [u8; DEST_AIRPORT_PREFIX_LENGTH] = comptime { "<br/>".as_bytes() };
+global DEST_AIRPORT_HTML_POSTFIX: [u8; DEST_AIPORT_POSTFIX_LENGTH] = comptime { "</td>".as_bytes() };

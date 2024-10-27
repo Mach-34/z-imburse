@@ -22,9 +22,15 @@ describe("United Flight Receipt Test", () => {
             // build inputs
             const inputs = await makeUnitedInputs(emails.united);
             // simulate witness
-            // const { returnValue } = await prover.simulateWitness(inputs);
-            // const values = (returnValue as string[]).map(x => toBigIntBE(new Uint8Array(Buffer.from(x.slice(2), 'hex'))));
-            // console.log('Values: ', values);
+            const { returnValue } = await prover.simulateWitness(inputs);
+            const values = (returnValue as string[]).map(x => toBigIntBE(new Uint8Array(Buffer.from(x.slice(2), 'hex'))));
+
+            // deserialize destination
+            const thirdChar = values[2] / 1000n;
+            console.log('Third char: ', thirdChar);
+            // const secondChar = values[1] / 100n;
+            // const thirdChar = 
+
             // check the returned values
             // expect(values[1]).toEqual(171785n);
         })

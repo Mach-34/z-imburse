@@ -28,3 +28,5 @@ global DEST_AIRPORT_PREFIX_LENGTH = 5;
 global DEST_AIPORT_POSTFIX_LENGTH = 5;
 global DEST_AIRPORT_HTML_PREFIX: [u8; DEST_AIRPORT_PREFIX_LENGTH] = comptime { "<br/>".as_bytes() };
 global DEST_AIRPORT_HTML_POSTFIX: [u8; DEST_AIPORT_POSTFIX_LENGTH] = comptime { "</td>".as_bytes() };
+// estimate maximum text length of destination airport
+global MAX_DEST_AIRPORT_LENGTH = 25;

@@ -1,10 +1,13 @@
 use crate::utils::{check_qp_sequence, check_qp_sequence_reverse, is_qp_linebreak_char, remove_soft_line_break};
-use super::constants::{ARRIVAL_DATE_POSTFIX_LENGTH, ARRIVAL_DATE_PREFIX_LENGTH,
-    ARRIVAL_DATE_HTML_PREFIX, ARRIVAL_DATE_HTML_POSTFIX, DEST_AIPORT_POSTFIX_LENGTH, DEST_AIRPORT_PREFIX_LENGTH, DEST_AIRPORT_HTML_POSTFIX, DEST_AIRPORT_HTML_PREFIX, MAX_BILLED_AMOUNT, MAX_EMAIL_BODY_LENGTH,
-    MAX_EMAIL_HEADER_LENGTH, PURCHASE_SUMMARY_INDICE_LEN, UNITED_FLIGHT_RECEIPT_FROM,
-    UNITED_FLIGHT_RECEIPT_SUBJECT, TOTAL_BILLED_HTML_PREFIX, TOTAL_BILLED_HTML_POSTFIX,
-    TOTAL_BILLED_PREFIX_LENGTH, TOTAL_BILLED_POSTFIX_LENGTH
+use super::constants::{
+    ARRIVAL_DATE_POSTFIX_LENGTH, ARRIVAL_DATE_PREFIX_LENGTH, ARRIVAL_DATE_HTML_PREFIX,
+    ARRIVAL_DATE_HTML_POSTFIX, DEST_AIPORT_POSTFIX_LENGTH, DEST_AIRPORT_PREFIX_LENGTH,
+    DEST_AIRPORT_HTML_POSTFIX, DEST_AIRPORT_HTML_PREFIX, MAX_BILLED_AMOUNT, MAX_DEST_AIRPORT_LENGTH,
+    MAX_EMAIL_BODY_LENGTH, MAX_EMAIL_HEADER_LENGTH, PURCHASE_SUMMARY_INDICE_LEN,
+    UNITED_FLIGHT_RECEIPT_FROM, UNITED_FLIGHT_RECEIPT_SUBJECT, TOTAL_BILLED_HTML_PREFIX,
+    TOTAL_BILLED_HTML_POSTFIX, TOTAL_BILLED_PREFIX_LENGTH, TOTAL_BILLED_POSTFIX_LENGTH
 };
+use compressed_string::FieldCompressedString;
 use zkemail::Sequence;
 
 /**
@@ -90,7 +93,10 @@ pub fn extract_billed_amount(
     amount
 }
 
-pub fn extract_departing_flight_date(body: BoundedVec<u8, MAX_EMAIL_BODY_LENGTH>, date_sequence: Sequence) {
+pub fn extract_departing_flight_date(
+    body: BoundedVec<u8, MAX_EMAIL_BODY_LENGTH>,
+    date_sequence: Sequence
+) {
     // check the prefix of the date sequence
     check_qp_sequence::<MAX_EMAIL_BODY_LENGTH, 45, ARRIVAL_DATE_PREFIX_LENGTH>(
         body,
@@ -111,8 +117,8 @@ pub fn extract_departing_flight_date(body: BoundedVec<u8, MAX_EMAIL_BODY_LENGTH>
 pub fn extract_destination_airport(
     body: BoundedVec<u8, MAX_EMAIL_BODY_LENGTH>,
     dest_airport_sequence: Sequence
-) {
-        // check the prefix of the destination airport sequence
+) -> Field {
+    // check the prefix of the destination airport sequence
     check_qp_sequence::<MAX_EMAIL_BODY_LENGTH, 50, DEST_AIRPORT_PREFIX_LENGTH>(
         body,
         dest_airport_sequence.index,
@@ -127,4 +133,23 @@ pub fn extract_destination_airport(
         DEST_AIRPORT_HTML_POSTFIX,
         "Index does not point to destination airport postfix"
     );
+
+    let mut opening_parenthesis_index = 0;
+    let mut pointer = dest_airport_sequence.index + DEST_AIRPORT_PREFIX_LENGTH;
+    for i in 0..MAX_DEST_AIRPORT_LENGTH {
+        if body.get_unchecked(pointer + i) == 0x28 {
+            opening_parenthesis_index = pointer + 1;
+        }
+    }
+
+    // serialize manually until compressed string is figured out. Check for CLRF sequence
+    let mut serialized = 0;
+    let mut power = 1;
+    for i in 0..6 {
+        let byte = body.get_unchecked(i + 1 + opening_parenthesis_index);
+        if (power <= 3) & (!is_qp_linebreak_char(byte)) {
+            serialized = serialized + (byte as Field) * (10 as Field).pow_32(power as Field);
+        }
+    }
+    serialized
 }

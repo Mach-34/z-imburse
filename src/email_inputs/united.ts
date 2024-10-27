@@ -35,7 +35,7 @@ export const makeUnitedInputs = async (
     const baseInputs = generateEmailVerifierInputsFromDKIMResult(dkimResult, {
         maxBodyLength: UNITED_MAX_BODY_LENGTH,
         maxHeadersLength: UNITED_MAX_HEADER_LENGTH,
-        shaPrecomputeSelector: 'Total:'
+        // shaPrecomputeSelector: 'Total:'
     });
     // grab sequence params from the email
     const header = dkimResult.headers.toString();
@@ -54,8 +54,6 @@ export const makeUnitedInputs = async (
 
     const dateParams = getDateSequence(body);
     const airportParams = getDestinationAirportSequence(body);
-
-    console.log('Base inputs: ', baseInputs);
 
     const inputs = {
         ...baseInputs,

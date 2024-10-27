@@ -231,13 +231,15 @@ impl EntitlementNote {
     } 
 
     /**
-     * Check if a given timestamp is within the date range of the entitlement
+     * Constrain a given timestamp to be within the date range of the entitlement
      *
      * @param timestamp - the timestamp to check
-     * @return true if the timestamp is within the date range, false otherwise
      */
-    fn check_date_range(self, timestamp: u32) -> bool {
-        (timestamp >= self.date_start) & (timestamp <= self.date_end)
+    fn check_date_range(self, timestamp: u32) {
+        assert(
+            (timestamp >= self.date_start) & (timestamp <= self.date_end),
+            "Receipt is out of entitlement date range"
+        );
     }
 
     /**

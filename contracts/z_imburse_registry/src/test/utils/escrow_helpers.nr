@@ -8,6 +8,7 @@ use std::{option::Option, collections::bounded_vec::BoundedVec};
 use z_imburse_escrow::{ZImburseEscrow, types::entitlement_note::EntitlementNote};
 use zimburse_verifiers::linode::constants::LinodeBillingParams;
 use crate::test::utils::token_helpers::add_shielded_note;
+use dep::date_parser::{parse_date_string, to_unix_month, DATETIME_LENGTH};
 
 /**
  * Send an entitlement for a monthly recurring reimbursement to a user in the escrow
@@ -31,6 +32,38 @@ unconstrained pub fn give_recurring_entitlement(
     let escrow = ZImburseEscrow::at(escrow_address);
     let give_recurring_entitlement_call_iface = escrow.give_recurring_entitlement(recipient, amount, verifier);
     env.call_private_void(give_recurring_entitlement_call_iface);
+    cheatcodes::advance_blocks_by(1);
+}
+
+
+/**
+ * Send an entitlement for a single "spot" reimbursement to a user in the escrow
+ *
+ * @param env The test environment
+ * @param escrow_address The address of the deployed escrow contract
+ * @param escrow_admin The address of the escrow admin sending the entitlement
+ * @param recipient The address of the recipient of the entitlement
+ * @param amount The amount of the entitlement
+ * @param verifier The verifier to use for the entitlement
+ * @param date_start The start date of when a receipt is valid
+ * @param date_end The end date of when a receipt is valid
+ * @param destination The destination of the reimbursement (set to [0; 31] if not used)
+ */
+unconstrained pub fn give_spot_entitlement(
+    env: &mut TestEnvironment,
+    escrow_address: AztecAddress,
+    escrow_admin: AztecAddress,
+    recipient: AztecAddress,
+    amount: Field,
+    verifier: u8,
+    date_start: u32,
+    date_end: u32,
+    destination: str<31>
+) {
+    env.impersonate(escrow_admin);
+    let escrow = ZImburseEscrow::at(escrow_address);
+    let give_spot_entitlement_call_iface = escrow.give_spot_entitlement(recipient, amount, verifier, date_start, date_end, destination);
+    env.call_private_void(give_spot_entitlement_call_iface);
     cheatcodes::advance_blocks_by(1);
 }
 
@@ -66,16 +99,18 @@ unconstrained pub fn revoke_entitlement(
  * @param usdc_address The address of the USDC token contract
  * @param claimant The address of the claimant
  * @param linode_inputs The inputs for the linode claim
+ * @param spot If true, try to use a spot entitlement. If false, try to use a recurring entitlement
  * @return
  *         - the claim secret used to claim the entitlement
  *         - the amount reimbursed
  */
-unconstrained pub fn reimburse_linode_recurring(
+unconstrained pub fn reimburse_linode(
     env: &mut TestEnvironment,
     escrow_address: AztecAddress,
     usdc_address: AztecAddress,
     claimant: AztecAddress,
-    linode_inputs: LinodeBillingParams
+    linode_inputs: LinodeBillingParams,
+    spot: bool
 ) -> (Field, Field) {
     env.impersonate(claimant);
     // get claim hash
@@ -86,11 +121,20 @@ unconstrained pub fn reimburse_linode_recurring(
     let escrow = ZImburseEscrow::at(escrow_address);
 
     // claim linode entitlement
-    let reimburse_linode_recurring_call_iface = escrow.reimburse_linode_recurring(
-        linode_inputs,
-        claim_hash
-    );
-    let amount_reimbursed = env.call_private(reimburse_linode_recurring_call_iface);
+    let mut amount_reimbursed = 0;
+    if spot {
+        let reimburse_linode_call_iface = escrow.reimburse_linode_spot(
+            linode_inputs,
+            claim_hash
+        );
+        amount_reimbursed = env.call_private(reimburse_linode_call_iface);
+    } else {
+        let reimburse_linode_call_iface = escrow.reimburse_linode_recurring(
+            linode_inputs,
+            claim_hash
+        );
+        amount_reimbursed = env.call_private(reimburse_linode_call_iface);
+    }
     cheatcodes::advance_blocks_by(1);
 
     // add shielded note to the txe
@@ -112,4 +156,9 @@ unconstrained pub fn view_entitlements(
     let (notes, results_end) = ZImburseEscrow::view_entitlements(offset, scope, recipient, verifier, spot);
     cheatcodes::set_contract_address(current_contract_address);
     (notes, results_end)
+}
+
+unconstrained pub fn month_timestamp(date_string: str<DATETIME_LENGTH>) -> u32 {
+    let date = parse_date_string(date_string.as_bytes());
+    to_unix_month(date)
 }

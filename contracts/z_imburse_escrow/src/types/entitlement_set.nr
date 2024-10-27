@@ -106,7 +106,7 @@ impl<T> EntitlementSet<T, &mut PrivateContext> {
      * @param spot - if true, check for spot entitlements. If false, check for recurring entitlements
      * @return - true if a matching entitlement is found, false otherwise
      */
-    pub fn check_matching_entitlement<let T_SERIALIZED_LEN: u32>(
+    pub fn get_matching_entitlement<let T_SERIALIZED_LEN: u32>(
         self,
         scope: AztecAddress,
         recipient: AztecAddress,

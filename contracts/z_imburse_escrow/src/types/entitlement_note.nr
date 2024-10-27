@@ -4,7 +4,7 @@ use dep::aztec::protocol_types::{
     scalar::Scalar, point::Point
 };
 use dep::aztec::note::utils::compute_note_hash_for_nullify;
-use dep::aztec::oracle::random::random;
+use dep::aztec::oracle::{random::random, notes::check_nullifier_exists};
 use dep::aztec::macros::notes::note_custom_interface;
 use dep::aztec::prelude::{NoteHeader, NullifiableNote, NoteInterface, PrivateContext};
 use dep::aztec::keys::{getters::{get_public_keys, get_nsk_app}, point_to_symmetric_key::point_to_symmetric_key};
@@ -248,5 +248,36 @@ impl EntitlementNote {
      */
     fn check_date(self, timestamp: u32) -> bool {
         (timestamp >= self.date_start) & (timestamp <= self.date_end)
+    }
+
+    /**
+     * Determine the amount to reimburse for a given claimed amount (lesser of the two)
+     *
+     * @param claimed - the amount claimed by the user
+     * @return the amount to reimburse
+     */
+    fn amount_to_reimburse(self, claimed: U128) -> Field {
+        if self.max_value >= claimed {
+            claimed.to_field()
+        } else {
+            self.max_value.to_field()
+        }
+    }
+
+    /**
+     * Assert that a recurring nullifier has not been used before and emits it
+     * @dev uses oracle check_nullifier_exists which is technically unsafe but will be caught by kernel
+     *
+     * @param context - the private context to use for the oracle call
+     * @param timestamp - the timestamp to check
+     */
+    fn check_and_emit_recurring_nullifier(self, context: &mut PrivateContext, timestamp: Field) {
+        // derive recurring nullifier for the month
+        let recurring_nullifier = self.derive_recurring_nullifier(timestamp);
+        let recurring_nullifier_exists = unsafe { check_nullifier_exists(recurring_nullifier) };
+        // check the nullifeir has not been emitted via oracle call (rely on kernel to actually constrain)
+        assert(!recurring_nullifier_exists, "Entitlement has already been claimed for this month");
+        // emit the nullifier
+        context.push_nullifier(recurring_nullifier);
     }
 }

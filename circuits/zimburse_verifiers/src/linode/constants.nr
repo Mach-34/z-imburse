@@ -1,4 +1,6 @@
-use dep::zkemail::{KEY_LIMBS_2048};
+use zkemail::KEY_LIMBS_2048;
+use std::meta::derive;
+use aztec::protocol_types::traits::Serialize;
 
 global MAX_LINODE_EMAIL_BODY_LENGTH: u32 = 832;
 global MAX_LINODE_EMAIL_HEADER_LENGTH: u32 = 640;
@@ -25,6 +27,7 @@ global LINODE_BILLING_PAYMENT_TEXT: str<LB_PAYMENT_TEXT_LEN> = "This is your rec
 // assuming a unlikely max billed amount of "$9,999,999.99"
 global MAX_BILLED_AMOUNT = 13;
 
+#[derive(Serialize)]
 struct LinodeBillingParams {
     body: [u8; MAX_LINODE_EMAIL_BODY_LENGTH],
     body_hash_index: u32,

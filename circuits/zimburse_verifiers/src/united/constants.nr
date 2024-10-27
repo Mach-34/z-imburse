@@ -1,6 +1,8 @@
 // assuming a unlikely max billed amount of "9999999.99"
 global MAX_BILLED_AMOUNT = 10;
 
+global DATE_LENGTH = 17;
+
 global MAX_EMAIL_BODY_LENGTH: u32 = 58560;
 global MAX_EMAIL_HEADER_LENGTH: u32 = 640;
 
@@ -30,3 +32,5 @@ global DEST_AIRPORT_HTML_PREFIX: [u8; DEST_AIRPORT_PREFIX_LENGTH] = comptime { "
 global DEST_AIRPORT_HTML_POSTFIX: [u8; DEST_AIPORT_POSTFIX_LENGTH] = comptime { "</td>".as_bytes() };
 // estimate maximum text length of destination airport
 global MAX_DEST_AIRPORT_LENGTH = 25;
+
+global MAX_DATETIME_SEQUENCE_LENGTH = DATE_LENGTH + ARRIVAL_DATE_PREFIX_LENGTH + ARRIVAL_DATE_POSTFIX_LENGTH;

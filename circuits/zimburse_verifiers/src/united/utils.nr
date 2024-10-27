@@ -2,13 +2,14 @@ use crate::utils::{check_qp_sequence, check_qp_sequence_reverse, is_qp_linebreak
 use super::constants::{
     ARRIVAL_DATE_POSTFIX_LENGTH, ARRIVAL_DATE_PREFIX_LENGTH, ARRIVAL_DATE_HTML_PREFIX,
     ARRIVAL_DATE_HTML_POSTFIX, DEST_AIPORT_POSTFIX_LENGTH, DEST_AIRPORT_PREFIX_LENGTH,
-    DEST_AIRPORT_HTML_POSTFIX, DEST_AIRPORT_HTML_PREFIX, MAX_BILLED_AMOUNT, MAX_DEST_AIRPORT_LENGTH,
-    MAX_EMAIL_BODY_LENGTH, MAX_EMAIL_HEADER_LENGTH, PURCHASE_SUMMARY_INDICE_LEN,
-    UNITED_FLIGHT_RECEIPT_FROM, UNITED_FLIGHT_RECEIPT_SUBJECT, TOTAL_BILLED_HTML_PREFIX,
-    TOTAL_BILLED_HTML_POSTFIX, TOTAL_BILLED_PREFIX_LENGTH, TOTAL_BILLED_POSTFIX_LENGTH
+    DEST_AIRPORT_HTML_POSTFIX, DEST_AIRPORT_HTML_PREFIX, MAX_BILLED_AMOUNT,
+    MAX_DATETIME_SEQUENCE_LENGTH, MAX_DEST_AIRPORT_LENGTH, MAX_EMAIL_BODY_LENGTH,
+    MAX_EMAIL_HEADER_LENGTH, PURCHASE_SUMMARY_INDICE_LEN, UNITED_FLIGHT_RECEIPT_FROM,
+    UNITED_FLIGHT_RECEIPT_SUBJECT, TOTAL_BILLED_HTML_PREFIX, TOTAL_BILLED_HTML_POSTFIX,
+    TOTAL_BILLED_PREFIX_LENGTH, TOTAL_BILLED_POSTFIX_LENGTH
 };
-use compressed_string::FieldCompressedString;
 use zkemail::Sequence;
+use date_parser::{Datetime, parse_day, parse_month, parse_year, to_unix};
 
 /**
 * Check that email is from United receipts address
@@ -96,7 +97,7 @@ pub fn extract_billed_amount(
 pub fn extract_departing_flight_date(
     body: BoundedVec<u8, MAX_EMAIL_BODY_LENGTH>,
     date_sequence: Sequence
-) {
+) -> Field {
     // check the prefix of the date sequence
     check_qp_sequence::<MAX_EMAIL_BODY_LENGTH, 45, ARRIVAL_DATE_PREFIX_LENGTH>(
         body,
@@ -112,6 +113,32 @@ pub fn extract_departing_flight_date(
         ARRIVAL_DATE_HTML_POSTFIX,
         "Index does not point to departing date postfix"
     );
+
+    let clrf_parsed = remove_soft_line_break::<MAX_EMAIL_BODY_LENGTH, MAX_DATETIME_SEQUENCE_LENGTH>(body, date_sequence);
+
+    // convert date to timestamp
+    let date_index = ARRIVAL_DATE_PREFIX_LENGTH;
+
+    // parse day
+    let day = parse_day([clrf_parsed.get_unchecked(date_index + 9), clrf_parsed.get_unchecked(date_index + 10)]);
+
+    let month = parse_month(
+        [
+        clrf_parsed.get_unchecked(date_index + 5), clrf_parsed.get_unchecked(date_index + 6), clrf_parsed.get_unchecked(date_index + 7)
+    ]
+    );
+    assert(month != 0);
+    // parse year
+    let year = parse_year(
+        [
+        clrf_parsed.get_unchecked(date_index + 13),
+        clrf_parsed.get_unchecked(date_index + 14),
+        clrf_parsed.get_unchecked(date_index + 15),
+        clrf_parsed.get_unchecked(date_index + 16)
+    ]
+    );
+    let datetime = Datetime { year: year.0, leap_years: year.1, add_leap_day: false, month, day, time: 0, offset: 0, subtract: false };
+    to_unix(datetime) as Field
 }
 
 pub fn extract_destination_airport(

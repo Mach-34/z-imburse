@@ -56,7 +56,7 @@ pub fn verify_united_flight_receipt(
     // note: the billed amount has 2 decimals
     let billed_amount = extract_billed_amount(body, amount_sequence);
 
-    extract_departing_flight_date(body, date_sequence);
+    let date = extract_departing_flight_date(body, date_sequence);
 
     // let destination = extract_destination_airport(body, airport_sequence);
 
@@ -65,5 +65,5 @@ pub fn verify_united_flight_receipt(
 
     // hash the dkim key used to verify the email
     let dkim_key_hash = pedersen_hash(pubkey.modulus);
-    [dkim_key_hash, billed_amount, 0]
+    [dkim_key_hash, billed_amount, date]
 }

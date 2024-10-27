@@ -51,7 +51,6 @@ export const makeUnitedInputs = async (
     const totalParams = getSequenceParams(Regexes.unitedTotal, body);
     if (totalParams === null) throw new Error("No 'Total' found in email");
 
-
     const dateParams = getDateSequence(body);
     const airportParams = getDestinationAirportSequence(body);
 

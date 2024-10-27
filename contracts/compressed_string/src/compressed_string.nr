@@ -11,19 +11,19 @@ pub struct CompressedString<let N: u32, let M: u32> {
 impl<let N: u32, let M: u32> CompressedString<N, M> {
 
     pub fn from_bytes(input_bytes: [u8; M]) -> Self {
+        let mut fields = [0; N];
         let mut r_index = 0 as u32;
-
         for i in 0..N {
             let mut temp = [0 as u8; 31];
             for j in 0..31 {
                 if r_index < M {
-                    temp[j] = byts[r_index];
+                    temp[j] = input_bytes[r_index];
                     r_index += 1;
                 }
             }
-
             fields[i] = field_from_bytes(temp, true);
         }
+        Self { value: fields }
     }
 
     pub fn from_string(input_string: str<M>) -> Self {

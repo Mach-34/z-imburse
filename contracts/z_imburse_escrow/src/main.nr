@@ -34,7 +34,8 @@ contract ZImburseEscrow {
     use crate::{
         types::{
             escrow_definition::{EscrowDefinition, TITLE_LENGTH},
-            recurring_entitlement_note::RecurringEntitlementNote
+            // recurring_entitlement_note::RecurringEntitlementNote
+            entitlement_note::EntitlementNote
         },
         registry_interface::check_dkim_key_hash_private, verifiers
     };
@@ -58,8 +59,7 @@ contract ZImburseEscrow {
     #[storage]
     struct Storage<Context> {
         definition: SharedImmutable<EscrowDefinition, Context>,
-        recurring_entitlements: Map<AztecAddress, PrivateSet<RecurringEntitlementNote, Context>, Context>,
-        entitlement_nullifiers: Map<Field, SharedImmutable<bool, Context>, Context>
+        entitlements: Map<AztecAddress, PrivateSet<EntitlementNote, Context>, Context>,
     }
 
     /**
@@ -80,15 +80,15 @@ contract ZImburseEscrow {
     fn give_recurring_entitlement(to: AztecAddress, amount: Field, verifier_id: u8) {
         // check that no receipt exists for this recipient and verifier
         let options = NoteGetterOptions::new().select(
-            RecurringEntitlementNote::properties().recipient,
+            EntitlementNote::properties().recipient,
             Comparator.EQ,
             to
         ).select(
-            RecurringEntitlementNote::properties().verifier_id,
+            EntitlementNote::properties().verifier_id,
             Comparator.EQ,
             verifier_id
         ).set_limit(1);
-        let notes = storage.recurring_entitlements.at(context.msg_sender()).get_notes(options);
+        let notes = storage.entitlements.at(context.msg_sender()).get_notes(options);
         assert(notes.len() == 0, "An entitlement already exists for this recipient and verifier");
         // check is escrow admin
         let admin = storage.definition.read_private().admin;
@@ -102,13 +102,12 @@ contract ZImburseEscrow {
             random()
         };
         // add the note for the recipient
-        // todo: will the header be mutated here or can we skip duplication
+        // choosing to unconstrained emit note here cuz why would admin lie about this? technically can be abused but there is a level of trust in this sort of app
         let amount = U128::from_integer(amount);
-        let mut entitlement = RecurringEntitlementNote::new(to, verifier_id, amount, blinding_factor);
-        storage.recurring_entitlements.at(to).insert(&mut entitlement).emit(encode_and_encrypt_note(&mut context, admin_keys.ovpk_m, recipient_keys.ivpk_m, to));
+        let mut entitlement = EntitlementNote::new_recurring(to, verifier_id, amount, blinding_factor);
+        storage.entitlements.at(to).insert(&mut entitlement).emit(encode_and_encrypt_note_unconstrained(&mut context, admin_keys.ovpk_m, recipient_keys.ivpk_m, to));
         // add the note for the admin
-        // let mut entitlement_sender = RecurringEntitlementNote::new(admin, to, true, verifier_id, amount, blinding_factor);
-        storage.recurring_entitlements.at(admin).insert(&mut entitlement).emit(encode_and_encrypt_note(&mut context, admin_keys.ovpk_m, admin_keys.ivpk_m, admin))
+        storage.entitlements.at(admin).insert(&mut entitlement).emit(encode_and_encrypt_note_unconstrained(&mut context, admin_keys.ovpk_m, admin_keys.ivpk_m, admin))
     }
 
     #[private]
@@ -132,9 +131,9 @@ contract ZImburseEscrow {
         claim_secret_hash: Field
     ) -> Field {
         // retrieve a Linode hosting entitlement
-        let notes = storage.recurring_entitlements.at(context.msg_sender()).get_notes(
+        let notes = storage.entitlements.at(context.msg_sender()).get_notes(
             NoteGetterOptions::new()
-                .select(RecurringEntitlementNote::properties().verifier_id, Comparator.EQ, verifiers::LINODE)
+                .select(EntitlementNote::properties().verifier_id, Comparator.EQ, verifiers::LINODE)
                 .set_limit(1)
         );
         assert(notes.len() == 1, "No entitlements to redeem");
@@ -240,13 +239,13 @@ contract ZImburseEscrow {
 
         // try to pop a note for this recipient
         // should automatically emit the nullifier
-        let notes = storage.recurring_entitlements.at(context.msg_sender()).pop_notes(
+        let notes = storage.entitlements.at(context.msg_sender()).pop_notes(
             NoteGetterOptions::new().select(
-                RecurringEntitlementNote::properties().verifier_id,
+                EntitlementNote::properties().verifier_id,
                 Comparator.EQ,
                 verifier_type
             ).select(
-                RecurringEntitlementNote::properties().recipient,
+                EntitlementNote::properties().recipient,
                 Comparator.EQ,
                 from
             ).set_limit(1)
@@ -315,13 +314,13 @@ contract ZImburseEscrow {
         at: AztecAddress,
         user: AztecAddress,
         offset: u32
-    ) -> (BoundedVec<RecurringEntitlementNote, MAX_NOTES_PER_PAGE>, bool) {
+    ) -> (BoundedVec<EntitlementNote, MAX_NOTES_PER_PAGE>, bool) {
         let options = NoteViewerOptions::new().select(
-            RecurringEntitlementNote::properties().recipient,
+            EntitlementNote::properties().recipient,
             Comparator.EQ,
             user
         ).set_offset(offset).set_limit(MAX_NOTES_PER_PAGE).set_status(NoteStatus.ACTIVE);
-        let notes = storage.recurring_entitlements.at(at).view_notes(options);
+        let notes = storage.entitlements.at(at).view_notes(options);
         (notes, notes.len() == MAX_NOTES_PER_PAGE)
     }
 
@@ -340,13 +339,13 @@ contract ZImburseEscrow {
         at: AztecAddress,
         verifier_id: u8,
         offset: u32
-    ) -> (BoundedVec<RecurringEntitlementNote, MAX_NOTES_PER_PAGE>, bool) {
+    ) -> (BoundedVec<EntitlementNote, MAX_NOTES_PER_PAGE>, bool) {
         let options = NoteViewerOptions::new().select(
-            RecurringEntitlementNote::properties().verifier_id,
+            EntitlementNote::properties().verifier_id,
             Comparator.EQ,
             verifier_id
         ).set_offset(offset).set_limit(MAX_NOTES_PER_PAGE).set_status(NoteStatus.ACTIVE);
-        let notes = storage.recurring_entitlements.at(at).view_notes(options);
+        let notes = storage.entitlements.at(at).view_notes(options);
         (notes, notes.len() == MAX_NOTES_PER_PAGE)
     }
     // #[private]

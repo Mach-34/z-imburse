@@ -1,12 +1,12 @@
-use dep::aztec::{
+use aztec::{
     hash::compute_secret_hash,
     oracle::{random::random, execution::{get_block_number, get_contract_address}},
     note::constants::MAX_NOTES_PER_PAGE, prelude::AztecAddress,
     test::helpers::{cheatcodes, test_environment::TestEnvironment}
 };
 use std::collections::bounded_vec::BoundedVec;
-use dep::z_imburse_escrow::{ZImburseEscrow, types::recurring_entitlement_note::RecurringEntitlementNote};
-use dep::zimburse_verifiers::linode::constants::LinodeBillingParams;
+use z_imburse_escrow::{ZImburseEscrow, types::entitlement_note::EntitlementNote};
+use zimburse_verifiers::linode::constants::LinodeBillingParams;
 use crate::test::utils::token_helpers::add_shielded_note;
 
 /**
@@ -116,7 +116,7 @@ unconstrained pub fn get_recurring_entitlements_by_user(
     at: AztecAddress,
     user: AztecAddress,
     offset: u32
-) -> (BoundedVec<RecurringEntitlementNote, MAX_NOTES_PER_PAGE>, bool) {
+) -> (BoundedVec<EntitlementNote, MAX_NOTES_PER_PAGE>, bool) {
     let current_contract_address = get_contract_address();
     cheatcodes::set_contract_address(escrow_address);
     let (notes, results_end) = ZImburseEscrow::get_recurring_entitlements_by_user(at, user, offset);
@@ -129,7 +129,7 @@ unconstrained pub fn get_recurring_entitlements_by_verifier(
     at: AztecAddress,
     verifier: u8,
     offset: u32
-) -> (BoundedVec<RecurringEntitlementNote, MAX_NOTES_PER_PAGE>, bool) {
+) -> (BoundedVec<EntitlementNote, MAX_NOTES_PER_PAGE>, bool) {
     let current_contract_address = get_contract_address();
     cheatcodes::set_contract_address(escrow_address);
     let (notes, results_end) = ZImburseEscrow::get_recurring_entitlements_by_verifier(at, verifier, offset);

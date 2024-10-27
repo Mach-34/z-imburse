@@ -100,12 +100,16 @@ impl NoteInterface<ENTITLEMENT_NOTE_LENGTH> for EntitlementNote {
     fn compute_note_hash(self) -> Field {
         let serialized = self.serialize_content();
         std::embedded_curve_ops::multi_scalar_mul(
-            [GENERATORS[0], GENERATORS[1], GENERATORS[2], GENERATORS[3]],
+            [GENERATORS[0], GENERATORS[1], GENERATORS[2], GENERATORS[3], GENERATORS[4], GENERATORS[5], GENERATORS[6]],
             [
             from_field_unsafe(serialized[0]),
             from_field_unsafe(serialized[1]),
             from_field_unsafe(serialized[2]),
             from_field_unsafe(serialized[3]),
+            from_field_unsafe(serialized[4]),
+            from_field_unsafe(serialized[5]),
+            from_field_unsafe(serialized[6]),
+            // do not use slot so it can be used for the nullifier
         ]).x
     }
 }
@@ -142,24 +146,94 @@ impl Eq for EntitlementNote {
 }
 
 impl EntitlementNote {
+    
     /**
-     * Entitlement Receipt, shadows an entitlement send to a recepient
-     * Cannot be used to claim a reimbursement, but can be used to nullify the sent entitlement
+     * EntitlementNote constructor for recurring entitlements
      *
      * @param recipient - the address of the recipient of the entitlement (NOT THE OWNER OF THE NOTE)
      * @param verifier_id - the type of verifier that the entitlement can be used for
      * @param max_value - the maximum value that can be withdrawn from the escrow using the entitlement
      * @param randomness - blinding factor for the note (inputted since must be same between the two notes)
      */
-    fn new(
+    fn new_spot(
         recipient: AztecAddress,
         verifier_id: u8,
         max_value: U128,
         date_start: Field,
         date_end: Field,
-        destination: CompressedString<1, 31>,
+        destination: str<31>,
         randomness: Field
     ) -> Self {
-        Self { recipient, verifier_id, max_value, date_start, date_end, randomness, header: NoteHeader::empty() }
+        Self {
+            recipient,
+            verifier_id,
+            max_value,
+            date_start,
+            date_end,
+            destination: CompressedString::from_string(destination).value[0],
+            randomness,
+            header: NoteHeader::empty()
+        }
+    }
+
+    /**
+     * EntitlementNote constructor for recurring entitlements
+     * @todo: allow destinations on recurring?
+     *
+     * @param recipient - the address of the recipient of the entitlement (NOT THE OWNER OF THE NOTE)
+     * @param verifier_id - the type of verifier that the entitlement can be used for
+     * @param max_value - the maximum value that can be withdrawn from the escrow using the entitlement
+     * @param randomness - blinding factor for the note (inputted since must be same between the two notes)
+     */
+    fn new_recurring(
+        recipient: AztecAddress,
+        verifier_id: u8,
+        max_value: U128,
+        randomness: Field
+    ) -> Self {
+        Self {
+            recipient,
+            verifier_id,
+            max_value,
+            date_start: 0,
+            date_end: 0,
+            destination: 0,
+            randomness,
+            header: NoteHeader::empty()
+        }
+    }
+
+    /**
+     * Determine if the entitlement is a spot entitlement by checking if date_start is set
+     *
+     * @return true if entitlement can only be used once, and false if it is recurring
+     */
+    fn is_spot(self) -> bool {
+        self.date_start != 0
+    }
+
+    /**
+     * Return the destination of the entitlement
+     *
+     * @return the utf8 bytes of the destination
+     */
+    fn destination(self) -> [u8; 31] {
+        CompressedString::<1, 31> { value: [self.destination] }.to_bytes()
+    }
+
+    /**
+     * Derives the nullifier for recurring notes
+     * @dev recurring notes are nullified for a scope (month) without destroying the ntoe
+     *      prove nullifier non-inclusion to use
+     *
+     * @param timestamp - the timestamp (month/ year) from the email receipt verifier
+     * @return - the month nullifier for the note
+     */
+    fn derive_recurring_nullifier(self, timestamp: Field) -> Field {
+        let base_nullifier_secret = self.randomness; //todo: switch to regular nullifier
+        poseidon2_hash_with_separator(
+            [self.randomness, timestamp],
+            GENERATOR_INDEX__NOTE_NULLIFIER as Field
+        )
     }
 }

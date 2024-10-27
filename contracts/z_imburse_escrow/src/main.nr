@@ -10,33 +10,32 @@ contract ZImburseEscrow {
     use std::{meta::derive, collections::bounded_vec::BoundedVec};
     use dep::aztec::{
         encrypted_logs::{
-        encrypted_note_emission::{encode_and_encrypt_note, encode_and_encrypt_note_unconstrained},
-        encrypted_event_emission::encode_and_encrypt_event
-    },
+            encrypted_note_emission::{encode_and_encrypt_note, encode_and_encrypt_note_unconstrained},
+            encrypted_event_emission::encode_and_encrypt_event
+        },
         keys::getters::get_public_keys,
         macros::{storage::storage, events::event, functions::{private, public, internal, view, initializer}},
         note::{
-        note_getter_options::{NoteStatus, NoteGetterOptions}, note_viewer_options::NoteViewerOptions,
-        constants::MAX_NOTES_PER_PAGE
-    },
+            note_getter_options::{NoteStatus, NoteGetterOptions}, note_viewer_options::NoteViewerOptions,
+            constants::MAX_NOTES_PER_PAGE
+        },
         oracle::{random::random, notes::check_nullifier_exists, debug_log::debug_log_format},
         prelude::{AztecAddress, PrivateSet, SharedImmutable, Map}, protocol_types::traits::Serialize,
         utils::comparison::Comparator
     };
     use dep::token::Token;
-    use dep::address_note::address_note::AddressNote;
     use dep::zimburse_verifiers::{
         linode::{
-        constants::{MAX_LINODE_EMAIL_BODY_LENGTH, MAX_LINODE_EMAIL_HEADER_LENGTH},
-        main::verify_linode_billing_receipt
-    },
+            constants::{MAX_LINODE_EMAIL_BODY_LENGTH, MAX_LINODE_EMAIL_HEADER_LENGTH},
+            main::verify_linode_billing_receipt
+        },
         zkemail::KEY_LIMBS_2048
     };
     use crate::{
         types::{
-        escrow_definition::{EscrowDefinition, TITLE_LENGTH},
-        recurring_entitlement_note::RecurringEntitlementNote
-    },
+            escrow_definition::{EscrowDefinition, TITLE_LENGTH},
+            recurring_entitlement_note::RecurringEntitlementNote
+        },
         registry_interface::check_dkim_key_hash_private, verifiers
     };
 

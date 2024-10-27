@@ -14,10 +14,10 @@ use std::hash::from_field_unsafe;
 use dep::generators::GENERATORS;
 
 // serializes verifier_id and max_value into one field element
-global SPOT_ENTITLEMENT_NOTE_LENGTH: u32 = 7;
+global ENTITLEMENT_NOTE_LENGTH: u32 = 7;
 
 #[note_custom_interface]
-pub struct SpotEntitlementNote {
+pub struct EntitlementNote {
     // the user that is allowed to use this entitlement
     recipient: AztecAddress,
     // the type of receipt verifier that this entitlement can be used for
@@ -33,18 +33,10 @@ pub struct SpotEntitlementNote {
     randomness: Field,
 }
 
-impl NoteInterface<SPOT_ENTITLEMENT_NOTE_LENGTH> for SpotEntitlementNote {
+impl NoteInterface<ENTITLEMENT_NOTE_LENGTH> for EntitlementNote {
 
-    fn serialize_content(self) -> [Field; SPOT_ENTITLEMENT_NOTE_LENGTH] {
-        // // serialize max_value and verifier_id together
-        // let max_value_bytes: [u8; 16] = self.max_value.to_be_bytes();
-        // let mut packed_bytes: [u8; 17] = [0; 17];
-        // for i in 0..16 {
-        //     packed_bytes[i] = max_value_bytes[i];
-        // }
-        // packed_bytes[16] = self.is_admin as u8;
-        // let packed = field_from_bytes(packed_bytes, true);
-        // return serialized content
+    fn serialize_content(self) -> [Field; ENTITLEMENT_NOTE_LENGTH] {
+
         [
             self.recipient.to_field(),
             self.verifier_id as Field,
@@ -56,8 +48,8 @@ impl NoteInterface<SPOT_ENTITLEMENT_NOTE_LENGTH> for SpotEntitlementNote {
         ]
     }
 
-    fn deserialize_content(serialized_note: [Field; SPOT_ENTITLEMENT_NOTE_LENGTH]) -> SpotEntitlementNote {
-        SpotEntitlementNote {
+    fn deserialize_content(serialized_note: [Field; ENTITLEMENT_NOTE_LENGTH]) -> EntitlementNote {
+        EntitlementNote {
             recipient: AztecAddress::from_field(serialized_note[0]),
             verifier_id: serialized_note[1] as u8,
             max_value: U128::from_integer(serialized_note[2]),
@@ -69,11 +61,11 @@ impl NoteInterface<SPOT_ENTITLEMENT_NOTE_LENGTH> for SpotEntitlementNote {
         }
     }
 
-    fn to_be_bytes(self, storage_slot: Field) -> [u8; SPOT_ENTITLEMENT_NOTE_LENGTH * 32 + 64] {
+    fn to_be_bytes(self, storage_slot: Field) -> [u8; ENTITLEMENT_NOTE_LENGTH * 32 + 64] {
         let serialized_note = self.serialize_content();
-        let mut buffer: [u8; SPOT_ENTITLEMENT_NOTE_LENGTH * 32 + 64] = [0; SPOT_ENTITLEMENT_NOTE_LENGTH * 32 + 64];
+        let mut buffer: [u8; ENTITLEMENT_NOTE_LENGTH * 32 + 64] = [0; ENTITLEMENT_NOTE_LENGTH * 32 + 64];
         let storage_slot_bytes: [u8; 32] = storage_slot.to_be_bytes();
-        let note_type_id_bytes: [u8; 32] = SpotEntitlementNote::get_note_type_id().to_be_bytes();
+        let note_type_id_bytes: [u8; 32] = EntitlementNote::get_note_type_id().to_be_bytes();
         for i in 0..32 {
             buffer[i] = storage_slot_bytes[i];
             buffer[32 + i] = note_type_id_bytes[i];
@@ -90,7 +82,7 @@ impl NoteInterface<SPOT_ENTITLEMENT_NOTE_LENGTH> for SpotEntitlementNote {
     fn get_note_type_id() -> Field {
         comptime
         {
-            let bytes = "SpotEntitlementNote".as_bytes();
+            let bytes = "EntitlementNote".as_bytes();
             let hash = poseidon2_hash_bytes(bytes);
             let hash_bytes = hash.to_be_bytes::<4>();
             field_from_bytes(hash_bytes, true)
@@ -118,7 +110,7 @@ impl NoteInterface<SPOT_ENTITLEMENT_NOTE_LENGTH> for SpotEntitlementNote {
     }
 }
 
-impl NullifiableNote for SpotEntitlementNote {
+impl NullifiableNote for EntitlementNote {
     fn compute_nullifier(self, context: &mut PrivateContext, note_hash_for_nullify: Field) -> Field {
         let secret = self.randomness; // use as nullifier_secret so that admin and recipient can nullify
         poseidon2_hash_with_separator(
@@ -140,7 +132,7 @@ impl NullifiableNote for SpotEntitlementNote {
     }
 }
 
-impl Eq for SpotEntitlementNote {
+impl Eq for EntitlementNote {
     fn eq(self, other: Self) -> bool {
         (self.recipient == other.recipient)
             & (self.max_value == other.max_value)
@@ -149,7 +141,7 @@ impl Eq for SpotEntitlementNote {
     }
 }
 
-impl SpotEntitlementNote {
+impl EntitlementNote {
     /**
      * Entitlement Receipt, shadows an entitlement send to a recepient
      * Cannot be used to claim a reimbursement, but can be used to nullify the sent entitlement
@@ -168,6 +160,6 @@ impl SpotEntitlementNote {
         destination: CompressedString<1, 31>,
         randomness: Field
     ) -> Self {
-        Self { recipient, verifier_id, max_value, randomness, header: NoteHeader::empty() }
+        Self { recipient, verifier_id, max_value, date_start, date_end, randomness, header: NoteHeader::empty() }
     }
 }

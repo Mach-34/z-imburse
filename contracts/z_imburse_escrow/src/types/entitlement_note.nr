@@ -1,9 +1,6 @@
 use aztec::{
     encrypted_logs::encrypted_event_emission::encode_and_encrypt_event,
-    keys::{
-        getters::{get_public_keys, get_nsk_app},
-        point_to_symmetric_key::point_to_symmetric_key
-    },
+    keys::getters::get_public_keys,
     macros::notes::note_custom_interface,
     note::utils::compute_note_hash_for_nullify,
     oracle::{random::random, notes::check_nullifier_exists},
@@ -14,7 +11,6 @@ use aztec::{
         constants::GENERATOR_INDEX__NOTE_NULLIFIER,
         hash::{poseidon2_hash_with_separator, poseidon2_hash_bytes},
         utils::field::field_from_bytes,
-        scalar::Scalar, point::Point
     },
 };
 use compressed_string::CompressedString;
@@ -240,7 +236,7 @@ impl EntitlementNote {
      * @param timestamp - the timestamp to check
      * @return true if the timestamp is within the date range, false otherwise
      */
-    fn check_date(self, timestamp: u32) -> bool {
+    fn check_date_range(self, timestamp: u32) -> bool {
         (timestamp >= self.date_start) & (timestamp <= self.date_end)
     }
 
@@ -276,20 +272,23 @@ impl EntitlementNote {
     /**
      * This check is not safe but simulates desired behavior of check_nullifier and can be used in txe
      */
-    fn check_nullifier_txe(self, context: &mut PrivateContext) {
+    fn check_nullifier_txe(self, context: &mut PrivateContext) -> Field {
         let nullifier = self.compute_nullifier_without_context();
         let nullifier_exists = unsafe { check_nullifier_exists(nullifier) };
         assert(!nullifier_exists, "Entitlement has already been claimed");
+        nullifier
     }
 
     /**
      * Ensure that the note nullifier has not been used before
      *
      * @param context - the private context to use for the oracle call
+     * @return - the nullifier for the note
      */
-    fn check_nullifier(self, context: &mut PrivateContext) {
+    fn check_nullifier(self, context: &mut PrivateContext) -> Field {
         let nullifier = self.compute_nullifier_without_context();
         context.historical_header.prove_nullifier_non_inclusion(nullifier);
+        nullifier
     }
 
     /**

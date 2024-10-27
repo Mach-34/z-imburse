@@ -1,7 +1,7 @@
 use aztec::macros::aztec;
 
-mod constants;
 mod contract_interfaces;
+mod library_methods;
 mod types;
 mod verifiers;
 
@@ -9,33 +9,27 @@ mod verifiers;
 contract ZImburseEscrow {
     use std::{meta::derive, collections::bounded_vec::BoundedVec, option::Option};
     use aztec::{
-        encrypted_logs::{
-            encrypted_note_emission::{encode_and_encrypt_note, encode_and_encrypt_note_unconstrained},
-            encrypted_event_emission::{encode_and_encrypt_event, encode_and_encrypt_event_unconstrained}
+        macros::{
+            storage::storage,
+            events::event,
+            functions::{private, public, internal, view, initializer}
         },
-        keys::getters::get_public_keys,
-        macros::{storage::storage, events::event, functions::{private, public, internal, view, initializer}},
-        note::{
-            note_getter_options::{NoteStatus, NoteGetterOptions}, note_viewer_options::NoteViewerOptions,
-            constants::MAX_NOTES_PER_PAGE
-        },
-        oracle::{random::random, notes::check_nullifier_exists, debug_log::debug_log_format},
-        prelude::{AztecAddress, PrivateSet, SharedImmutable, Map},
+        note::constants::MAX_NOTES_PER_PAGE,
+        oracle::random::random,
+        prelude::{AztecAddress, SharedImmutable},
         protocol_types::traits::Serialize,
-        utils::comparison::Comparator
     };
     use zimburse_verifiers::{
-        linode::constants::{MAX_LINODE_EMAIL_BODY_LENGTH, MAX_LINODE_EMAIL_HEADER_LENGTH, LinodeBillingParams},
+        linode::constants::LinodeBillingParams,
         zkemail::KEY_LIMBS_2048
     };
     use crate::{
+        library_methods::linode,
         types::{
             escrow_definition::{EscrowDefinition, TITLE_LENGTH},
             entitlement_note::EntitlementNote,
             entitlement_set::EntitlementSet
         },
-        contract_interfaces::{check_dkim_key_hash_private, shield_to_claimant},
-        verifiers::{verifier_ids, verify_linode}
     };
 
     #[event]
@@ -160,205 +154,87 @@ contract ZImburseEscrow {
     }
     
     /**
-     * Claim a reimbursement for a Linode hosting receipt
+     * Claim a recurring reimbursement for a Linode hosting receipt
      * @dev use separate function from spot to optimize gates by avoiding if statements
      * 
+     * @param email_receipt_inputs - the inputs from the email verifier
+     * @param claim_secret_hash - the hash of the claim secret used to redeem the reimbursement
+     * @return the amount reimbursed
      */
     #[private]
     fn reimburse_linode_recurring(
         email_receipt_inputs: LinodeBillingParams,
         claim_secret_hash: Field,
     ) -> Field {
-        let sender = context.msg_sender();
-
-        // retrieve a Linode hosting entitlement
-        let note_wrapped = storage.entitlements.get_matching_entitlement(
-            sender,
-            sender,
-            verifier_ids::LINODE,
-            false
+        // common logic for claiming a Linode entitlement
+        let (entitlement, admin, amount_to_reimburse, timestamp) = linode(
+            email_receipt_inputs,
+            claim_secret_hash,
+            false, // recurring
+            &mut context,
+            storage
         );
-        assert(note_wrapped.is_some(), "No entitlements to redeem");
-
-        // check the msg sender can use the entitlement
-        let entitlement = note_wrapped.unwrap();
-        assert(entitlement.recipient == sender, "Entitlement does not belong to the caller");
 
         // check that the entitlement has not been nullified by the admin
-        // entitlement.check_nullifier(&mut context); // <-- cant be used in txe
-        entitlement.check_nullifier_txe(&mut context); // <-- doesn't actually constrain nullifier to exist
+        // let _ = entitlement.check_nullifier(&mut context); // <-- cant be used in txe
+        let _ = entitlement.check_nullifier_txe(&mut context); // <-- doesn't actually constrain nullifier to exist
 
-        // verify linode billing receipt and extract amount, date, keyhash
-        let linode_outputs = verify_linode(email_receipt_inputs);
-
-        // handle recurring nullification
-        entitlement.check_and_emit_recurring_nullifier(&mut context, linode_outputs.timestamp);
-
-        // read the escrow definition
-        let definition = storage.definition.read_private();
-
-        // check the dkim key hash matches the linode verifier id
-        let registered_verifier_id = check_dkim_key_hash_private(
-            &mut context,
-            definition.registry,
-            linode_outputs.dkim_key_hash
-        );
-        assert((registered_verifier_id as u8) == verifier_ids::LINODE, "DKIM key is not registered for Linode");
-
-        // determine the amount to reimburse
-        let amount_to_reimburse = entitlement.amount_to_reimburse(linode_outputs.billed_amount);
+        // check and emit recurring nullification
+        entitlement.check_and_emit_recurring_nullifier(&mut context, timestamp);
 
         // notify admin of reimbursement
-        entitlement.emit_recurring_claim(
-            &mut context,
-            definition.admin,
-            amount_to_reimburse,
-            linode_outputs.timestamp
-        );
-
-        // release funds from escrow by shielding in public
-        shield_to_claimant(&mut context, definition.usdc, amount_to_reimburse, claim_secret_hash);
+        entitlement.emit_recurring_claim(&mut context, admin, amount_to_reimburse, timestamp);
         
         // return the amount reimbursed
         amount_to_reimburse
     }
 
-    // #[private]
-    // fn reimburse_linode_spot(
-    //     // email inputs
-    //     body: [u8; MAX_LINODE_EMAIL_BODY_LENGTH],
-    //     body_hash_index: u32,
-    //     body_length: u32,
-    //     header: [u8; MAX_LINODE_EMAIL_HEADER_LENGTH],
-    //     header_length: u32,
-    //     pubkey: [Field; KEY_LIMBS_2048],
-    //     pubkey_redc: [Field; KEY_LIMBS_2048],
-    //     signature: [Field; KEY_LIMBS_2048],
-    //     from_index: u32,
-    //     subject_index: u32,
-    //     amount_index: u32,
-    //     amount_length: u32,
-    //     date_index: u32,
-    //     receipt_id_length: u32,
-    //     // claim hash
-    //     claim_secret_hash: Field,
-    // )
+    /**
+     * Claim a spot reimbursement for a Linode hosting receipt
+     * @dev use separate function from recurring to optimize gates by avoiding if statements
+     * 
+     * @param email_receipt_inputs - the inputs from the email verifier
+     * @param claim_secret_hash - the hash of the claim secret used to redeem the reimbursement
+     * @return the amount reimbursed
+     */
+    #[private]
+    fn reimburse_linode_spot(
+        email_receipt_inputs: LinodeBillingParams,
+        claim_secret_hash: Field,
+    ) -> Field {
+        let sender = context.msg_sender();
+        // common logic for claiming a Linode entitlement
+        let (entitlement, admin, amount_to_reimburse, timestamp) = linode(
+            email_receipt_inputs,
+            claim_secret_hash,
+            true, // spot
+            &mut context,
+            storage
+        );
 
-    // #[private]
-    // fn reimburse_linode_spot(
-    //     // email inputs
-    //     body: [u8; MAX_LINODE_EMAIL_BODY_LENGTH],
-    //     body_hash_index: u32,
-    //     body_length: u32,
-    //     header: [u8; MAX_LINODE_EMAIL_HEADER_LENGTH],
-    //     header_length: u32,
-    //     pubkey: [Field; KEY_LIMBS_2048],
-    //     pubkey_redc: [Field; KEY_LIMBS_2048],
-    //     signature: [Field; KEY_LIMBS_2048],
-    //     from_index: u32,
-    //     subject_index: u32,
-    //     amount_index: u32,
-    //     amount_length: u32,
-    //     date_index: u32,
-    //     receipt_id_length: u32,
-    //     // claim hash
-    //     claim_secret_hash: Field,
-    //     // spot selector
-    //     is_spot: bool
-    // ) -> Field {
-    //     // retrieve a Linode hosting entitlement
-    //     let notes = storage.entitlements.at(context.msg_sender()).get_notes(
-    //         NoteGetterOptions::new()
-    //             .select(EntitlementNote::properties().verifier_id, Comparator.EQ, verifiers::LINODE)
-    //             .select(EntitlementNote::properties().spot, Comparator.EQ, is_spot)
-    //             .set_limit(1)
-    //     );
-    //     assert(notes.len() == 1, "No entitlements to redeem");
-    //     let note = notes.get_unchecked(0);
-    //     assert(note.recipient == context.msg_sender(), "Entitlement does not belong to the recipient");
+        // check that the receipt is valid for the entitlement date range
+        entitlement.check_date_range(timestamp as u32);
 
-    //     // ensure the note has not been nullified by the admin
-    //     // note: use check_nullifier_exists - much cheaper and will fail kernel if oracle lies
-    //     let note_nullifier = note.compute_nullifier(&mut context, note.compute_note_hash());
-    //     let exists = check_nullifier_exists(note.compute_nullifier(&mut context, note.compute_note_hash()));
-    //     assert(!exists, "Entitlement has been nullified");
+        // check that the entitlement has not been nullified by the admin
+        // let nullifier = entitlement.check_nullifier(&mut context); // <-- cant be used in txe
+        let nullifier = entitlement.check_nullifier_txe(&mut context); // <-- doesn't actually constrain nullifier to exist
 
-    //     // // verify linode billing receipt and extract amount, date, keyhash
-    //     // // todo: create a new function with pop_capsule to handle custom logic & inputs per email
-    //     let linode_receipt_result = verify_linode_billing_receipt(
-    //         body,
-    //         body_hash_index,
-    //         body_length,
-    //         header,
-    //         header_length,
-    //         pubkey,
-    //         pubkey_redc,
-    //         signature,
-    //         from_index,
-    //         subject_index,
-    //         amount_index,
-    //         amount_length,
-    //         date_index,
-    //         receipt_id_length
-    //     );
-    //     let dkim_key_hash = linode_receipt_result[0];
-    //     let unix_month = linode_receipt_result[1]; // month and year
-    //     // billed amount returns 2 decimals, so multiply billed_amount by 10,000
-    //     let billed_amount = U128::from_integer(linode_receipt_result[2] * 10000);
+        // broadcast the note nullifier
+        context.push_nullifier(nullifier);
 
-    //     // check the dkim key hash matches the linode verifier id
-    //     let definition = storage.definition.read_private();
-    //     let registered_verifier_id = check_dkim_key_hash_private(&mut context, definition.registry, dkim_key_hash);
-    //     assert((registered_verifier_id as u8) == verifiers::LINODE, "DKIM key is not registered for Linode");
-
-    //     // determine the amount to reimburse
-    //     let amount_to_reimburse = if note.max_value >= billed_amount {
-    //         billed_amount.to_field()
-    //     } else {
-    //         note.max_value.to_field()
-    //     };
-
-    //     // notify admin of reimbursement
-    //     RecurringReimbursementClaimed {
-    //         claimant: context.msg_sender(),
-    //         amount: amount_to_reimburse,
-    //         verifier_id: verifiers::LINODE,
-    //         datetime: unix_month
-    //     }.emit(
-    //         encode_and_encrypt_event(
-    //             &mut context,
-    //             get_public_keys(context.msg_sender()).ovpk_m,
-    //             get_public_keys(definition.admin).ivpk_m,
-    //             definition.admin
-    //         )
-    //     );
-
-
-
-    //     // check that this entitlement has not been emitted for this month and add it
-    //     // todo: check the nullifier non-inclusion once out of txe
-    //     // constrained to use the year/month unix timestamp computed by email verifier
-    //     // todo: silo nullifiers to contract address
-    //     let recurring_nullifier = note.derive_recurring_nullifier(unix_month);
-    //     let recurring_nullifier_exists = check_nullifier_exists(recurring_nullifier);
-    //     assert(!recurring_nullifier_exists, "Entitlement has already been claimed for this month");
-    //     // let recurring_nullifier_exists = storage.entitlement_nullifiers.at(recurring_nullifier).read_private();
-    //     // context.historical_header.prove_nullifier_non_inclusion(recurring_nullifier);
-    //     // dep::aztec::oracle::debug_log::debug_log_format("Proved recurring nullifier was not included", []);
-    //     context.push_nullifier(recurring_nullifier);
-    //     // dep::aztec::oracle::debug_log::debug_log_format("Pushed recurring nullifier", []);
-
-    //     // release funds from escrow by shielding in public
-    //     let token_address = storage.definition.read_private().usdc;
-    //     Token::at(token_address).shield(
-    //         context.this_address(),
-    //         amount_to_reimburse,
-    //         claim_secret_hash,
-    //         0
-    //     ).enqueue(&mut context);
-    //     // todo: should we hash the claim secret inside and emit event so it ins't lost?
-    //     amount_to_reimburse
-    // }
+        // emit event to notify admin of spot entitlement consumption
+        entitlement.emit_nullified(&mut context, entitlement.recipient, sender);
+        
+        // notify admin of reimbursement
+        entitlement.emit_spot_claim(
+            &mut context,
+            admin,
+            amount_to_reimburse,
+        );
+        
+        // return the amount reimbursed
+        amount_to_reimburse
+    }
 
     /**
      * Emit the nullifier for an entitlement

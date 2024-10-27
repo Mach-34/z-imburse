@@ -1,22 +1,14 @@
 use aztec::{
     context::{PrivateContext, UnconstrainedContext},
-    encrypted_logs::{
-        encrypted_note_emission::{encode_and_encrypt_note, encode_and_encrypt_note_unconstrained},
-        encrypted_event_emission::{encode_and_encrypt_event, encode_and_encrypt_event_unconstrained}
-    },
-    keys::{getters::get_public_keys, public_keys::NpkM},
+    encrypted_logs::encrypted_note_emission::{encode_and_encrypt_note, encode_and_encrypt_note_unconstrained},
+    keys::getters::get_public_keys,
     note::{
         note_getter_options::{NoteStatus, NoteGetterOptions},
         note_viewer_options::NoteViewerOptions,
         constants::MAX_NOTES_PER_PAGE,
-        note_getter::view_notes,
-        note_emission::OuterNoteEmission
     },
     prelude::{NoteInterface, NullifiableNote, PrivateSet, Map},
-    protocol_types::{
-        constants::MAX_NOTE_HASH_READ_REQUESTS_PER_CALL,
-        address::AztecAddress
-    },
+    protocol_types::address::AztecAddress,
     utils::comparison::Comparator
 };
 use std::option::Option;

@@ -1,5 +1,5 @@
-use dep::aztec::protocol_types::{address::AztecAddress, traits::{Serialize, Deserialize}};
-use dep::compressed_string::CompressedString;
+use aztec::protocol_types::{address::AztecAddress, traits::{Serialize, Deserialize}};
+use compressed_string::CompressedString;
 
 global ESCROW_DEFINITION_LENGTH: u32 = 5;
 global TITLE_LENGTH: u32 = 60;

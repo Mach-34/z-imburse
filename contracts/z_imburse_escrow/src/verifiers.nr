@@ -1,8 +1,5 @@
  use zimburse_verifiers::{
-    linode::{
-        constants::{MAX_LINODE_EMAIL_BODY_LENGTH, MAX_LINODE_EMAIL_HEADER_LENGTH, LinodeBillingParams},
-        main::verify_linode_billing_receipt
-    },
+    linode::{constants::LinodeBillingParams, main::verify_linode_billing_receipt},
     zkemail::KEY_LIMBS_2048
 };
 

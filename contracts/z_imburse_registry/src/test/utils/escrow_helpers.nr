@@ -4,7 +4,7 @@ use aztec::{
     note::constants::MAX_NOTES_PER_PAGE, prelude::AztecAddress,
     test::helpers::{cheatcodes, test_environment::TestEnvironment}
 };
-use std::collections::bounded_vec::BoundedVec;
+use std::{option::Option, collections::bounded_vec::BoundedVec};
 use z_imburse_escrow::{ZImburseEscrow, types::entitlement_note::EntitlementNote};
 use zimburse_verifiers::linode::constants::LinodeBillingParams;
 use crate::test::utils::token_helpers::add_shielded_note;
@@ -43,18 +43,19 @@ unconstrained pub fn give_recurring_entitlement(
  * @param recipient The address of the recipient of the entitlement
  * @param verifier The verifier to use for the entitlement
  */
-unconstrained pub fn revoke_recurring_entitlement(
+unconstrained pub fn revoke_entitlement(
     env: &mut TestEnvironment,
     escrow_address: AztecAddress,
     escrow_admin: AztecAddress,
     recipient: AztecAddress,
-    verifier: u8
+    verifier: u8,
+    spot: bool
 ) {
     env.impersonate(escrow_admin);
     let escrow = ZImburseEscrow::at(escrow_address);
-    let revoke_recurring_entitlement_call_iface = escrow.revoke_recurring_entitlement(recipient, verifier);
-    env.call_private_void(revoke_recurring_entitlement_call_iface);
-    cheatcodes::advance_blocks_by(2);
+    let revoke_entitlement_call_iface = escrow.revoke_entitlement(recipient, verifier, spot);
+    env.call_private_void(revoke_entitlement_call_iface);
+    cheatcodes::advance_blocks_by(1);
 }
 
 /**
@@ -111,28 +112,17 @@ unconstrained pub fn reimburse_linode_recurring(
     (secret, amount_reimbursed)
 }
 
-unconstrained pub fn get_recurring_entitlements_by_user(
+unconstrained pub fn view_entitlements(
     escrow_address: AztecAddress,
-    at: AztecAddress,
-    user: AztecAddress,
-    offset: u32
+    offset: u32,
+    scope: AztecAddress,
+    recipient: Option<AztecAddress>,
+    verifier: Option<u8>,
+    spot: Option<bool>
 ) -> (BoundedVec<EntitlementNote, MAX_NOTES_PER_PAGE>, bool) {
     let current_contract_address = get_contract_address();
     cheatcodes::set_contract_address(escrow_address);
-    let (notes, results_end) = ZImburseEscrow::get_recurring_entitlements_by_user(at, user, offset);
-    cheatcodes::set_contract_address(current_contract_address);
-    (notes, results_end)
-}
-
-unconstrained pub fn get_recurring_entitlements_by_verifier(
-    escrow_address: AztecAddress,
-    at: AztecAddress,
-    verifier: u8,
-    offset: u32
-) -> (BoundedVec<EntitlementNote, MAX_NOTES_PER_PAGE>, bool) {
-    let current_contract_address = get_contract_address();
-    cheatcodes::set_contract_address(escrow_address);
-    let (notes, results_end) = ZImburseEscrow::get_recurring_entitlements_by_verifier(at, verifier, offset);
+    let (notes, results_end) = ZImburseEscrow::view_entitlements(offset, scope, recipient, verifier, spot);
     cheatcodes::set_contract_address(current_contract_address);
     (notes, results_end)
 }

@@ -1,6 +1,6 @@
 use dep::aztec::macros::aztec;
 
-// mod test;
+mod test;
 mod types;
 mod verifiers;
 

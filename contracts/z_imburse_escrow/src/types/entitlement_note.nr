@@ -1,19 +1,27 @@
-use dep::aztec::protocol_types::{
-    address::AztecAddress, traits::{Serialize, Deserialize}, constants::GENERATOR_INDEX__NOTE_NULLIFIER,
-    hash::{poseidon2_hash_with_separator, poseidon2_hash_bytes}, utils::field::field_from_bytes,
-    scalar::Scalar, point::Point
+use aztec::{
+    encrypted_logs::encrypted_event_emission::encode_and_encrypt_event,
+    keys::{
+        getters::{get_public_keys, get_nsk_app},
+        point_to_symmetric_key::point_to_symmetric_key
+    },
+    macros::notes::note_custom_interface,
+    note::utils::compute_note_hash_for_nullify,
+    oracle::{random::random, notes::check_nullifier_exists},
+    prelude::{NoteHeader, NullifiableNote, NoteInterface, PrivateContext},
+    protocol_types::{
+        address::AztecAddress,
+        traits::{Serialize, Deserialize},
+        constants::GENERATOR_INDEX__NOTE_NULLIFIER,
+        hash::{poseidon2_hash_with_separator, poseidon2_hash_bytes},
+        utils::field::field_from_bytes,
+        scalar::Scalar, point::Point
+    },
 };
-use dep::aztec::note::utils::compute_note_hash_for_nullify;
-use dep::aztec::oracle::{random::random, notes::check_nullifier_exists};
-use dep::aztec::macros::notes::note_custom_interface;
-use dep::aztec::prelude::{NoteHeader, NullifiableNote, NoteInterface, PrivateContext};
-use dep::aztec::keys::{getters::{get_public_keys, get_nsk_app}, point_to_symmetric_key::point_to_symmetric_key};
-use dep::compressed_string::CompressedString;
-use std::embedded_curve_ops::multi_scalar_mul;
-use std::hash::from_field_unsafe;
-use dep::generators::GENERATORS;
+use compressed_string::CompressedString;
+use generators::GENERATORS;
+use std::{embedded_curve_ops::multi_scalar_mul, hash::from_field_unsafe};
+use crate::ZImburseEscrow::{SpotReimbursementClaimed, RecurringReimbursementClaimed, EntitlementNullified};
 
-// serializes verifier_id and max_value into one field element
 global ENTITLEMENT_NOTE_LENGTH: u32 = 8;
 
 #[note_custom_interface]
@@ -166,13 +174,14 @@ impl EntitlementNote {
         destination: str<31>,
         randomness: Field
     ) -> Self {
+        let destination_compressed: CompressedString<1, 31> = CompressedString::from_string(destination);
         Self {
             recipient,
             verifier_id,
             max_value,
             date_start,
             date_end,
-            destination: CompressedString::from_string(destination).value[0],
+            destination: destination_compressed.value[0],
             spot: true,
             randomness,
             header: NoteHeader::empty()
@@ -223,22 +232,7 @@ impl EntitlementNote {
      */
     fn destination(self) -> [u8; 31] {
         CompressedString::<1, 31> { value: [self.destination] }.to_bytes()
-    }
-
-    /**
-     * Derives the nullifier for recurring notes
-     * @dev recurring notes are nullified for a scope (month) without destroying the ntoe
-     *      prove nullifier non-inclusion to use
-     *
-     * @param timestamp - the timestamp (month/ year) from the email receipt verifier
-     * @return - the month nullifier for the note
-     */
-    fn derive_recurring_nullifier(self, timestamp: Field) -> Field {
-        poseidon2_hash_with_separator(
-            [self.randomness, timestamp],
-            GENERATOR_INDEX__NOTE_NULLIFIER as Field
-        )
-    }
+    } 
 
     /**
      * Check if a given timestamp is within the date range of the entitlement
@@ -262,6 +256,21 @@ impl EntitlementNote {
         } else {
             self.max_value.to_field()
         }
+    }
+
+    /**
+     * Derives the nullifier for recurring notes
+     * @dev recurring notes are nullified for a scope (month) without destroying the ntoe
+     *      prove nullifier non-inclusion to use
+     *
+     * @param timestamp - the timestamp (month/ year) from the email receipt verifier
+     * @return - the month nullifier for the note
+     */
+    fn derive_recurring_nullifier(self, timestamp: Field) -> Field {
+        poseidon2_hash_with_separator(
+            [self.randomness, timestamp],
+            GENERATOR_INDEX__NOTE_NULLIFIER as Field
+        )
     }
 
     /**
@@ -298,5 +307,71 @@ impl EntitlementNote {
         assert(!recurring_nullifier_exists, "Entitlement has already been claimed for this month");
         // emit the nullifier
         context.push_nullifier(recurring_nullifier);
+    }
+
+    /**
+     * Emit an event to the admin notifying them of a recurring claim
+     *
+     * @param context - the private execution context
+     * @param admin - the address of the admin of the escrow to notify
+     * @param amount - the amount claimed
+     * @param timestamp - the timestamp of the claim
+     */
+    fn emit_recurring_claim(self, context: &mut PrivateContext, admin: AztecAddress, amount: Field, timestamp: Field) {
+        RecurringReimbursementClaimed {
+            claimant: self.recipient,
+            amount,
+            verifier_id: self.verifier_id,
+            timestamp
+        }.emit(
+            encode_and_encrypt_event(
+                context,
+                get_public_keys(self.recipient).ovpk_m,
+                get_public_keys(admin).ivpk_m,
+                admin
+            )
+        );
+    }
+
+    /**
+     * Emit an event to the admin notifying them of a spot claim
+     *
+     * @param context - the private execution context
+     * @param admin - the address of the admin of the escrow to notify
+     * @param amount - the amount claimed
+     */
+    fn emit_spot_claim(self, context: &mut PrivateContext, admin: AztecAddress, amount: Field) {
+        SpotReimbursementClaimed {
+            claimant: self.recipient,
+            amount,
+            verifier_id: self.verifier_id,
+        }.emit(
+            encode_and_encrypt_event(
+                context,
+                get_public_keys(self.recipient).ovpk_m,
+                get_public_keys(admin).ivpk_m,
+                admin
+            )
+        );
+    }
+
+    /**
+     * Admin or recipient notifies counterparty that note has been nullified
+     * @dev admin emits event when revoking entitlement, recipient emits when claiming spot
+     * @dev clients must scan for these events to prune notes that are no longer valid
+     *
+     * @param context - the private execution context
+     * @param to - the address of the counterparty to notify
+     * @param from - the address of the notifier who nullified the entitlement note
+     */
+    fn emit_nullified(self, context: &mut PrivateContext, to: AztecAddress, from: AztecAddress) {
+        EntitlementNullified { randomness: self.randomness }.emit(
+            encode_and_encrypt_event(
+                context,
+                get_public_keys(from).ovpk_m,
+                get_public_keys(to).ivpk_m,
+                to
+            )
+        );
     }
 }

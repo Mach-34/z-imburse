@@ -1,7 +1,7 @@
-use dep::aztec::macros::aztec;
+use aztec::macros::aztec;
 
 mod constants;
-mod registry_interface;
+mod contract_interfaces;
 mod types;
 mod verifiers;
 
@@ -20,12 +20,12 @@ contract ZImburseEscrow {
             constants::MAX_NOTES_PER_PAGE
         },
         oracle::{random::random, notes::check_nullifier_exists, debug_log::debug_log_format},
-        prelude::{AztecAddress, PrivateSet, SharedImmutable, Map}, protocol_types::traits::Serialize,
+        prelude::{AztecAddress, PrivateSet, SharedImmutable, Map},
+        protocol_types::traits::Serialize,
         utils::comparison::Comparator
     };
-    use token::Token;
     use zimburse_verifiers::{
-        linode::constants::{MAX_LINODE_EMAIL_BODY_LENGTH, MAX_LINODE_EMAIL_HEADER_LENGTH},
+        linode::constants::{MAX_LINODE_EMAIL_BODY_LENGTH, MAX_LINODE_EMAIL_HEADER_LENGTH, LinodeBillingParams},
         zkemail::KEY_LIMBS_2048
     };
     use crate::{
@@ -34,7 +34,7 @@ contract ZImburseEscrow {
             entitlement_note::EntitlementNote,
             entitlement_set::EntitlementSet
         },
-        registry_interface::check_dkim_key_hash_private,
+        contract_interfaces::{check_dkim_key_hash_private, shield_to_claimant},
         verifiers::{verifier_ids, verify_linode}
     };
 
@@ -44,7 +44,7 @@ contract ZImburseEscrow {
         claimant: AztecAddress,
         amount: Field,
         verifier_id: u8,
-        datetime: Field
+        timestamp: Field
     }
 
     #[event]
@@ -58,15 +58,13 @@ contract ZImburseEscrow {
     #[event]
     #[derive(Serialize)]
     struct EntitlementNullified {
-        verifier_id: u8,
-        amount: Field
+        randomness: Field
     }
 
     #[storage]
     struct Storage<Context> {
         definition: SharedImmutable<EscrowDefinition, Context>,
         entitlements: EntitlementSet<EntitlementNote, Context>,
-        // entitlements: Map<AztecAddress, PrivateSet<EntitlementNote, Context>, Context>,
     }
 
     /**
@@ -83,11 +81,54 @@ contract ZImburseEscrow {
         storage.definition.initialize(definition);
     }
 
-    // // #[private]
-    // // fn give_spot_entitlement(to: AztecAddress, amount: Field, verifier_id: u8, date_start: u32, date_end: u32, destination: str<31>) -> {
+    /**
+     * Create a new spot entitlement for a user to reimburse themselves with
+     * @dev spot = one-time use
+     * 
+     * @param recipient - the address to give the entitlement to
+     * @param amount - the maximum amount the recipient can claim in the reimbursement
+     * @param verifier_id - the id of the email receipt type to verify
+     * @param date_start - the unix timestamp of the start that receipts are valid from
+     * @param date_end - the unix timestamp of the end that receipts are valid until
+     * @param destination - the destination that a travel receipt must go to (set to [0; 31] if not applicable)
+     */
+    #[private]
+    fn give_spot_entitlement(recipient: AztecAddress, amount: Field, verifier_id: u8, date_start: u32, date_end: u32, destination: str<31>) {
+        // check that no receipt exists for this recipient and verifier
+        let entitlement_exists = storage.entitlements.get_matching_entitlement(
+            context.msg_sender(),
+            recipient,
+            verifier_id,
+            true // checks spot
+        ).is_some();
+        assert(!entitlement_exists, "An entitlement already exists for this recipient and verifier");
 
-    // // }
+        // check is escrow admin
+        let sender = context.msg_sender();
+        let admin = storage.definition.read_private().admin;
+        assert(sender == admin, "Only the escrow admin can give entitlements");
 
+        // create the entitlement note
+        let amount = U128::from_integer(amount);
+        let blinding_factor = unsafe { random() };
+        let mut entitlement = EntitlementNote::new_spot(recipient, verifier_id, amount, date_start, date_end, destination, blinding_factor);
+
+        // insert the entitlement note for the recipient and the admin
+        storage.entitlements.add_entitlement_with_receipt(
+            &mut context,
+            sender,
+            recipient,
+            &mut entitlement
+        );
+    }
+
+    /**
+     * Create a new recurring entitlement for a user to reimburse themselves with
+     *
+     * @param recipient - the address to give the entitlement to
+     * @param amount - the maximum amount the recipient can claim in the reimbursement
+     * @param verifier_id - the id of the email receipt type to verify
+     */
     #[private]
     fn give_recurring_entitlement(recipient: AztecAddress, amount: Field, verifier_id: u8) {
         // check that no receipt exists for this recipient and verifier
@@ -95,7 +136,7 @@ contract ZImburseEscrow {
             context.msg_sender(),
             recipient,
             verifier_id,
-            false
+            false // checks recurring
         ).is_some();
         assert(!entitlement_exists, "An entitlement already exists for this recipient and verifier");
 
@@ -118,24 +159,14 @@ contract ZImburseEscrow {
         );
     }
     
+    /**
+     * Claim a reimbursement for a Linode hosting receipt
+     * @dev use separate function from spot to optimize gates by avoiding if statements
+     * 
+     */
     #[private]
     fn reimburse_linode_recurring(
-        // email inputs
-        body: [u8; MAX_LINODE_EMAIL_BODY_LENGTH],
-        body_hash_index: u32,
-        body_length: u32,
-        header: [u8; MAX_LINODE_EMAIL_HEADER_LENGTH],
-        header_length: u32,
-        pubkey: [Field; KEY_LIMBS_2048],
-        pubkey_redc: [Field; KEY_LIMBS_2048],
-        signature: [Field; KEY_LIMBS_2048],
-        from_index: u32,
-        subject_index: u32,
-        amount_index: u32,
-        amount_length: u32,
-        date_index: u32,
-        receipt_id_length: u32,
-        // claim hash
+        email_receipt_inputs: LinodeBillingParams,
         claim_secret_hash: Field,
     ) -> Field {
         let sender = context.msg_sender();
@@ -154,32 +185,19 @@ contract ZImburseEscrow {
         assert(entitlement.recipient == sender, "Entitlement does not belong to the caller");
 
         // check that the entitlement has not been nullified by the admin
-        // entitlement.check_nullifier(&mut context); <-- cant be used in txe
-        entitlement.check_nullifier_txe(&mut context);
+        // entitlement.check_nullifier(&mut context); // <-- cant be used in txe
+        entitlement.check_nullifier_txe(&mut context); // <-- doesn't actually constrain nullifier to exist
 
         // verify linode billing receipt and extract amount, date, keyhash
-        let linode_outputs = verify_linode(
-            body,
-            body_hash_index,
-            body_length,
-            header,
-            header_length,
-            pubkey,
-            pubkey_redc,
-            signature,
-            from_index,
-            subject_index,
-            amount_index,
-            amount_length,
-            date_index,
-            receipt_id_length
-        );
+        let linode_outputs = verify_linode(email_receipt_inputs);
 
         // handle recurring nullification
         entitlement.check_and_emit_recurring_nullifier(&mut context, linode_outputs.timestamp);
 
-        // check the dkim key hash matches the linode verifier id
+        // read the escrow definition
         let definition = storage.definition.read_private();
+
+        // check the dkim key hash matches the linode verifier id
         let registered_verifier_id = check_dkim_key_hash_private(
             &mut context,
             definition.registry,
@@ -191,31 +209,40 @@ contract ZImburseEscrow {
         let amount_to_reimburse = entitlement.amount_to_reimburse(linode_outputs.billed_amount);
 
         // notify admin of reimbursement
-        RecurringReimbursementClaimed {
-            claimant: sender,
-            amount: amount_to_reimburse,
-            verifier_id: verifier_ids::LINODE,
-            datetime: linode_outputs.timestamp
-        }.emit(
-            encode_and_encrypt_event(
-                &mut context,
-                get_public_keys(sender).ovpk_m,
-                get_public_keys(definition.admin).ivpk_m,
-                definition.admin
-            )
+        entitlement.emit_recurring_claim(
+            &mut context,
+            definition.admin,
+            amount_to_reimburse,
+            linode_outputs.timestamp
         );
 
         // release funds from escrow by shielding in public
-        Token::at(definition.usdc).shield(
-            context.this_address(),
-            amount_to_reimburse,
-            claim_secret_hash,
-            0
-        ).enqueue(&mut context);
+        shield_to_claimant(&mut context, definition.usdc, amount_to_reimburse, claim_secret_hash);
         
         // return the amount reimbursed
         amount_to_reimburse
     }
+
+    // #[private]
+    // fn reimburse_linode_spot(
+    //     // email inputs
+    //     body: [u8; MAX_LINODE_EMAIL_BODY_LENGTH],
+    //     body_hash_index: u32,
+    //     body_length: u32,
+    //     header: [u8; MAX_LINODE_EMAIL_HEADER_LENGTH],
+    //     header_length: u32,
+    //     pubkey: [Field; KEY_LIMBS_2048],
+    //     pubkey_redc: [Field; KEY_LIMBS_2048],
+    //     signature: [Field; KEY_LIMBS_2048],
+    //     from_index: u32,
+    //     subject_index: u32,
+    //     amount_index: u32,
+    //     amount_length: u32,
+    //     date_index: u32,
+    //     receipt_id_length: u32,
+    //     // claim hash
+    //     claim_secret_hash: Field,
+    // )
 
     // #[private]
     // fn reimburse_linode_spot(
@@ -334,7 +361,8 @@ contract ZImburseEscrow {
     // }
 
     /**
-     * Emit the nullifier for a recurring entitlement
+     * Emit the nullifier for an entitlement
+     * @dev will fail @ kernel if already emitted
      *
      * @param recipient - the address to revoke entitlement for
      * @param verifier_type - the verifier type to revoke entitlement for
@@ -362,14 +390,7 @@ contract ZImburseEscrow {
         context.push_nullifier(nullifier);
 
         // emit event to notify recipient of revocation
-        EntitlementNullified { verifier_id: verifier_type, amount: entitlement.max_value.to_integer() }.emit(
-            encode_and_encrypt_event(
-                &mut context,
-                get_public_keys(sender).ovpk_m,
-                get_public_keys(recipient).ivpk_m,
-                recipient
-            )
-        );
+        entitlement.emit_nullified(&mut context, entitlement.recipient, sender);
     }
 
     /**

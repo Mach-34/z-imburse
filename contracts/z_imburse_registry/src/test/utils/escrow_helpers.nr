@@ -87,20 +87,7 @@ unconstrained pub fn reimburse_linode_recurring(
 
     // claim linode entitlement
     let reimburse_linode_recurring_call_iface = escrow.reimburse_linode_recurring(
-        linode_inputs.body,
-        linode_inputs.body_hash_index,
-        linode_inputs.body_length,
-        linode_inputs.header,
-        linode_inputs.header_length,
-        linode_inputs.pubkey,
-        linode_inputs.pubkey_redc,
-        linode_inputs.signature,
-        linode_inputs.from_index,
-        linode_inputs.subject_index,
-        linode_inputs.amount_index,
-        linode_inputs.amount_length,
-        linode_inputs.date_index,
-        linode_inputs.receipt_id_length,
+        linode_inputs,
         claim_hash
     );
     let amount_reimbursed = env.call_private(reimburse_linode_recurring_call_iface);

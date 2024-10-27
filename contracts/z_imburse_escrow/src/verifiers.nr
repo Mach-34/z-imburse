@@ -1,6 +1,6 @@
  use zimburse_verifiers::{
     linode::{
-        constants::{MAX_LINODE_EMAIL_BODY_LENGTH, MAX_LINODE_EMAIL_HEADER_LENGTH},
+        constants::{MAX_LINODE_EMAIL_BODY_LENGTH, MAX_LINODE_EMAIL_HEADER_LENGTH, LinodeBillingParams},
         main::verify_linode_billing_receipt
     },
     zkemail::KEY_LIMBS_2048
@@ -26,38 +26,23 @@ pub mod verifier_ids {
 
 
 /** Constrain the verification of a Linode billing receipt email and return formatted outputs */
-pub fn verify_linode(
-    body: [u8; MAX_LINODE_EMAIL_BODY_LENGTH],
-    body_hash_index: u32,
-    body_length: u32,
-    header: [u8; MAX_LINODE_EMAIL_HEADER_LENGTH],
-    header_length: u32,
-    pubkey: [Field; KEY_LIMBS_2048],
-    pubkey_redc: [Field; KEY_LIMBS_2048],
-    signature: [Field; KEY_LIMBS_2048],
-    from_index: u32,
-    subject_index: u32,
-    amount_index: u32,
-    amount_length: u32,
-    date_index: u32,
-    receipt_id_length: u32,
-) -> LinodeReceiptOutput {
+pub fn verify_linode(inputs: LinodeBillingParams) -> LinodeReceiptOutput {
     // verify the email receipt
     let linode_receipt_result = verify_linode_billing_receipt(
-        body,
-        body_hash_index,
-        body_length,
-        header,
-        header_length,
-        pubkey,
-        pubkey_redc,
-        signature,
-        from_index,
-        subject_index,
-        amount_index,
-        amount_length,
-        date_index,
-        receipt_id_length
+        inputs.body,
+        inputs.body_hash_index,
+        inputs.body_length,
+        inputs.header,
+        inputs.header_length,
+        inputs.pubkey,
+        inputs.pubkey_redc,
+        inputs.signature,
+        inputs.from_index,
+        inputs.subject_index,
+        inputs.amount_index,
+        inputs.amount_length,
+        inputs.date_index,
+        inputs.receipt_id_length
     );
     // extract outputs
     let dkim_key_hash = linode_receipt_result[0];

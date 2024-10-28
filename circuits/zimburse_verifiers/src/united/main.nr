@@ -24,8 +24,9 @@ pub fn verify_united_flight_receipt(
     subject_index: u32,
     amount_sequence: Sequence,
     date_sequence: Sequence,
-    airport_sequence: Sequence // partial_body_hash: [u32; 8],
-    // partial_body_real_length: u64
+    airport_sequence: Sequence,
+    partial_body_hash: [u32; 8],
+    partial_body_real_length: u64
 ) -> [Field; 4] {
     // check the body and header lengths are within bounds
     assert(header.len() <= MAX_EMAIL_HEADER_LENGTH);

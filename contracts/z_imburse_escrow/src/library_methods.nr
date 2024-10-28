@@ -1,5 +1,5 @@
 use aztec::prelude::{AztecAddress, PrivateContext};
-use zimburse_verifiers::{linode::constants::LinodeBillingParams, zkemail::KEY_LIMBS_2048};
+use zimburse_verifiers::{linode::constants::LinodeBillingParamsContract, zkemail::KEY_LIMBS_2048};
 use crate::{
     types::entitlement_note::EntitlementNote,
     contract_interfaces::{check_dkim_key_hash_private, shield_to_claimant},
@@ -10,7 +10,7 @@ use crate::{
 /**
  * Shared logic for claiming Linode entitlement
  * 
- * @param email_receipt_inputs - the inputs from the email verifier
+ * @param email_receipt_inputs - the inputs from the email verifier, in a contract-serializable format
  * @param claim_secret_hash - the hash of the claim secret used to redeem the reimbursement
  * @param spot - if true, check for spot entitlements. If false, check for recurring entitlements
  * @param context - the contract context
@@ -19,7 +19,7 @@ use crate::{
  */
 #[contract_library_method]
 fn linode(
-    email_receipt_inputs: LinodeBillingParams,
+    email_receipt_inputs: LinodeBillingParamsContract,
     claim_secret_hash: Field,
     spot: bool,
     context: &mut PrivateContext,
@@ -41,7 +41,7 @@ fn linode(
     assert(entitlement.recipient == sender, "Entitlement does not belong to the caller");
 
     // verify linode billing receipt and extract amount, date, keyhash
-    let linode_outputs = verify_linode(email_receipt_inputs);
+    let linode_outputs = verify_linode(email_receipt_inputs.marshal());
         
     // read the escrow definition
     let definition = storage.definition.read_private();

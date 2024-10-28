@@ -1,8 +1,7 @@
-import { verifyDKIMSignature } from "@zk-email/helpers/dist/dkim";
-import { generateEmailVerifierInputsFromDKIMResult } from "@mach-34/zkemail-nr";
+import { generateEmailVerifierInputsFromDKIMResult, verifyDKIMSignature } from "@zk-email/zkemail-nr";
 import { getSequenceParams } from "./location";
 import { Regexes } from "../constants";
-import { LinodeInputs, RedeemLinodeInputs } from "../types";
+import { LinodeInputs } from "../types";
 
 const LINODE_MAX_HEADER_LENGTH = 640;
 const LINODE_MAX_BODY_LENGTH = 832;
@@ -20,36 +19,36 @@ const calculateReceiptIdLength = (subjectSlice: string) => {
   return closingBracketIdx - openingBracketIdx;
 };
 
-/**
- * Transform Linode circuit inputs into format acceptable by aztec
- * @param inputs - Linode inputs that are witcalc friendly but not readable by contract
- */
-export const formatRedeemLinode = (
-  inputs: LinodeInputs
-): RedeemLinodeInputs => {
-  // body will be present in this email type
-  const body = inputs.body!.map((byte) => Number(byte));
-  const header = inputs.header.map((byte) => Number(byte));
-  const pubkey = inputs.pubkey.map((limb) => BigInt(limb));
-  const pubkey_redc = inputs.pubkey_redc.map((limb) => BigInt(limb));
-  const signature = inputs.signature.map((limb) => BigInt(limb));
-  return [
-    body,
-    Number(inputs.body_hash_index),
-    Number(inputs.body_length),
-    header,
-    Number(inputs.header_length),
-    pubkey,
-    pubkey_redc,
-    signature,
-    inputs.from_index,
-    inputs.subject_index,
-    inputs.amount_index,
-    inputs.amount_length,
-    inputs.date_index,
-    inputs.receipt_id_length,
-  ];
-};
+// /**
+//  * Transform Linode circuit inputs into format acceptable by aztec
+//  * @param inputs - Linode inputs that are witcalc friendly but not readable by contract
+//  */
+// export const formatRedeemLinode = (
+//   inputs: LinodeInputs
+// ): RedeemLinodeInputs => {
+//   // body will be present in this email type
+//   const body = inputs.body!.map((byte) => Number(byte));
+//   const header = inputs.header.map((byte) => Number(byte));
+//   const pubkey = inputs.pubkey.map((limb) => BigInt(limb));
+//   const pubkey_redc = inputs.pubkey_redc.map((limb) => BigInt(limb));
+//   const signature = inputs.signature.map((limb) => BigInt(limb));
+//   return [
+//     body,
+//     Number(inputs.body_hash_index),
+//     Number(inputs.body_length),
+//     header,
+//     Number(inputs.header_length),
+//     pubkey,
+//     pubkey_redc,
+//     signature,
+//     inputs.from_index,
+//     inputs.subject_index,
+//     inputs.amount_index,
+//     inputs.amount_length,
+//     inputs.date_index,
+//     inputs.receipt_id_length,
+//   ];
+// };
 
 /**
  * Given an email, generate the inputs for the Linode billing receipt proof
@@ -90,15 +89,17 @@ export const makeLinodeInputs = async (
     header.slice(subjectIndex, subjectIndex + subjectLen)
   );
 
-  // need to fix in zkemail.nr
-  if (baseInputs.body!.length > LINODE_MAX_BODY_LENGTH) {
-    baseInputs.body = baseInputs.body!.slice(0, LINODE_MAX_BODY_LENGTH);
+  // todo: fix
+  if (baseInputs.body!.storage.length !== LINODE_MAX_BODY_LENGTH) {
+    baseInputs.body!.storage = baseInputs.body!.storage.slice(0, LINODE_MAX_BODY_LENGTH);
   }
 
   const inputs = {
     ...baseInputs,
-    amount_index: billMatch.index as number,
-    amount_length: billMatch[0].length,
+    amount_sequence: {
+      index: billMatch.index as number,
+      length: billMatch[0].length
+    },
     from_index: fromParams.index,
     subject_index: subjectParams.index,
     date_index: dateField.index,

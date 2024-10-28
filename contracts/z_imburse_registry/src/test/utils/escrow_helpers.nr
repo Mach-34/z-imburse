@@ -6,9 +6,9 @@ use aztec::{
 };
 use std::{option::Option, collections::bounded_vec::BoundedVec};
 use z_imburse_escrow::{ZImburseEscrow, types::entitlement_note::EntitlementNote};
-use zimburse_verifiers::linode::constants::LinodeBillingParams;
+use zimburse_verifiers::linode::constants::{LinodeBillingParams, LinodeBillingParamsContract};
 use crate::test::utils::token_helpers::add_shielded_note;
-use dep::date_parser::{parse_date_string, to_unix_month, DATETIME_LENGTH};
+use date_parser::{parse_date_string, to_unix_month, DATETIME_LENGTH};
 
 /**
  * Send an entitlement for a monthly recurring reimbursement to a user in the escrow
@@ -121,16 +121,17 @@ unconstrained pub fn reimburse_linode(
     let escrow = ZImburseEscrow::at(escrow_address);
 
     // claim linode entitlement
+    let marshalled_inputs = LinodeBillingParamsContract::unmarshal(linode_inputs);
     let mut amount_reimbursed = 0;
     if spot {
         let reimburse_linode_call_iface = escrow.reimburse_linode_spot(
-            linode_inputs,
+            marshalled_inputs,
             claim_hash
         );
         amount_reimbursed = env.call_private(reimburse_linode_call_iface);
     } else {
         let reimburse_linode_call_iface = escrow.reimburse_linode_recurring(
-            linode_inputs,
+            marshalled_inputs,
             claim_hash
         );
         amount_reimbursed = env.call_private(reimburse_linode_call_iface);

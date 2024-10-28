@@ -1,9 +1,8 @@
-use crate::constants::{
-    DATE_HEADER_FIELD_MAX_LENGTH, DATE_LENGTH_DETERMINATION_INDEX, DATE_HEADER_FIELD_START
-};
+use crate::constants::{DATE_HEADER_FIELD_MAX_LENGTH, DATE_LENGTH_DETERMINATION_INDEX, DATE_HEADER_FIELD_START};
 use crate::linode::constants::MAX_LINODE_EMAIL_HEADER_LENGTH;
 
 use dep::date_parser::{parse_date_string, to_unix_month, DATETIME_LENGTH};
+use zkemail::Sequence;
 
 /**
  * Constrains a span to be a full header field
@@ -13,11 +12,7 @@ use dep::date_parser::{parse_date_string, to_unix_month, DATETIME_LENGTH};
  * @param index: the index that the header field begins at
  * @param length: the length of the header field
  */
-pub fn constrain_header_field<let MAX_HEADER_LENGTH: u32>(
-    header: [u8; MAX_LINODE_EMAIL_HEADER_LENGTH],
-    index: u32,
-    length: u32
-) {
+pub fn constrain_header_field<let MAX_HEADER_LENGTH: u32>(header: [u8; MAX_LINODE_EMAIL_HEADER_LENGTH], index: u32, length: u32) {
     // check that the field does not lie outside of the max 
     assert(index + length <= header.len(), "Header field out of bounds");
     // if not the first field in the header, ensure the header field is preceded by a CRLF
@@ -73,6 +68,16 @@ pub fn extract_datetime(header: [u8; MAX_LINODE_EMAIL_HEADER_LENGTH], index: u32
     to_unix_month(parsed)
 }
 
+pub fn field_from_bytes<let N: u32>(bytes: [u8; N]) -> Field {
+    let mut as_field = 0;
+    let mut offset = 1;
+    for i in 0..N {
+        as_field += (bytes[i] as Field) * offset;
+        offset *= 256;
+    }
+    as_field
+}
+
 pub fn serialize_bytes<let LIMBS: u32, let SEQUENCE_LENGTH: u32>(sequence: [u8; SEQUENCE_LENGTH]) -> [Field; LIMBS] {
     let mut limbs: [Field; LIMBS] = [0; LIMBS];
     for i in 0..LIMBS {
@@ -105,22 +110,76 @@ fn is_qp_linebreak_char(byte: u8) -> bool {
     (byte == 0x3D) | (byte == 0xD) | (byte == 0xA)
 }
 
+fn is_soft_linebreak(window: [u8; 3]) -> bool {
+    window == [0x3D, 0x0D, 0x0A]
+}
+
 /**
 * Check whether email body using quoted printable encoding contains a certain text sequence. Handles
 * 3 character linebreak sequences: "=\r\n"
 */
 fn check_qp_sequence<let MAX_LEN: u32, let REVERT_MSG_LEN: u32, let SEQ_LEN: u32>(
-    body: [u8; MAX_LEN], 
+    text: BoundedVec<u8, MAX_LEN>,
     start_index: u32,
     sequence: [u8; SEQ_LEN],
     revert_msg: str<REVERT_MSG_LEN>
 ) {
-    let mut checked_bytes = 0;
-    for i in 0..SEQ_LEN + 3 {
-        let byte = body[start_index + i];
-        if !is_qp_linebreak_char(byte) & (checked_bytes <= SEQ_LEN - 4)  {
-            assert(body[start_index + i] == sequence[i], revert_msg);
-            checked_bytes = checked_bytes + 1;
+    let mut index = start_index;
+    for i in 0..SEQ_LEN {
+        // todo: prevent overflow
+        let window = [
+            text.get_unchecked(index),
+            text.get_unchecked(index + 1),
+            text.get_unchecked(index + 2)
+        ];
+        if is_soft_linebreak(window) {
+            index = index + 3;
         }
+        assert(sequence[i] == text.get_unchecked(index), revert_msg);
+        index = index + 1;
     }
+}
+
+fn check_qp_sequence_reverse<let MAX_LEN: u32, let REVERT_MSG_LEN: u32, let SEQ_LEN: u32>(
+    text: BoundedVec<u8, MAX_LEN>,
+    start_index: u32,
+    sequence: [u8; SEQ_LEN],
+    revert_msg: str<REVERT_MSG_LEN>
+) {
+    let mut index = start_index;
+    for i in 0..SEQ_LEN {
+        let window = [
+            text.get_unchecked(index - 2),
+            text.get_unchecked(index - 1),
+            text.get_unchecked(index)
+        ];
+        if is_soft_linebreak(window) {
+            index = index - 3;
+        }
+        assert(sequence[SEQ_LEN - i - 1] == text.get_unchecked(index), revert_msg);
+        index = index - 1;
+    }
+}
+
+fn remove_soft_line_break<let MAX_TEXT_LEN: u32, let MAX_SEQ_LEN: u32>(
+    text: BoundedVec<u8, MAX_TEXT_LEN>,
+    sequence: Sequence
+) -> BoundedVec<u8, MAX_SEQ_LEN> {
+    let mut decoded = BoundedVec::new();
+    let mut index = sequence.index;
+    for i in 0..MAX_SEQ_LEN {
+        let window = [
+            text.get_unchecked(index),
+            text.get_unchecked(index + 1),
+            text.get_unchecked(index + 2)
+        ];
+        if is_soft_linebreak(window) {
+            index = index + 3;
+        }
+        if i < sequence.length {
+            decoded.push(text.get_unchecked(index))
+        }
+        index = index + 1;
+    }
+    decoded
 }

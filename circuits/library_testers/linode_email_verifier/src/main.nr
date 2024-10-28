@@ -1,41 +1,30 @@
-use dep::zimburse_verifiers::{
-    linode::{
-        constants::LinodeBillingParams,
-        main::verify_linode_billing_receipt
-    }
-};
+use dep::zimburse_verifiers::{linode::{constants::LinodeBillingParams, main::verify_linode_billing_receipt}};
 
 fn main(params: LinodeBillingParams) -> pub [Field; 3] {
     let LinodeBillingParams { 
-        body,
-        body_hash_index,
-        body_length,
         header,
-        header_length,
+        body,
         pubkey,
-        pubkey_redc,
         signature,
+        dkim_header_sequence,
+        body_hash_index,
         from_index,
         subject_index,
-        amount_index,
-        amount_length,
+        amount_sequence,
         date_index,
         receipt_id_length
     } = params;
 
     verify_linode_billing_receipt(
+        header,
+        pubkey,
+        signature,
+        dkim_header_sequence,
         body,
         body_hash_index,
-        body_length,
-        header,
-        header_length,
-        pubkey,
-        pubkey_redc,
-        signature,
         from_index,
         subject_index,
-        amount_index,
-        amount_length,
+        amount_sequence,
         date_index,
         receipt_id_length
     )

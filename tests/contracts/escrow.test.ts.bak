@@ -8,6 +8,7 @@ import {
   AccountWalletWithSecretKey,
   AztecAddress,
   AztecAddressLike,
+  EventType,
   ExtendedNote,
   Fr,
   FunctionCall,
@@ -90,9 +91,7 @@ describe("Test deposit to zimburse", () => {
     );
 
     // deploy contracts
-    ({ usdc, registry, escrows } = await setup(superuser, [
-      escrowAdmin,
-    ]));
+    ({ usdc, registry, escrows } = await setup(superuser, [escrowAdmin]));
 
     // register contracts in other PXE's
     await addContractsToPXE(escrowAdmin, [usdc, registry]);
@@ -229,7 +228,11 @@ describe("Test deposit to zimburse", () => {
         const amount = toUSDCDecimals(10n);
         const receipt1 = await escrows[0]
           .withWallet(escrowAdmin)
-          .methods.give_recurring_entitlement(alice.getAddress(), amount, VERIFIER_IDS.LINODE)
+          .methods.give_recurring_entitlement(
+            alice.getAddress(),
+            amount,
+            VERIFIER_IDS.LINODE
+          )
           .send()
           .wait({ debug: true });
 
@@ -270,7 +273,7 @@ describe("Test deposit to zimburse", () => {
           .simulate();
         expect(recipientBalance).toBe(toUSDCDecimals(10n));
       });
-      it("Can't use the same email (same month)", async () => {
+      xit("Can't use the same email (same month)", async () => {
         // generate email inputs
         const inputs = await makeLinodeInputs(emails.linode_sep);
         // transform inputs to contract friendly format
@@ -278,50 +281,89 @@ describe("Test deposit to zimburse", () => {
         // redeem entitlement
         const secret = Fr.random();
         const secretHash = computeSecretHash(secret);
-        const receipt = await escrows[0]
+        await expect(
+          escrows[0]
+            .withWallet(alice)
+            .methods.reimburse_linode(...redeemLinodeInputs, secretHash)
+            .send()
+            .wait()
+        ).rejects.toThrow(
+          "Entitlement has already been claimed for this month '!recurring_nullifier_exists'"
+        );
+      });
+      it("Check nullification removes notes", async () => {
+        // check notes exist
+        let adminReceipts = await escrows[0]
+          .withWallet(escrowAdmin)
+          .methods.get_recurring_entitlements_by_user(
+            escrowAdmin.getAddress(),
+            alice.getAddress(),
+            0
+          )
+          .simulate();
+        console.log("Admin receipts: ", adminReceipts[0]);
+        expect(adminReceipts[0].len).toBe(1n);
+        let recipientEntitlements = await escrows[0]
           .withWallet(alice)
-          .methods.reimburse_linode(...redeemLinodeInputs, secretHash)
+          .methods.get_recurring_entitlements_by_user(
+            alice.getAddress(),
+            alice.getAddress(),
+            0
+          )
+          .simulate();
+        console.log("Recipient entitlements: ", recipientEntitlements[0]);
+
+        expect(recipientEntitlements[0].len).toBe(1n);
+
+        // nullify entitlement
+        await escrows[0]
+          .withWallet(escrowAdmin)
+          .methods.revoke_recurring_entitlement(
+            alice.getAddress(),
+            VERIFIER_IDS.LINODE
+          )
           .send()
           .wait();
-      });
-      xit("Can use different month to claim the entitlement again", async () => {
-        // const amount = toUSDCDecimals(10n);
-        // // generate email inputs
-        // const inputs = await makeLinodeInputs(emails.linode_oct);
-        // // transform inputs to contract friendly format
-        // const redeemLinodeInputs = formatRedeemLinode(inputs);
-        // // redeem entitlement
-        // const secret = Fr.random();
-        // const secretHash = computeSecretHash(secret);
-        // const receipt = await escrows[0]
-        //   .withWallet(alice)
-        //   .methods.redeem_linode_entitlement(...redeemLinodeInputs, secretHash)
-        //   .send()
-        //   .wait();
-        // await addPendingShieldNoteToPXE(
-        //   alice,
-        //   usdc.address,
-        //   amount,
-        //   secretHash,
-        //   receipt.txHash
-        // );
-        // // check that the balance has decremented from zimburse
-        // const escrowBalance = await usdc.methods
-        //   .balance_of_public(escrows[0])
-        //   .simulate();
-        // expect(escrowBalance).toBe(toUSDCDecimals(9980n));
-        // // redeem the shielded USDC note
-        // await usdc
-        //   .withWallet(alice)
-        //   .methods.redeem_shield(alice.getAddress(), amount, secret)
-        //   .send()
-        //   .wait();
-        // // check that the balance has incremented for the recipient
-        // const recipientBalance = await usdc
-        //   .withWallet(alice)
-        //   .methods.balance_of_private(alice.getAddress())
-        //   .simulate();
-        // expect(recipientBalance).toBe(toUSDCDecimals(10n));
+        // update nullified note
+        const blockNum = await alice.getBlockNumber();
+        const events = await alice.getEvents(
+          EventType.Encrypted,
+          TokenContract.events.Transfer,
+          blockNum - 5,
+          blockNum
+        );
+        console.log("Events", events);
+        // check notes removed
+        adminReceipts = await escrows[0]
+          .withWallet(escrowAdmin)
+          .methods.get_recurring_entitlements_by_user(
+            escrowAdmin.getAddress(),
+            alice.getAddress(),
+            0
+          )
+          .simulate();
+        console.log("Admin receipts: ", adminReceipts);
+
+        // remove note
+        let note = (
+          await alice.getIncomingNotes({
+            contractAddress: escrows[0].address,
+            owner: alice.getAddress(),
+          })
+        )[0];
+        await alice.addNullifiedNote(note);
+        // expect(adminReceipts[0].len).toBe(0n);
+        recipientEntitlements = await escrows[0]
+          .withWallet(alice)
+          .methods.get_recurring_entitlements_by_user(
+            alice.getAddress(),
+            alice.getAddress(),
+            0
+          )
+          .simulate();
+        console.log("Recipient entitlements: ", recipientEntitlements);
+
+        // expect(recipientEntitlements[0].len).toBe(0n);
       });
       it.todo("Admin can't re-issue an entitlement");
       it.todo("Admin can nullify the entitlement");

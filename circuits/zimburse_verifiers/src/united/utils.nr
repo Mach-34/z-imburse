@@ -76,27 +76,30 @@ pub fn extract_billed_amount(body: BoundedVec<u8, MAX_EMAIL_BODY_LENGTH>, amount
     );
 
     let clrf_parsed = remove_soft_line_break::<MAX_EMAIL_BODY_LENGTH, MAX_AMOUNT_SEQUENCE_LENGTH>(body, amount_sequence);
+    // locate decimal index
+    let mut decimal_index = 0;
+    for i in 0..(MAX_BILLED_AMOUNT + TOTAL_BILLED_POSTFIX_LENGTH) {
+        let index = MAX_AMOUNT_SEQUENCE_LENGTH - i - 1;
+        if clrf_parsed.get_unchecked(index) == 0x2E {
+            decimal_index = index;
+        }
+    }
+    // check that third to last place is decimal point
+    assert(clrf_parsed.get_unchecked(decimal_index) == 0x2E, "Index does not point to decimal");
 
-    let amount_length = clrf_parsed.len() - TOTAL_BILLED_PREFIX_LENGTH - TOTAL_BILLED_POSTFIX_LENGTH;
-    let amount_end_index = TOTAL_BILLED_PREFIX_LENGTH + amount_length;
-
-    // // find decimal index
-    // let mut decimal_index = 0;
-    // for i in 0..amount_length {
-
-    // }
+    let amount_length = decimal_index + 3 - TOTAL_BILLED_PREFIX_LENGTH;
 
     // parse the amount
     let mut amount: Field = 0;
-    // let mut pow = 1;
-    // for i in 0..MAX_BILLED_AMOUNT {
-    //     let byte = clrf_parsed.get_unchecked(amount_end_index - i - 1);
-    //     if (i < amount_length) & (byte != 0x2E) {
-    //         let val = (byte - 0x30) as Field;
-    //         amount = amount + val * pow;
-    //         pow = pow * 10;
-    //     }
-    // }
+    let mut pow = 1;
+    for i in 0..MAX_BILLED_AMOUNT {
+        let byte = clrf_parsed.get_unchecked(decimal_index + 2 - i);
+        if (i < amount_length) & (byte != 0x2E) {
+            let val = (byte - 0x30) as Field;
+            amount = amount + val * pow;
+            pow = pow * 10;
+        }
+    }
     amount
 }
 

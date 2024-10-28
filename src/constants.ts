@@ -14,5 +14,4 @@ export const Regexes = {
     fullHeader: (field: string) => new RegExp(`^${field[0]}${field.slice(1)}:\\s*.+`, "mi"),
     linodeBilledAmount: /\$\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?/,
     unitedTotal: /Total:<\/td><td style=3D"(?:[^"]|=\r?\n)*?">([\d]+\.[\d]{2} USD)<\/td>/
-
 };

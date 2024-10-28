@@ -18,7 +18,7 @@ const getDateSequence = (emailBody: string) => {
 const getDestinationAirportSequence = (emailBody: string) => {
     const dateHtmlPrefix = emailBody.indexOf('2nd bag weight and dimensions');
     const dateHtmlPostfix = emailBody.indexOf('<br/>', dateHtmlPrefix);
-    const destinationPrefix = emailBody.indexOf('<br/>', dateHtmlPostfix);
+    const destinationPrefix = emailBody.indexOf('<br/>', dateHtmlPostfix + 1);
     const destinationPostfix = emailBody.indexOf('</td>', destinationPrefix);
     const length = destinationPostfix + 5 - destinationPrefix;
     return { index: destinationPrefix, length } as SequenceParams

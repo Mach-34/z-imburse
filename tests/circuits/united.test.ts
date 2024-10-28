@@ -24,13 +24,10 @@ describe("United Flight Receipt Test", () => {
             // simulate witness
             const { returnValue } = await prover.simulateWitness(inputs);
             const values = (returnValue as string[]).map(x => toBigIntBE(new Uint8Array(Buffer.from(x.slice(2), 'hex'))));
-
-            // deserialize destination
-            const thirdChar = values[2] / 1000n;
-            console.log('Third char: ', thirdChar);
-            // const secondChar = values[1] / 100n;
-            // const thirdChar = 
-
+            const destination = Buffer.from(values[3].toString(16), 'hex').toString('utf8')
+            // console.log('Bill: ', values[1])
+            console.log('Date: ', new Date(Number(values[2]) * 1000))
+            console.log('Destination: ', destination);
             // check the returned values
             // expect(values[1]).toEqual(171785n);
         })

@@ -18,7 +18,7 @@ fn main(
     date_sequence: Sequence,
     airport_sequence: Sequence // partial_body_hash: [u32; 8],
     // partial_body_real_length: u64
-) -> pub [Field; 3] {
+) -> pub [Field; 4] {
     verify_united_flight_receipt(
         header,
         pubkey,

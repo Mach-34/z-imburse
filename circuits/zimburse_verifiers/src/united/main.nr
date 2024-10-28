@@ -26,7 +26,7 @@ pub fn verify_united_flight_receipt(
     date_sequence: Sequence,
     airport_sequence: Sequence // partial_body_hash: [u32; 8],
     // partial_body_real_length: u64
-) -> [Field; 3] {
+) -> [Field; 4] {
     // check the body and header lengths are within bounds
     assert(header.len() <= MAX_EMAIL_HEADER_LENGTH);
     assert(body.len() <= MAX_EMAIL_BODY_LENGTH);
@@ -58,12 +58,12 @@ pub fn verify_united_flight_receipt(
 
     let date = extract_departing_flight_date(body, date_sequence);
 
-    // let destination = extract_destination_airport(body, airport_sequence);
+    let destination = extract_destination_airport(body, airport_sequence);
 
     // let max_msg_len = 
     // let partial_hash_interstitial = partial_sha256_var_interstitial(partial_body_hash);
 
     // hash the dkim key used to verify the email
     let dkim_key_hash = pedersen_hash(pubkey.modulus);
-    [dkim_key_hash, billed_amount, date]
+    [dkim_key_hash, billed_amount, date, destination]
 }

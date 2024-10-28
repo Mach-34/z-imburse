@@ -68,6 +68,16 @@ pub fn extract_datetime(header: [u8; MAX_LINODE_EMAIL_HEADER_LENGTH], index: u32
     to_unix_month(parsed)
 }
 
+pub fn field_from_bytes<let N: u32>(bytes: [u8; N]) -> Field {
+    let mut as_field = 0;
+    let mut offset = 1;
+    for i in 0..N {
+        as_field += (bytes[i] as Field) * offset;
+        offset *= 256;
+    }
+    as_field
+}
+
 pub fn serialize_bytes<let LIMBS: u32, let SEQUENCE_LENGTH: u32>(sequence: [u8; SEQUENCE_LENGTH]) -> [Field; LIMBS] {
     let mut limbs: [Field; LIMBS] = [0; LIMBS];
     for i in 0..LIMBS {

@@ -1,5 +1,5 @@
 import { describe, expect } from "@jest/globals";
-import { verifyDKIMSignature } from "@zk-email/helpers/dist/dkim";
+import { verifyDKIMSignature } from "@zk-email/zkemail-nr";
 import { makeLinodeInputs } from "../src/email_inputs/linode";
 import { getDKIMHashes, domains, fetchDKIMKeys, dkimPubkeyToHash } from "../src/dkim/index";
 import { prepareDKIMKeysForInputs } from "../src/contract_drivers/dkim";
@@ -33,12 +33,12 @@ describe("Test deposit to zimburse", () => {
     const linodeInputs = await makeLinodeInputs(emails.linode_sep);
     const { publicKey } = await verifyDKIMSignature(emails.linode_oct);
     // hash public keys
-    const linodeKeyHash = await dkimPubkeyToHash(linodeInputs.pubkey);
+    const linodeKeyHash = await dkimPubkeyToHash(linodeInputs.pubkey.modulus);
     const regularKeyHash = await dkimPubkeyToHash(publicKey);
     expect(keyHashes.some((key) => key === linodeKeyHash)).toBeTruthy();
     expect(keyHashes.some((key) => key === regularKeyHash)).toBeTruthy();
   })
   it("TXE Codegen", async () => {
-    await txeInputCodegen();
+    await txeInputCodegen(true, true);
   })
 });

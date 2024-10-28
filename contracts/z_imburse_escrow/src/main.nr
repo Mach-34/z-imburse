@@ -20,8 +20,12 @@ contract ZImburseEscrow {
         protocol_types::traits::Serialize,
     };
     use zimburse_verifiers::{
-        linode::constants::LinodeBillingParams,
-        zkemail::KEY_LIMBS_2048
+        zkemail::{Sequence, dkim::RSAPubkey, KEY_LIMBS_2048},
+        linode::constants::{
+            MAX_LINODE_EMAIL_HEADER_LENGTH,
+            MAX_LINODE_EMAIL_BODY_LENGTH,
+            LinodeBillingParamsContract
+        },
     };
     use crate::{
         library_methods::linode,
@@ -52,7 +56,7 @@ contract ZImburseEscrow {
     #[event]
     #[derive(Serialize)]
     struct EntitlementNullified {
-        randomness: Field
+        randomness: Field   
     }
 
     #[storage]
@@ -162,8 +166,11 @@ contract ZImburseEscrow {
      * @return the amount reimbursed
      */
     #[private]
+    // #[derive_linode_billing_params]
     fn reimburse_linode_recurring(
-        email_receipt_inputs: LinodeBillingParams,
+        // email receipt inputs
+        email_receipt_inputs: LinodeBillingParamsContract,
+        // claim secret hash
         claim_secret_hash: Field,
     ) -> Field {
         // common logic for claiming a Linode entitlement
@@ -199,7 +206,7 @@ contract ZImburseEscrow {
      */
     #[private]
     fn reimburse_linode_spot(
-        email_receipt_inputs: LinodeBillingParams,
+        email_receipt_inputs: LinodeBillingParamsContract,
         claim_secret_hash: Field,
     ) -> Field {
         let sender = context.msg_sender();

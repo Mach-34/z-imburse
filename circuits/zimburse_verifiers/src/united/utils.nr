@@ -11,7 +11,7 @@ use super::constants::{
     UNITED_FLIGHT_RECEIPT_FROM, UNITED_FLIGHT_RECEIPT_SUBJECT, TOTAL_BILLED_HTML_PREFIX,
     TOTAL_BILLED_HTML_POSTFIX, TOTAL_BILLED_PREFIX_LENGTH, TOTAL_BILLED_POSTFIX_LENGTH
 };
-use zkemail::Sequence;
+use zkemail::{Sequence, partial_hash::{partial_sha256_var_end, partial_sha256_var_interstitial}};
 use date_parser::{Datetime, parse_day, parse_month, parse_year, to_unix};
 
 /**
@@ -184,4 +184,55 @@ pub fn extract_destination_airport(
     let third_char = clrf_parsed.get_unchecked(opening_parenthesis_index + 3);
     let code = [third_char, second_char, first_char];
     field_from_bytes::<3>(code)
+}
+
+pub fn client_side_interstitial(
+    body: BoundedVec<u8, MAX_EMAIL_BODY_LENGTH>,
+    amount_sequence: Sequence,
+    date_sequence: Sequence,
+    partial_body_hash: [u32; 8],
+    partial_body_hash_date: [u32; 8]
+) -> ([u32; 8], [u32; 8]) {
+    // hash content between total and date / dest
+    let mut amount_msg: [u8; 256] = [0; 256];
+    for i in 0..MAX_AMOUNT_SEQUENCE_LENGTH {
+        amount_msg[i] = body.get_unchecked(amount_sequence.index + i);
+    }
+    let interstitial_hash_1 = partial_sha256_var_interstitial(partial_body_hash, amount_msg, 256);
+
+    let date_dest_sequence_length = MAX_DATETIME_SEQUENCE_LENGTH + MAX_DEST_AIRPORT_LENGTH - 5;
+    let mut date_dest_msg: [u8; 256] = [0; 256];
+    for i in 0..date_dest_sequence_length {
+        date_dest_msg[i] = body.get_unchecked(date_sequence.index + i);
+    }
+    let interstitial_hash_3 = partial_sha256_var_interstitial(partial_body_hash_date, date_dest_msg, 256);
+    (interstitial_hash_1, interstitial_hash_3)
+}
+
+pub fn server_side_interstitial(
+    body: BoundedVec<u8, MAX_EMAIL_BODY_LENGTH>,
+    interstitial_hash_1: [u32; 8],
+    interstitial_hash_3: [u32; 8],
+    amount_sequence: Sequence,
+    email_body_length: u32
+) {
+    let mut interstitial_msg_2: [u8; 1984] = [0; 1984]; // hardcode max length to 1984 for now
+    let interstitial_2_start_index = amount_sequence.end_index() + 1;
+    for i in 0..interstitial_msg_2.len() {
+        interstitial_msg_2[i] = body.get_unchecked(interstitial_2_start_index + i);
+    }
+    let interstitial_hash_2  = partial_sha256_var_interstitial(
+        interstitial_hash_1,
+        interstitial_msg_2,
+        interstitial_msg_2.len()
+    );
+
+    let mut body_end: [u8; 19968] = [0; 19968]; // hardcode max length to 19968 for now
+
+    let computed_hash_server = partial_sha256_var_end(
+        interstitial_hash_3,
+        body_end,
+        body_end.len() as u64,
+        email_body_length as u64
+    );
 }

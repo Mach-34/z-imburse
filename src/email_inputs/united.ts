@@ -106,7 +106,7 @@ export const makeUnitedInputs = async (
     const baseInputs = generateEmailVerifierInputsFromDKIMResult(dkimResult, {
         maxBodyLength: UNITED_MAX_BODY_LENGTH,
         maxHeadersLength: UNITED_MAX_HEADER_LENGTH,
-        // shaPrecomputeSelector: 'Total:'
+        shaPrecomputeSelector: 'Total:'
     });
     // grab sequence params from the email
     const header = dkimResult.headers.toString();
@@ -118,11 +118,20 @@ export const makeUnitedInputs = async (
     if (subjectParams === null)
         throw new Error("No 'subject' field found in email");
 
-    const body = dkimResult.body.toString();
-
+    const partialBodyBytes = new Uint8Array(baseInputs.body!.storage.map((val: string) => Number(val)));
+    const body = Buffer.from(partialBodyBytes).toString('utf8');
     const airportParams = getDestinationAirportSequence(body);
     const dateParams = getDateSequence(body);
     const totalParams = getTotalSequence(body);
+
+    const interstitialLength = dateParams.index - (totalParams.length + totalParams.index)
+    console.log('Interstitial length: ', interstitialLength);
+
+    const { partial_body_hash: partial_body_hash_date } = generateEmailVerifierInputsFromDKIMResult(dkimResult, {
+        maxBodyLength: UNITED_MAX_BODY_LENGTH,
+        maxHeadersLength: UNITED_MAX_HEADER_LENGTH,
+        shaPrecomputeSelector: '2nd bag weight and dimensions'
+    });
 
     const inputs = {
         ...baseInputs,
@@ -130,7 +139,8 @@ export const makeUnitedInputs = async (
         subject_index: subjectParams.index,
         amount_sequence: totalParams,
         date_sequence: dateParams,
-        airport_sequence: airportParams
+        airport_sequence: airportParams,
+        partial_body_hash_date: partial_body_hash_date as string[]
     };
     return inputs;
 };

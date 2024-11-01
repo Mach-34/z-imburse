@@ -58,9 +58,9 @@ pub fn check_subject_united_flight_receipt(index: u32, header: BoundedVec<u8, MA
     assert(header.get_unchecked(subject_len + index + 8) == 0x0A, "Invalid CRLF sequence");
 }
 
-pub fn extract_billed_amount(body: BoundedVec<u8, MAX_EMAIL_BODY_LENGTH>, amount_sequence: Sequence) -> Field {
+pub fn extract_billed_amount<let N: u32>(body: BoundedVec<u8, N>, amount_sequence: Sequence) -> Field {
     // check the prefix of the amount sequence
-    check_qp_sequence::<MAX_EMAIL_BODY_LENGTH, 43, TOTAL_BILLED_PREFIX_LENGTH>(
+    check_qp_sequence::<N, 43, TOTAL_BILLED_PREFIX_LENGTH>(
         body,
         amount_sequence.index,
         TOTAL_BILLED_HTML_PREFIX,
@@ -68,14 +68,14 @@ pub fn extract_billed_amount(body: BoundedVec<u8, MAX_EMAIL_BODY_LENGTH>, amount
     );
 
     // check the postfix of the amount sequence
-    check_qp_sequence_reverse::<MAX_EMAIL_BODY_LENGTH, 44, TOTAL_BILLED_POSTFIX_LENGTH>(
+    check_qp_sequence_reverse::<N, 44, TOTAL_BILLED_POSTFIX_LENGTH>(
         body,
         amount_sequence.index + amount_sequence.length - 1,
         TOTAL_BILLED_HTML_POSTFIX,
         "Index does not point to total billed postfix"
     );
 
-    let clrf_parsed = remove_soft_line_break::<MAX_EMAIL_BODY_LENGTH, MAX_AMOUNT_SEQUENCE_LENGTH>(body, amount_sequence);
+    let clrf_parsed = remove_soft_line_break::<N, MAX_AMOUNT_SEQUENCE_LENGTH>(body, amount_sequence);
     // locate decimal index
     let mut decimal_index = 0;
     for i in 0..(MAX_BILLED_AMOUNT + TOTAL_BILLED_POSTFIX_LENGTH) {

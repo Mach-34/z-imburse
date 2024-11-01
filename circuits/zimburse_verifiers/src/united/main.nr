@@ -18,7 +18,8 @@ use super::utils::client_side_interstitial;
 use super::utils::server_side_interstitial;
 
 
-global SELECTION_LENGTH: u32 = 256;
+global AMOUNT_SELECTION_LENGTH: u32 = 256;
+global DATE_AIRPORT_SELECTION_LENGTH: u32 = 320;
 /// USE UNTIL WE HAVE AZTEC-NARGO v0.35.0
 // use crate::sha256_var::sha256_var;
 
@@ -53,10 +54,10 @@ pub fn verify_united_flight_receipt(
     airport_sequence: Sequence,
     // hash state precomputed up to amount selection
     partial_body_hash: [u32; 8],
-    body_amount_selection: [u8; SELECTION_LENGTH],
+    body_amount_selection: [u8; AMOUNT_SELECTION_LENGTH],
     // hash state to date/ destination selection
     partial_body_hash_date: [u32; 8],
-    body_date_selection: [u8; SELECTION_LENGTH]
+    body_date_selection: [u8; DATE_AIRPORT_SELECTION_LENGTH]
 ) -> [Field; 4] {
     // check the header length is within bounds
     assert(header.len() <= MAX_EMAIL_HEADER_LENGTH);
@@ -94,14 +95,14 @@ pub fn verify_united_flight_receipt(
     let body_amount_hashed = partial_sha256_var_interstitial(
         partial_body_hash,
         body_amount_selection,
-        SELECTION_LENGTH
+        AMOUNT_SELECTION_LENGTH
     );
 
     // hash the state up to the date/destination selection
     let body_date_hashed = partial_sha256_var_interstitial(
         partial_body_hash_date,
         body_date_selection,
-        SELECTION_LENGTH
+        DATE_AIRPORT_SELECTION_LENGTH
     );
 
     // server_side_interstitial(body, interstitial_hash_1, interstitial_hash_3, amount_sequence);
@@ -118,17 +119,20 @@ pub fn united_flight_body_hash(
     header: BoundedVec<u8, MAX_EMAIL_HEADER_LENGTH>,
     pubkey: RSAPubkey<KEY_LIMBS_2048>,
     signature: [Field; KEY_LIMBS_2048],
-    body_hash_index: u32,
     dkim_header_sequence: Sequence,
+    body_hash_index: u32,
     from_index: u32,
     subject_index: u32,
+    amount_sequence: Sequence,
+    date_sequence: Sequence,
+    airport_sequence: Sequence,
     // hash state precomputed up to amount selection
     partial_body_hash: [u32; 8],
-    body_amount_selection: [u8; SELECTION_LENGTH],
+    body_amount_selection: [u8; AMOUNT_SELECTION_LENGTH],
     // hash state to date/ destination selection
     partial_body_hash_date: [u32; 8],
-    body_date_selection: [u8; SELECTION_LENGTH]
-) -> ([u32; 8], [u32; 8], [u8; 32]) {
+    body_date_selection: [u8; DATE_AIRPORT_SELECTION_LENGTH]
+) -> ([u32; 8], [u32; 8], [u8; 32], [Field; 3]) {
     // check the header length is within bounds
     assert(header.len() <= MAX_EMAIL_HEADER_LENGTH);
 
@@ -148,15 +152,20 @@ pub fn united_flight_body_hash(
     let body_amount_hashed = partial_sha256_var_interstitial(
         partial_body_hash,
         body_amount_selection,
-        SELECTION_LENGTH
+        AMOUNT_SELECTION_LENGTH
     );
 
     // hash the state up to the date/destination selection
     let body_date_hashed = partial_sha256_var_interstitial(
         partial_body_hash_date,
         body_date_selection,
-        SELECTION_LENGTH
+        DATE_AIRPORT_SELECTION_LENGTH
     );
 
-    (body_amount_hashed, body_date_hashed, signed_body_hash)
+    // extract billed amount
+    let billed_selection_vec: BoundedVec<u8, AMOUNT_SELECTION_LENGTH> = BoundedVec::from_array(body_amount_selection);
+    let billed_amount = extract_billed_amount(billed_selection_vec, amount_sequence);
+
+    let return_values = [billed_amount, 0, 0];
+    (body_amount_hashed, body_date_hashed, signed_body_hash, return_values)
 }

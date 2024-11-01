@@ -20,21 +20,16 @@ contract ZImburseEscrow {
         protocol_types::traits::Serialize,
     };
     use zimburse_verifiers::{
-<<<<<<< HEAD
-        linode::constants::LinodeBillingParams,
         united::{
             main::united_flight_body_hash,
             constants::MAX_EMAIL_HEADER_LENGTH,
         },
         zkemail::{KEY_LIMBS_2048, Sequence, dkim::RSAPubkey},
-=======
-        zkemail::{Sequence, dkim::RSAPubkey, KEY_LIMBS_2048},
         linode::constants::{
             MAX_LINODE_EMAIL_HEADER_LENGTH,
             MAX_LINODE_EMAIL_BODY_LENGTH,
             LinodeBillingParamsContract
         },
->>>>>>> main
     };
     use crate::{
         library_methods::linode,
@@ -175,16 +170,9 @@ contract ZImburseEscrow {
      * @return the amount reimbursed
      */
     #[private]
-<<<<<<< HEAD
     pub fn reimburse_linode_recurring(
-        email_receipt_inputs: LinodeBillingParams,
-=======
-    // #[derive_linode_billing_params]
-    fn reimburse_linode_recurring(
-        // email receipt inputs
         email_receipt_inputs: LinodeBillingParamsContract,
         // claim secret hash
->>>>>>> main
         claim_secret_hash: Field,
     ) -> Field {
         // common logic for claiming a Linode entitlement
@@ -219,13 +207,8 @@ contract ZImburseEscrow {
      * @return the amount reimbursed
      */
     #[private]
-<<<<<<< HEAD
-    pub fn reimburse_linode_spot(
-        email_receipt_inputs: LinodeBillingParams,
-=======
     fn reimburse_linode_spot(
         email_receipt_inputs: LinodeBillingParamsContract,
->>>>>>> main
         claim_secret_hash: Field,
     ) -> Field {
         let sender = context.msg_sender();
@@ -262,44 +245,49 @@ contract ZImburseEscrow {
         amount_to_reimburse
     }
 
-    // #[private]
-    // pub fn united_test(
-    //     header: [u8; MAX_EMAIL_HEADER_LENGTH],
-    //     header_length: u32,
-    //     pubkey_modulus: [Field; KEY_LIMBS_2048],
-    //     pubkey_redc: [Field; KEY_LIMBS_2048],
-    //     signature: [Field; KEY_LIMBS_2048],
-    //     dkim_header_sequence: Sequence,
-    //     body_hash_index: u32,
-    //     from_index: u32,
-    //     subject_index: u32,
-    //     partial_body_hash: [u32; 8],
-    //     body_amount_selection: [u8; 256],
-    //     partial_body_hash_date: [u32; 8],
-    //     body_date_selection: [u8; 256]
-    // ) {
-    //     let header_vec: BoundedVec<u8, MAX_EMAIL_HEADER_LENGTH> = BoundedVec {
-    //         storage: header,
-    //         len: header_length
-    //     };
-    //     let pubkey: RSAPubkey<KEY_LIMBS_2048> = RSAPubkey {
-    //         modulus: pubkey_modulus,
-    //         redc: pubkey_redc
-    //     };
-    //     let (interstitial_hash_1, interstitial_hash_3, signed_body_hash) = united_flight_body_hash(
-    //         header_vec,
-    //         pubkey,
-    //         signature,
-    //         body_hash_index,
-    //         dkim_header_sequence,
-    //         from_index,
-    //         subject_index,
-    //         partial_body_hash,
-    //         body_amount_selection,
-    //         partial_body_hash_date,
-    //         body_date_selection
-    //     );
-    // }
+    #[private]
+    pub fn united_test(
+        header: [u8; MAX_EMAIL_HEADER_LENGTH],
+        header_length: u32,
+        pubkey_modulus: [Field; KEY_LIMBS_2048],
+        pubkey_redc: [Field; KEY_LIMBS_2048],
+        signature: [Field; KEY_LIMBS_2048],
+        dkim_header_sequence_index: u32,
+        dkim_header_sequence_length: u32,
+        body_hash_index: u32,
+        from_index: u32,
+        subject_index: u32,
+        partial_body_hash: [u32; 8],
+        body_amount_selection: [u8; 256],
+        partial_body_hash_date: [u32; 8],
+        body_date_selection: [u8; 256]
+    ) {
+        let header_vec: BoundedVec<u8, MAX_EMAIL_HEADER_LENGTH> = BoundedVec {
+            storage: header,
+            len: header_length
+        };
+        let pubkey: RSAPubkey<KEY_LIMBS_2048> = RSAPubkey {
+            modulus: pubkey_modulus,
+            redc: pubkey_redc
+        };
+        let dkim_header_sequence = Sequence {
+            index: dkim_header_sequence_index,
+            length: dkim_header_sequence_length
+        };
+        let (interstitial_hash_1, interstitial_hash_3, signed_body_hash) = united_flight_body_hash(
+            header_vec,
+            pubkey,
+            signature,
+            body_hash_index,
+            dkim_header_sequence,
+            from_index,
+            subject_index,
+            partial_body_hash,
+            body_amount_selection,
+            partial_body_hash_date,
+            body_date_selection
+        );
+    }
 
     /**
      * Emit the nullifier for an entitlement

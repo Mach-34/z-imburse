@@ -95,6 +95,51 @@ const getTotalSequence = (emailBody: string) => {
     return { index: totalHtmlPrefix, length } as SequenceParams
 }
 
+// total will always be at beginning so no need to split
+const pickTotal = (oldSequence: SequenceParams): {
+    sequence: SequenceParams,
+    sliceSequence: SequenceParams
+} => {
+    const endIndex = Math.ceil((oldSequence.index + oldSequence.length) / 64) * 64;
+    return {
+        sequence: {
+            index: 0,
+            length: oldSequence.length
+        },
+        sliceSequence: {
+            index: 0,
+            length: endIndex
+        }
+    }
+}
+
+const pickDateAndAirport = (oldDate: SequenceParams, oldAirport: SequenceParams): {
+    dateSequence: SequenceParams,
+    airportSequence: SequenceParams,
+    sliceSequence: SequenceParams,
+} => {
+    // date will come before airport
+    const startIndex = (Math.floor(oldDate.index / 64)) * 64;
+    const endIndex = (Math.ceil((oldAirport.index + oldAirport.length) / 64)) * 64;
+    // adjust sequences
+    const dateSequence = {
+        index: oldDate.index - startIndex,
+        length: oldDate.length
+    };
+    const airportSequence = {
+        index: oldAirport.index - startIndex,
+        length: oldAirport.length
+    };
+    return {
+        dateSequence,
+        airportSequence,
+        sliceSequence: {
+            index: startIndex,
+            length: endIndex
+        }
+    }
+}
+
 /**
  * Given an email, generate the inputs for the United receipt proof
  * @param email - the United flight receipt email to generate the inputs for
@@ -133,14 +178,25 @@ export const makeUnitedInputs = async (
         shaPrecomputeSelector: '2nd bag weight and dimensions'
     });
 
+    // reformat sequences
+    const pickedTotal = pickTotal(totalParams);
+    const { dateSequence, airportSequence, sliceSequence } = pickDateAndAirport(dateParams, airportParams);
+    const amountSelection = baseInputs.body!.storage.slice(pickedTotal.sliceSequence.index, pickedTotal.sliceSequence.length);
+    const dateSelection = baseInputs.body!.storage.slice(sliceSequence.index, sliceSequence.length);
     const inputs = {
         ...baseInputs,
         from_index: fromParams.index,
         subject_index: subjectParams.index,
-        amount_sequence: totalParams,
-        date_sequence: dateParams,
-        airport_sequence: airportParams,
-        partial_body_hash_date: partial_body_hash_date as string[]
+        amount_sequence: pickedTotal.sequence,
+        date_sequence: dateSequence,
+        airport_sequence: airportSequence,
+        partial_body_hash_date: partial_body_hash_date as string[],
+        body_amount_selection: amountSelection,
+        body_date_selection: dateSelection,
     };
+
+    // disable body
+    delete inputs.body;
+    
     return inputs;
 };

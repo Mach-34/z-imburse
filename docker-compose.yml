@@ -16,11 +16,10 @@ services:
       ANVIL_PORT: ${ANVIL_PORT:-8545}
 
   aztec:
-    image: "aztecprotocol/aztec"
+    image: "aztecprotocol/aztec:0.57.0"
     ports:
       - "${PXE_PORT:-8080}:${PXE_PORT:-8080}"
     environment:
-      LOG_LEL: debug
       DEBUG: aztec:*
       HOST_WORKDIR: "${PWD}" # Loaded from the user shell to show log files absolute path in host
       ETHEREUM_HOST: ${ETHEREUM_HOST:-http://ethereum:${ANVIL_PORT:-8545}}
@@ -39,42 +38,42 @@ services:
     depends_on:
       - ethereum
     command: "start --sandbox"
-  pxe_1:
-    environment:
-      LOG_LEL: debug
-      DEBUG: aztec:*
-    image: "aztecprotocol/aztec"
-    ports:
-      - "${PXE_PORT:-8081}:${PXE_PORT:-8081}"
-    volumes:
-      - ./log:/usr/src/yarn-project/aztec/log_pxe_1:rw
-    depends_on:
-      - aztec
-    command: "start --pxe --port 8081 --pxe.nodeUrl=http://aztec:8080/"
-    restart: on-failure
-  pxe_2:
-    environment:
-      LOG_LEL: debug
-      DEBUG: aztec:*
-    image: "aztecprotocol/aztec"
-    ports:
-      - "${PXE_PORT:-8082}:${PXE_PORT:-8082}"
-    volumes:
-      - ./log:/usr/src/yarn-project/aztec/log_pxe_2:rw
-    depends_on:
-      - aztec
-    command: "start --pxe --port 8082 --pxe.nodeUrl=http://aztec:8080/"
-    restart: on-failure
-  pxe_3:
-    environment:
-      LOG_LEL: debug
-      DEBUG: aztec:*
-    image: "aztecprotocol/aztec"
-    ports:
-      - "${PXE_PORT:-8083}:${PXE_PORT:-8083}"
-    volumes:
-      - ./log:/usr/src/yarn-project/aztec/log_pxe_3:rw
-    depends_on:
-      - aztec
-    command: "start --pxe --port 8083 --pxe.nodeUrl=http://aztec:8080/"
-    restart: on-failure
+  # pxe_1:
+  #   environment:
+  #     LOG_LEL: debug
+  #     DEBUG: aztec:*
+  #   image: "aztecprotocol/aztec"
+  #   ports:
+  #     - "${PXE_PORT:-8081}:${PXE_PORT:-8081}"
+  #   volumes:
+  #     - ./log:/usr/src/yarn-project/aztec/log_pxe_1:rw
+  #   depends_on:
+  #     - aztec
+  #   command: "start --pxe --port 8081 --pxe.nodeUrl=http://aztec:8080/"
+  #   restart: on-failure
+  # pxe_2:
+  #   environment:
+  #     LOG_LEL: debug
+  #     DEBUG: aztec:*
+  #   image: "aztecprotocol/aztec"
+  #   ports:
+  #     - "${PXE_PORT:-8082}:${PXE_PORT:-8082}"
+  #   volumes:
+  #     - ./log:/usr/src/yarn-project/aztec/log_pxe_2:rw
+  #   depends_on:
+  #     - aztec
+  #   command: "start --pxe --port 8082 --pxe.nodeUrl=http://aztec:8080/"
+  #   restart: on-failure
+  # pxe_3:
+  #   environment:
+  #     LOG_LEL: debug
+  #     DEBUG: aztec:*
+  #   image: "aztecprotocol/aztec"
+  #   ports:
+  #     - "${PXE_PORT:-8083}:${PXE_PORT:-8083}"
+  #   volumes:
+  #     - ./log:/usr/src/yarn-project/aztec/log_pxe_3:rw
+  #   depends_on:
+  #     - aztec
+  #   command: "start --pxe --port 8083 --pxe.nodeUrl=http://aztec:8080/"
+  #   restart: on-failure

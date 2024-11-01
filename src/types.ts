@@ -21,7 +21,9 @@ export type UnitedInputs = {
     amount_sequence: SequenceParams,
     date_sequence: SequenceParams,
     airport_sequence: SequenceParams,
-    partial_body_hash_date: string[]
+    partial_body_hash_date: string[],
+    body_amount_selection: string[],
+    body_date_selection: string[],
 } & CircuitInput
 
 // tuple type of redeem linode contract function params

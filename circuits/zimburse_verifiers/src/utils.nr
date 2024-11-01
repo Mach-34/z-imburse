@@ -168,33 +168,40 @@ fn remove_soft_line_break<let MAX_TEXT_LEN: u32, let MAX_SEQ_LEN: u32>(
 ) -> BoundedVec<u8, MAX_SEQ_LEN + 1> {
     // let mut decoded = BoundedVec::new();
     let mut decoded: [u8; MAX_SEQ_LEN + 1] = [0; MAX_SEQ_LEN + 1];
-    let mut encoded_index = sequence.index;
     let mut decoded_index = 0;
     let mut cooldown = 0;
-    let mut len = 0;
     for i in 0..MAX_SEQ_LEN {
         // check if the current index is at a linebreak
+        let encoded_cursor = i + sequence.index;
+        let current_char = text.get_unchecked(encoded_cursor);
+        // if i < 5 {
+        //     println("\n\nXXXXXXXXXXXXXXXX");
+        //     println(encoded_cursor);
+        //     println(current_char);
+
+        // }
         let window = [
-            text.get_unchecked(encoded_index),
-            text.get_unchecked(encoded_index + 1),
-            text.get_unchecked(encoded_index + 2)
+            current_char,
+            text.get_unchecked(encoded_cursor + 1),
+            text.get_unchecked(encoded_cursor + 2)
         ];
 
         // if the current index is a linebreak, skip 3 chars
         if is_soft_linebreak(window) {
             cooldown = 3;
+            println("\n\ntriggering cooldown");
         }
         // if cooldown or end of array insert char at end and save cursor
-        let encoded_cursor = i + encoded_index;
         let mut decoded_cursor = decoded_index;
-        if (cooldown > 0) | i >= encoded_cursor {
-            cooldown = cooldown - 1;
+        if (cooldown > 0) | decoded_index >= sequence.length {
             decoded_index = decoded_index - 1;
             decoded_cursor = MAX_SEQ_LEN;
         }
+        if (cooldown > 0) {
+            cooldown = cooldown - 1;
+        }
         // insert char at cursor
-        let element = text.get_unchecked(encoded_cursor);
-        decoded[decoded_cursor] = element;
+        decoded[decoded_cursor] = current_char;
         // increment
         decoded_index = decoded_index + 1;
     }

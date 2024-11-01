@@ -103,7 +103,7 @@ const pickTotal = (oldSequence: SequenceParams): {
     const endIndex = Math.ceil((oldSequence.index + oldSequence.length) / 64) * 64;
     return {
         sequence: {
-            index: 0,
+            index: oldSequence.index,
             length: oldSequence.length
         },
         sliceSequence: {
@@ -194,6 +194,12 @@ export const makeUnitedInputs = async (
         body_amount_selection: amountSelection,
         body_date_selection: dateSelection,
     };
+
+    // check the qp sequence
+    const qp = amountSelection.slice(pickedTotal.sequence.index, pickedTotal.sequence.length);
+    console.log("Amount selection: ", qp);
+    console.log("Sequence: ", pickedTotal.sequence);
+    console.log("X", Buffer.from(qp.map(x => parseInt(x, 10))).toString('utf8'));
 
     // disable body
     delete inputs.body;

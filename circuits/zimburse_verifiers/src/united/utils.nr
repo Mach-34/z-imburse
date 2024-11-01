@@ -60,6 +60,7 @@ pub fn check_subject_united_flight_receipt(index: u32, header: BoundedVec<u8, MA
 
 pub fn extract_billed_amount<let N: u32>(body: BoundedVec<u8, N>, amount_sequence: Sequence) -> Field {
     // check the prefix of the amount sequence
+    // todo: collapse into same QP check
     check_qp_sequence::<N, 43, TOTAL_BILLED_PREFIX_LENGTH>(
         body,
         amount_sequence.index,
@@ -74,18 +75,18 @@ pub fn extract_billed_amount<let N: u32>(body: BoundedVec<u8, N>, amount_sequenc
         TOTAL_BILLED_HTML_POSTFIX,
         "Index does not point to total billed postfix"
     );
-
-    let clrf_parsed = remove_soft_line_break::<N, MAX_AMOUNT_SEQUENCE_LENGTH>(body, amount_sequence);
+    let crlf_parsed = remove_soft_line_break::<N, MAX_AMOUNT_SEQUENCE_LENGTH>(body, amount_sequence);
     // locate decimal index
     let mut decimal_index = 0;
     for i in 0..(MAX_BILLED_AMOUNT + TOTAL_BILLED_POSTFIX_LENGTH) {
         let index = MAX_AMOUNT_SEQUENCE_LENGTH - i - 1;
-        if clrf_parsed.get_unchecked(index) == 0x2E {
+        let character = crlf_parsed.get_unchecked(index);
+        if character == 0x2E {
             decimal_index = index;
         }
     }
     // check that third to last place is decimal point
-    assert(clrf_parsed.get_unchecked(decimal_index) == 0x2E, "Index does not point to decimal");
+    assert(crlf_parsed.get_unchecked(decimal_index) == 0x2E, "Index does not point to decimal");
 
     let amount_length = decimal_index + 3 - TOTAL_BILLED_PREFIX_LENGTH;
 
@@ -93,7 +94,7 @@ pub fn extract_billed_amount<let N: u32>(body: BoundedVec<u8, N>, amount_sequenc
     let mut amount: Field = 0;
     let mut pow = 1;
     for i in 0..MAX_BILLED_AMOUNT {
-        let byte = clrf_parsed.get_unchecked(decimal_index + 2 - i);
+        let byte = crlf_parsed.get_unchecked(decimal_index + 2 - i);
         if (i < amount_length) & (byte != 0x2E) {
             let val = (byte - 0x30) as Field;
             amount = amount + val * pow;
@@ -101,6 +102,7 @@ pub fn extract_billed_amount<let N: u32>(body: BoundedVec<u8, N>, amount_sequenc
         }
     }
     amount
+    // decimal_index as Field
 }
 
 pub fn extract_departing_flight_date(body: BoundedVec<u8, MAX_EMAIL_BODY_LENGTH>, date_sequence: Sequence) -> Field {
@@ -120,27 +122,27 @@ pub fn extract_departing_flight_date(body: BoundedVec<u8, MAX_EMAIL_BODY_LENGTH>
         "Index does not point to departing date postfix"
     );
 
-    let clrf_parsed = remove_soft_line_break::<MAX_EMAIL_BODY_LENGTH, MAX_DATETIME_SEQUENCE_LENGTH>(body, date_sequence);
+    let crlf_parsed = remove_soft_line_break::<MAX_EMAIL_BODY_LENGTH, MAX_DATETIME_SEQUENCE_LENGTH>(body, date_sequence);
 
     // convert date to timestamp
     let date_index = ARRIVAL_DATE_PREFIX_LENGTH;
 
     // parse day
-    let day = parse_day([clrf_parsed.get_unchecked(date_index + 9), clrf_parsed.get_unchecked(date_index + 10)]);
+    let day = parse_day([crlf_parsed.get_unchecked(date_index + 9), crlf_parsed.get_unchecked(date_index + 10)]);
 
     let month = parse_month(
         [
-        clrf_parsed.get_unchecked(date_index + 5), clrf_parsed.get_unchecked(date_index + 6), clrf_parsed.get_unchecked(date_index + 7)
+        crlf_parsed.get_unchecked(date_index + 5), crlf_parsed.get_unchecked(date_index + 6), crlf_parsed.get_unchecked(date_index + 7)
     ]
     );
     assert(month != 0);
     // parse year
     let year = parse_year(
         [
-        clrf_parsed.get_unchecked(date_index + 13),
-        clrf_parsed.get_unchecked(date_index + 14),
-        clrf_parsed.get_unchecked(date_index + 15),
-        clrf_parsed.get_unchecked(date_index + 16)
+        crlf_parsed.get_unchecked(date_index + 13),
+        crlf_parsed.get_unchecked(date_index + 14),
+        crlf_parsed.get_unchecked(date_index + 15),
+        crlf_parsed.get_unchecked(date_index + 16)
     ]
     );
     let datetime = Datetime { year: year.0, leap_years: year.1, add_leap_day: false, month, day, time: 0, offset: 0, subtract: false };
@@ -167,21 +169,21 @@ pub fn extract_destination_airport(
         "Index does not point to destination airport postfix"
     );
 
-    // remove clrf characters
-    let clrf_parsed = remove_soft_line_break::<MAX_EMAIL_BODY_LENGTH, MAX_DEST_SEQUENCE_LENGTH>(body, dest_airport_sequence);
+    // remove crlf characters
+    let crlf_parsed = remove_soft_line_break::<MAX_EMAIL_BODY_LENGTH, MAX_DEST_SEQUENCE_LENGTH>(body, dest_airport_sequence);
 
     let mut opening_parenthesis_index = 0;
     let mut pointer = DEST_AIRPORT_PREFIX_LENGTH;
     for i in 0..MAX_DEST_AIRPORT_LENGTH {
-        if clrf_parsed.get_unchecked(pointer + i) == 0x28 {
+        if crlf_parsed.get_unchecked(pointer + i) == 0x28 {
             opening_parenthesis_index = pointer + i;
         }
     }
 
     // extract airport code
-    let first_char = clrf_parsed.get_unchecked(opening_parenthesis_index + 1);
-    let second_char = clrf_parsed.get_unchecked(opening_parenthesis_index + 2);
-    let third_char = clrf_parsed.get_unchecked(opening_parenthesis_index + 3);
+    let first_char = crlf_parsed.get_unchecked(opening_parenthesis_index + 1);
+    let second_char = crlf_parsed.get_unchecked(opening_parenthesis_index + 2);
+    let third_char = crlf_parsed.get_unchecked(opening_parenthesis_index + 3);
     let code = [third_char, second_char, first_char];
     field_from_bytes::<3>(code)
 }
@@ -235,4 +237,14 @@ pub fn server_side_interstitial(
         body_end.len() as u64,
         email_body_length as u64
     );
+}
+
+#[test]
+fn test_check_amount() {
+    let data: [u8; 256] = [10, 38, 35, 51, 57, 59, 44, 32, 115, 97, 110, 115, 45, 115, 101, 114, 105, 102, 59, 34, 62, 84, 111, 116, 97, 108, 58, 60, 47, 116, 100, 62, 60, 116, 100, 32, 115, 116, 121, 108, 101, 61, 51, 68, 34, 112, 97, 100, 100, 105, 110, 103, 45, 114, 105, 103, 104, 116, 58, 49, 48, 112, 120, 59, 32, 112, 97, 100, 100, 105, 110, 103, 45, 116, 111, 112, 61, 13, 10, 58, 49, 50, 112, 120, 59, 32, 112, 97, 100, 100, 105, 110, 103, 45, 98, 111, 116, 116, 111, 109, 58, 49, 48, 112, 120, 59, 32, 116, 101, 120, 116, 45, 97, 108, 105, 103, 110, 58, 32, 114, 105, 103, 104, 116, 59, 32, 102, 111, 110, 116, 45, 119, 101, 105, 103, 104, 116, 58, 32, 54, 48, 48, 59, 32, 102, 111, 110, 116, 45, 115, 105, 122, 101, 58, 61, 13, 10, 32, 50, 48, 112, 120, 59, 32, 102, 111, 110, 116, 45, 102, 97, 109, 105, 108, 121, 58, 32, 38, 35, 51, 57, 59, 79, 112, 101, 110, 32, 83, 97, 110, 115, 38, 35, 51, 57, 59, 44, 32, 115, 97, 110, 115, 45, 115, 101, 114, 105, 102, 59, 34, 62, 49, 55, 49, 55, 46, 56, 53, 32, 85, 83, 68, 60, 47, 116, 100, 62, 60, 47, 116, 114, 62, 61, 13, 10, 60, 47, 116, 97, 98, 108, 101, 62, 60, 47, 116, 100, 62, 60, 47, 116, 114, 62, 60, 116, 114];
+    let vec: BoundedVec<u8, 256> = BoundedVec::from(data);
+    let sequence: Sequence = Sequence { index: 21, length: 206};
+    let x = extract_billed_amount(vec, sequence);
+    println("Amont: ");
+    println(x);
 }

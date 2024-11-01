@@ -202,3 +202,12 @@ export const makeUnitedInputs = async (
     
     return inputs;
 };
+
+export const toContractFriendly = (inputs: UnitedInputs) => {
+    const { header, ...rest } = inputs;
+    return {
+        ...rest,
+        header: header.storage,
+        header_len: header.len,
+    }
+}

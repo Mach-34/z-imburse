@@ -7,7 +7,7 @@ use super::constants::{
     ARRIVAL_DATE_HTML_POSTFIX, DEST_AIPORT_POSTFIX_LENGTH, DEST_AIRPORT_PREFIX_LENGTH,
     DEST_AIRPORT_HTML_POSTFIX, DEST_AIRPORT_HTML_PREFIX, MAX_AMOUNT_SEQUENCE_LENGTH, MAX_BILLED_AMOUNT,
     MAX_DATETIME_SEQUENCE_LENGTH, MAX_DEST_SEQUENCE_LENGTH, MAX_DEST_AIRPORT_LENGTH,
-    MAX_EMAIL_BODY_LENGTH, MAX_EMAIL_HEADER_LENGTH, PURCHASE_SUMMARY_INDICE_LEN,
+    MAX_EMAIL_BODY_LENGTH, MAX_UNITED_EMAIL_HEADER_LENGTH, PURCHASE_SUMMARY_INDICE_LEN,
     UNITED_FLIGHT_RECEIPT_FROM, UNITED_FLIGHT_RECEIPT_SUBJECT, TOTAL_BILLED_HTML_PREFIX,
     TOTAL_BILLED_HTML_POSTFIX, TOTAL_BILLED_PREFIX_LENGTH, TOTAL_BILLED_POSTFIX_LENGTH
 };
@@ -17,7 +17,7 @@ use date_parser::{Datetime, parse_day, parse_month, parse_year, to_unix};
 /**
 * Check that email is from United receipts address
 */
-pub fn check_from_united_receipts(index: u32, header: BoundedVec<u8, MAX_EMAIL_HEADER_LENGTH>) {
+pub fn check_from_united_receipts(index: u32, header: BoundedVec<u8, MAX_UNITED_EMAIL_HEADER_LENGTH>) {
     let from_len = UNITED_FLIGHT_RECEIPT_FROM.len() as u32;
     // check that full field is within bounds
     assert(index + from_len <= header.len(), "From index out of bounds");
@@ -35,7 +35,7 @@ pub fn check_from_united_receipts(index: u32, header: BoundedVec<u8, MAX_EMAIL_H
 /**
 * Check that email subject is United eTicket Itinerary and Receipt
 */
-pub fn check_subject_united_flight_receipt(index: u32, header: BoundedVec<u8, MAX_EMAIL_HEADER_LENGTH>) {
+pub fn check_subject_united_flight_receipt(index: u32, header: BoundedVec<u8, MAX_UNITED_EMAIL_HEADER_LENGTH>) {
     let subject_len = UNITED_FLIGHT_RECEIPT_SUBJECT.len() as u32;
     // check that full field is within bounds
     assert(index + subject_len <= header.len() as u32, "Subject index out of bounds");

@@ -1,5 +1,8 @@
 use aztec::macros::aztec;
 
+global HASH_CHUNK_MAX_LENGTH: u32 = 2048;
+
+mod capsule;
 mod contract_interfaces;
 mod library_methods;
 mod types;
@@ -20,19 +23,20 @@ contract ZImburseEscrow {
         protocol_types::traits::Serialize,
     };
     use zimburse_verifiers::{
-        united::{
-            main::united_flight_body_hash,
-            constants::MAX_EMAIL_HEADER_LENGTH,
+        united::constants::UnitedBillingParamsContract,
+        zkemail::{
+            KEY_LIMBS_2048,
+            Sequence,
+            dkim::RSAPubkey,
+            partial_hash::{partial_sha256_var_interstitial, partial_sha256_var_end},
         },
-        zkemail::{KEY_LIMBS_2048, Sequence, dkim::RSAPubkey},
-        linode::constants::{
-            MAX_LINODE_EMAIL_HEADER_LENGTH,
-            MAX_LINODE_EMAIL_BODY_LENGTH,
-            LinodeBillingParamsContract
-        },
+        linode::constants::LinodeBillingParamsContract,
     };
     use crate::{
+        capsule::{pop_capsule, arr_field_to_u8, remaining_chunks},
+        HASH_CHUNK_MAX_LENGTH,
         library_methods::linode,
+        verifiers::{verify_united_deferred, UnitedReceiptOutput},
         types::{
             escrow_definition::{EscrowDefinition, TITLE_LENGTH},
             entitlement_note::EntitlementNote,
@@ -247,46 +251,121 @@ contract ZImburseEscrow {
 
     #[private]
     pub fn united_test(
-        header: [u8; MAX_EMAIL_HEADER_LENGTH],
-        header_length: u32,
-        pubkey_modulus: [Field; KEY_LIMBS_2048],
-        pubkey_redc: [Field; KEY_LIMBS_2048],
-        signature: [Field; KEY_LIMBS_2048],
-        dkim_header_sequence_index: u32,
-        dkim_header_sequence_length: u32,
-        body_hash_index: u32,
-        from_index: u32,
-        subject_index: u32,
-        partial_body_hash: [u32; 8],
-        body_amount_selection: [u8; 256],
-        partial_body_hash_date: [u32; 8],
-        body_date_selection: [u8; 256]
+        // general email inputs
+        email_inputs: UnitedBillingParamsContract,
+        // body lengths
+        amount_to_date_length: u32,
+        remaining_length: u32,
+        actual_length: u32,
     ) {
-        let header_vec: BoundedVec<u8, MAX_EMAIL_HEADER_LENGTH> = BoundedVec {
-            storage: header,
-            len: header_length
-        };
-        let pubkey: RSAPubkey<KEY_LIMBS_2048> = RSAPubkey {
-            modulus: pubkey_modulus,
-            redc: pubkey_redc
-        };
-        let dkim_header_sequence = Sequence {
-            index: dkim_header_sequence_index,
-            length: dkim_header_sequence_length
-        };
-        let (interstitial_hash_1, interstitial_hash_3, signed_body_hash) = united_flight_body_hash(
-            header_vec,
-            pubkey,
-            signature,
-            body_hash_index,
-            dkim_header_sequence,
-            from_index,
-            subject_index,
-            partial_body_hash,
-            body_amount_selection,
-            partial_body_hash_date,
-            body_date_selection
+        // verify the email with deferred hashing
+        let deferred_results = verify_united_deferred(email_inputs.marshal());
+        ZImburseEscrow::at(context.this_address())
+            .finish_hashing(
+                deferred_results.hash_state_after_body,
+                email_inputs.partial_body_hash_date,
+                deferred_results.hash_state_after_destination,
+                deferred_results.signed_body_hash,
+                actual_length,
+                amount_to_date_length,
+                remaining_length
+            )
+            .call(&mut context);
+        // todo: normal logic for claiming entitlement
+    }
+
+    /**
+     * Ensures the deferred access to hashing is correct
+     *
+     * @param hash_state_after_body - the hash state after the body has been hashed
+     * @param hash_state_before_date - the precomputed hash state before the destination has been hashed
+     * @param hash_state_after_destination - the hash state after the destination has been hashed
+     * @param signed_body_hash - the signed body hash
+     * @param actual_length - the actual length of the entire email body
+     * @param amount_to_date_length - the length of the body between the amount and date selection
+     * @param remaining_length - the length of the body after all selections have been made
+     */
+    #[private]
+    #[internal]
+    pub fn finish_hashing(
+        hash_state_after_body: [u32; 8],
+        hash_state_before_date: [u32; 8],
+        hash_state_after_destination: [u32; 8],
+        signed_body_hash: [u8; 32],
+        actual_length: u32,
+        amount_to_date_length: u32,
+        remaining_length: u32
+    ) {
+        // hash from amount to date
+        let computed_hash_state_before_date = ZImburseEscrow::at(context.this_address())
+            .interstitial_hash(hash_state_after_body, amount_to_date_length)
+            .call(&mut context);
+        // check the hashes match
+        // ensures provenance over body up to to hash_state_after_destination
+        assert(
+            computed_hash_state_before_date == hash_state_before_date,
+            "Could not verify body hash between amount and date/destination"
         );
+        // hash the remaining data
+        let interstitial = ZImburseEscrow::at(context.this_address())
+            .interstitial_hash(hash_state_after_destination, remaining_length)
+            .call(&mut context);
+        // finalize the hash
+        let data = arr_field_to_u8(pop_capsule::<HASH_CHUNK_MAX_LENGTH>());  
+        // complete the hash
+        let remaining = unsafe {
+            let mut size = HASH_CHUNK_MAX_LENGTH;
+            if remaining_length % HASH_CHUNK_MAX_LENGTH != 0 {
+                size = remaining_length % HASH_CHUNK_MAX_LENGTH;
+            }
+            size
+        };
+        let computed_body_hash = partial_sha256_var_end(
+            interstitial,
+            data,
+            remaining as u64,
+            actual_length as u64
+        );
+        // check the hashes match
+        assert(
+            computed_body_hash == signed_body_hash,
+            "SHA256 hash computed over body does not match body hash found in DKIM-signed header"
+        );
+    }
+
+    #[private]
+    #[internal]
+    pub fn interstitial_hash(
+        state: [u32; 8],
+        length: u32
+    ) -> [u32; 8] {
+        // get chunk from capsule oracle and convert to u8 (unconstrained, hash check will deal with it)
+        let data = arr_field_to_u8(pop_capsule::<HASH_CHUNK_MAX_LENGTH>());   
+        // determine length of data to hash
+        let (hash_length, resume) = unsafe { remaining_chunks(length) };
+        // hash the data
+        let mut interstitial = partial_sha256_var_interstitial(state, data, hash_length);
+        // if there is more data to hash, continue hashing
+        if resume {
+            interstitial = ZImburseEscrow::at(context.this_address())
+                .interstitial_hash(interstitial, length - HASH_CHUNK_MAX_LENGTH)
+                .call(&mut context);
+        }
+        // return the interstitial hash
+        interstitial
+    }
+
+    #[private]
+    #[internal]
+    pub fn finalize_hash(
+        state: [u32; 8],
+        length: u32,
+        actual_length: u32
+    ) -> [u8; 32] {
+        // get chunk from capsule oracle and convert to u8 (unconstrained, hash check will deal with it)
+        let data = arr_field_to_u8(pop_capsule::<HASH_CHUNK_MAX_LENGTH>());  
+        // complete the hash
+        partial_sha256_var_end(state, data, length as u64, actual_length as u64)
     }
 
     /**

@@ -174,12 +174,6 @@ fn remove_soft_line_break<let MAX_TEXT_LEN: u32, let MAX_SEQ_LEN: u32>(
         // check if the current index is at a linebreak
         let encoded_cursor = i + sequence.index;
         let current_char = text.get_unchecked(encoded_cursor);
-        // if i < 5 {
-        //     println("\n\nXXXXXXXXXXXXXXXX");
-        //     println(encoded_cursor);
-        //     println(current_char);
-
-        // }
         let window = [
             current_char,
             text.get_unchecked(encoded_cursor + 1),

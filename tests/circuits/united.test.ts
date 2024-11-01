@@ -21,8 +21,8 @@ describe("United Flight Receipt Test", () => {
         it("United", async () => {
             // build inputs
             const inputs = await makeUnitedInputs(emails.united);
-            // console.log("Body: ", JSON.stringify(inputs.body_amount_selection));
-            // console.log("Amount sequence: ", JSON.stringify(inputs.amount_sequence));
+            // console.log("Body: ", JSON.stringify(inputs.body_date_selection));
+            // console.log("Amount sequence: ", JSON.stringify(inputs.date_sequence));
             // console.log("Inputs", Object.keys(inputs));
             // simulate witness
             const { returnValue } = await prover.simulateWitness(inputs);
@@ -31,11 +31,13 @@ describe("United Flight Receipt Test", () => {
             console.log('Extracted Values: ', extractedValues);
             const parsedValues = extractedValues.map(x => toBigIntBE(new Uint8Array(Buffer.from(x.slice(2), 'hex'))));
             // // const destination = Buffer.from(values[3].toString(16), 'hex').toString('utf8')
-            // // console.log('Bill: ', values[1])
-            // // console.log('Date: ', new Date(Number(values[2]) * 1000))
+            
             // // console.log('Destination: ', destination);
             // // check the returned values
             expect(parsedValues[0]).toEqual(171785n);
+
+            console.log(`Billed amount: $${Number(parsedValues[1]) / 100}`);
+            console.log(`Date of flight: ${(new Date(Number(parsedValues[1]) * 1000)).toUTCString()}`);
         })
     })
 

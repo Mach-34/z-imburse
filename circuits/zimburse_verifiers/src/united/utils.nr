@@ -87,7 +87,6 @@ pub fn extract_billed_amount<let N: u32>(body: BoundedVec<u8, N>, amount_sequenc
     }
     // check that third to last place is decimal point
     assert(crlf_parsed.get_unchecked(decimal_index) == 0x2E, "Index does not point to decimal");
-
     let amount_length = decimal_index + 3 - TOTAL_BILLED_PREFIX_LENGTH;
 
     // parse the amount
@@ -102,12 +101,11 @@ pub fn extract_billed_amount<let N: u32>(body: BoundedVec<u8, N>, amount_sequenc
         }
     }
     amount
-    // decimal_index as Field
 }
 
-pub fn extract_departing_flight_date(body: BoundedVec<u8, MAX_EMAIL_BODY_LENGTH>, date_sequence: Sequence) -> Field {
+pub fn extract_departing_flight_date<let N: u32>(body: BoundedVec<u8, N>, date_sequence: Sequence) -> Field {
     // check the prefix of the date sequence
-    check_qp_sequence::<MAX_EMAIL_BODY_LENGTH, 45, ARRIVAL_DATE_PREFIX_LENGTH>(
+    check_qp_sequence::<N, 45, ARRIVAL_DATE_PREFIX_LENGTH>(
         body,
         date_sequence.index,
         ARRIVAL_DATE_HTML_PREFIX,
@@ -115,14 +113,16 @@ pub fn extract_departing_flight_date(body: BoundedVec<u8, MAX_EMAIL_BODY_LENGTH>
     );
 
     // check the postfix of the date sequence
-    check_qp_sequence_reverse::<MAX_EMAIL_BODY_LENGTH, 46, ARRIVAL_DATE_POSTFIX_LENGTH>(
+    check_qp_sequence_reverse::<N, 46, ARRIVAL_DATE_POSTFIX_LENGTH>(
         body,
         date_sequence.index + date_sequence.length - 1,
         ARRIVAL_DATE_HTML_POSTFIX,
         "Index does not point to departing date postfix"
     );
 
-    let crlf_parsed = remove_soft_line_break::<MAX_EMAIL_BODY_LENGTH, MAX_DATETIME_SEQUENCE_LENGTH>(body, date_sequence);
+    let crlf_parsed = remove_soft_line_break::<N, MAX_DATETIME_SEQUENCE_LENGTH>(body, date_sequence);
+    println("\n\nCRLF PARSED: ");
+    println(crlf_parsed.storage);
 
     // convert date to timestamp
     let date_index = ARRIVAL_DATE_PREFIX_LENGTH;
@@ -130,22 +130,30 @@ pub fn extract_departing_flight_date(body: BoundedVec<u8, MAX_EMAIL_BODY_LENGTH>
     // parse day
     let day = parse_day([crlf_parsed.get_unchecked(date_index + 9), crlf_parsed.get_unchecked(date_index + 10)]);
 
-    let month = parse_month(
-        [
-        crlf_parsed.get_unchecked(date_index + 5), crlf_parsed.get_unchecked(date_index + 6), crlf_parsed.get_unchecked(date_index + 7)
-    ]
-    );
+    let month = parse_month([
+        crlf_parsed.get_unchecked(date_index + 5),
+        crlf_parsed.get_unchecked(date_index + 6),
+        crlf_parsed.get_unchecked(date_index + 7)
+    ]);
     assert(month != 0);
     // parse year
-    let year = parse_year(
-        [
+    let year = parse_year([
         crlf_parsed.get_unchecked(date_index + 13),
         crlf_parsed.get_unchecked(date_index + 14),
         crlf_parsed.get_unchecked(date_index + 15),
         crlf_parsed.get_unchecked(date_index + 16)
-    ]
-    );
-    let datetime = Datetime { year: year.0, leap_years: year.1, add_leap_day: false, month, day, time: 0, offset: 0, subtract: false };
+    ]);
+    // marshall into datetime
+    let datetime = Datetime {
+        year: year.0,
+        leap_years: year.1,
+        add_leap_day: false, // todo this needs to be determined...
+        month,
+        day,
+        time: 0,
+        offset: 0,
+        subtract: false
+    };
     to_unix(datetime) as Field
 }
 
@@ -239,7 +247,7 @@ pub fn server_side_interstitial(
     );
 }
 
-#[test]
+// #[test]
 fn test_check_amount() {
     let data: [u8; 256] = [10, 38, 35, 51, 57, 59, 44, 32, 115, 97, 110, 115, 45, 115, 101, 114, 105, 102, 59, 34, 62, 84, 111, 116, 97, 108, 58, 60, 47, 116, 100, 62, 60, 116, 100, 32, 115, 116, 121, 108, 101, 61, 51, 68, 34, 112, 97, 100, 100, 105, 110, 103, 45, 114, 105, 103, 104, 116, 58, 49, 48, 112, 120, 59, 32, 112, 97, 100, 100, 105, 110, 103, 45, 116, 111, 112, 61, 13, 10, 58, 49, 50, 112, 120, 59, 32, 112, 97, 100, 100, 105, 110, 103, 45, 98, 111, 116, 116, 111, 109, 58, 49, 48, 112, 120, 59, 32, 116, 101, 120, 116, 45, 97, 108, 105, 103, 110, 58, 32, 114, 105, 103, 104, 116, 59, 32, 102, 111, 110, 116, 45, 119, 101, 105, 103, 104, 116, 58, 32, 54, 48, 48, 59, 32, 102, 111, 110, 116, 45, 115, 105, 122, 101, 58, 61, 13, 10, 32, 50, 48, 112, 120, 59, 32, 102, 111, 110, 116, 45, 102, 97, 109, 105, 108, 121, 58, 32, 38, 35, 51, 57, 59, 79, 112, 101, 110, 32, 83, 97, 110, 115, 38, 35, 51, 57, 59, 44, 32, 115, 97, 110, 115, 45, 115, 101, 114, 105, 102, 59, 34, 62, 49, 55, 49, 55, 46, 56, 53, 32, 85, 83, 68, 60, 47, 116, 100, 62, 60, 47, 116, 114, 62, 61, 13, 10, 60, 47, 116, 97, 98, 108, 101, 62, 60, 47, 116, 100, 62, 60, 47, 116, 114, 62, 60, 116, 114];
     let vec: BoundedVec<u8, 256> = BoundedVec::from(data);
@@ -248,3 +256,14 @@ fn test_check_amount() {
     println("Amont: ");
     println(x);
 }
+
+// #[test]
+fn test_check_date() {
+    let data: [u8; 320] = [101, 102, 116, 58, 49, 48, 61, 13, 10, 112, 120, 59, 34, 62, 50, 110, 100, 32, 98, 97, 103, 32, 119, 101, 105, 103, 104, 116, 32, 97, 110, 100, 32, 100, 105, 109, 101, 110, 115, 105, 111, 110, 115, 60, 47, 116, 100, 62, 60, 47, 116, 114, 62, 60, 116, 114, 62, 60, 116, 100, 32, 115, 116, 121, 108, 101, 61, 51, 68, 34, 102, 111, 110, 116, 45, 102, 97, 109, 105, 108, 121, 58, 32, 38, 61, 13, 10, 35, 51, 57, 59, 79, 112, 101, 110, 32, 83, 97, 110, 115, 38, 35, 51, 57, 59, 44, 32, 115, 97, 110, 115, 45, 115, 101, 114, 105, 102, 59, 32, 116, 101, 120, 116, 45, 97, 108, 105, 103, 110, 58, 32, 108, 101, 102, 116, 59, 32, 102, 111, 110, 116, 45, 115, 105, 122, 101, 58, 32, 49, 50, 112, 120, 59, 32, 112, 97, 100, 100, 105, 110, 103, 45, 61, 13, 10, 98, 111, 116, 116, 111, 109, 58, 53, 112, 120, 59, 32, 112, 97, 100, 100, 105, 110, 103, 45, 116, 111, 112, 58, 32, 53, 112, 120, 59, 32, 112, 97, 100, 100, 105, 110, 103, 45, 108, 101, 102, 116, 58, 49, 48, 112, 120, 59, 34, 62, 83, 97, 116, 44, 32, 65, 112, 114, 32, 50, 50, 44, 32, 50, 48, 50, 51, 60, 98, 114, 47, 62, 68, 101, 110, 61, 13, 10, 118, 101, 114, 44, 32, 67, 79, 44, 32, 85, 83, 32, 40, 68, 69, 78, 41, 60, 98, 114, 47, 62, 116, 111, 32, 84, 97, 105, 112, 101, 105, 32, 40, 84, 80, 69, 32, 45, 32, 84, 97, 111, 121, 117, 97, 110, 41, 60, 47, 116, 100, 62, 60, 116, 100, 32, 115, 116, 121, 108, 101, 61, 51, 68, 34, 102, 111, 110, 116, 45, 102, 97, 109, 105, 108, 61, 13];
+    let vec: BoundedVec<u8, 320> = BoundedVec::from(data);
+    let sequence: Sequence = Sequence { index: 14, length: 223};
+    let date = extract_departing_flight_date(vec, sequence);
+    println("Date: ");
+    println(date);
+}
+

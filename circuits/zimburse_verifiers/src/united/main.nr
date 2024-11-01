@@ -166,6 +166,10 @@ pub fn united_flight_body_hash(
     let billed_selection_vec: BoundedVec<u8, AMOUNT_SELECTION_LENGTH> = BoundedVec::from_array(body_amount_selection);
     let billed_amount = extract_billed_amount(billed_selection_vec, amount_sequence);
 
-    let return_values = [billed_amount, 0, 0];
+    // extract date
+    let date_selection_vec: BoundedVec<u8, DATE_AIRPORT_SELECTION_LENGTH> = BoundedVec::from_array(body_date_selection);
+    let date = extract_departing_flight_date(date_selection_vec, date_sequence);
+
+    let return_values = [billed_amount, date, 0];
     (body_amount_hashed, body_date_hashed, signed_body_hash, return_values)
 }

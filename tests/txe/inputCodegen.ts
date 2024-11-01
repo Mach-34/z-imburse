@@ -3,133 +3,114 @@ import { fileURLToPath } from "url";
 import { writeFileSync } from "fs";
 import { emails } from "../utils/fs";
 import { makeLinodeInputs } from "../../src/email_inputs/linode";
+import { LinodeInputs } from "../types";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const OUTPUT_PATH = join(__dirname, "../../contracts/z_imburse_registry/src/test/utils/email_inputs.nr");
-
-// stringified struct assignments
-type LinodeStructFields = {
-  body: string;
-  body_hash_index: string;
-  body_length: string;
-  header: string;
-  header_length: string;
-  pubkey: string;
-  pubkey_redc: string;
-  signature: string;
-  from_index: string;
-  subject_index: string;
-  amount_index: string;
-  amount_length: string;
-  date_index: string;
-  receipt_id_length: string;
-};
+const OUTPUT_PATH = join(
+  __dirname,
+  "../../contracts/z_imburse_registry/src/test/utils/email_inputs.nr"
+);
 
 // imports used in the generated code
 const IMPORTS =
-  `use dep::zimburse_verifiers::{\n` +
-  `    constants::LinodeBillingParams,\n` +
-  `   zkemail::KEY_LIMBS_2048\n` +
-  `};\n`;
+  "use zimburse_verifiers::zkemail::{KEY_LIMBS_2048, Sequence, dkim::RSAPubkey};\n" +
+  "use z_imburse_escrow::verifiers::LinodeBillingParams;\n";
 
-// definition of the LinodeInputs struct
-const STRUCT_DEF_INPUTS: LinodeStructFields = {
-  body: "u8; MAX_LINODE_EMAIL_BODY_LENGTH",
-  body_hash_index: "u32",
-  body_length: "u32",
-  header: "u8; MAX_LINODE_EMAIL_HEADER_LENGTH",
-  header_length: "u32",
-  pubkey: "u8; KEY_LIMBS_2048",
-  pubkey_redc: "u8; KEY_LIMBS_2048",
-  signature: "u8; KEY_LIMBS_2048",
-  from_index: "u32",
-  subject_index: "u32",
-  amount_index: "u32",
-  amount_length: "u32",
-  date_index: "u32",
-  receipt_id_length: "u32",
-};
+/** Formats "Sequence" type for codegen */
+function formatSequence(
+  index: string | number,
+  length: string | number
+): string {
+  const parsedIndex = typeof index === "string" ? index : index.toString();
+  const parsedLength = typeof length === "string" ? length : length.toString();
+  return (
+    `Sequence {` +
+    `\n\t\tindex: ${parsedIndex},` +
+    `\n\t\tlength: ${parsedLength}` +
+    `\n\t}`
+  );
+}
+
+/** Formats "BoundedVec" type for codegen */
+function formatBoundedVec(
+  storage: string[] | number[],
+  len: string | number
+): string {
+  const parsedStorage = storage.map((byte) =>
+    typeof byte === "string" ? byte : byte.toString()
+  );
+  const parsedLen = typeof len === "string" ? len : len.toString();
+  return (
+    `BoundedVec {` +
+    `\n\t\tstorage: [${parsedStorage.join(", ")}],` +
+    `\n\t\tlen: ${parsedLen}` +
+    `\n\t}`
+  );
+}
+
+/** Formats "RSAPubkey" type for codegen */
+function formatPubkey(
+  modulus: string[] | number[],
+  redc: string[] | number[]
+): string {
+  const parsedModulus = modulus.map((limb) =>
+    typeof limb === "string" ? limb : limb.toString()
+  );
+  const parsedRedc = redc.map((limb) =>
+    typeof limb === "string" ? limb : limb.toString()
+  );
+  return (
+    `RSAPubkey {` +
+    `\n\t\tmodulus: [${parsedModulus.join(", ")}],` +
+    `\n\t\tredc: [${parsedRedc.join(", ")}]` +
+    `\n\t}`
+  );
+}
 
 /**
  * Assign values for the struct - either the definition or actual inputs
  * @param fields - the fields to assign for the struct
  * @returns - the codegen for the struct given the assignments
  */
-function buildStruct(fields: LinodeStructFields) {
+function buildConstStruct(name: string, inputs: LinodeInputs) {
   return (
-    `    body: [${fields.body}],\n` +
-    `    body_hash_index: ${fields.body_hash_index},\n` +
-    `    body_length: ${fields.body_length},\n` +
-    `    header: [${fields.header}],\n` +
-    `    header_length: ${fields.header_length},\n` +
-    `    pubkey: [${fields.pubkey}],\n` +
-    `    pubkey_redc: [${fields.pubkey_redc}],\n` +
-    `    signature: [${fields.signature}],\n` +
-    `    from_index: ${fields.from_index},\n` +
-    `    subject_index: ${fields.subject_index},\n` +
-    `    amount_index: ${fields.amount_index},\n` +
-    `    amount_length: ${fields.amount_length},\n` +
-    `    date_index: ${fields.date_index},\n` +
-    `    receipt_id_length: ${fields.receipt_id_length},\n`
+    `global ${name} = LinodeBillingParams {\n` +
+    `\theader: ${formatBoundedVec(
+      inputs.header.storage,
+      inputs.header.len
+    )},\n` +
+    `\tpubkey: ${formatPubkey(inputs.pubkey.modulus, inputs.pubkey.redc)},\n` +
+    `\tsignature: [${inputs.signature.join(", ")}],\n` +
+    `\tdkim_header_sequence: ${formatSequence(
+      inputs.dkim_header_sequence.index,
+      inputs.dkim_header_sequence.length
+    )},\n` +
+    `\tbody: ${formatBoundedVec(inputs.body!.storage, inputs.body!.len)},\n` +
+    `\tbody_hash_index: ${inputs.body_hash_index},\n` +
+    `\tamount_sequence: ${formatSequence(
+      inputs.amount_sequence.index,
+      inputs.amount_sequence.length
+    )},\n` +
+    `\tfrom_index: ${inputs.from_index},\n` +
+    `\tsubject_index: ${inputs.subject_index},\n` +
+    `\tdate_index: ${inputs.date_index},\n` +
+    `\treceipt_id_length: ${inputs.receipt_id_length}\n` +
+    `};\n`
   );
 }
 
-/**
- * Build the struct assignment fields for a given email
- * @param email - the raw email to parse and run input generation for
- * @returns - inputs formatted for TXE test input codegen
- */
-async function stringifyEmailInputs(
-  email: Buffer
-): Promise<LinodeStructFields> {
-  // generate inputs
-  const inputs = await makeLinodeInputs(email);
-  // standard inputs
-  // todo: change these to numbers in zkemail.nr
-  return {
-    body: inputs.body!.join(", "),
-    body_hash_index: inputs.body_hash_index!,
-    body_length: inputs.body_length!,
-    header: inputs.header.join(", "),
-    header_length: inputs.header_length,
-    pubkey: inputs.pubkey.join(", "),
-    pubkey_redc: inputs.pubkey_redc.join(", "),
-    signature: inputs.signature.join(", "),
-    from_index: inputs.from_index.toString(),
-    subject_index: inputs.subject_index.toString(),
-    amount_index: inputs.amount_index.toString(),
-    amount_length: inputs.amount_length.toString(),
-    date_index: inputs.date_index.toString(),
-    receipt_id_length: inputs.receipt_id_length.toString(),
-  };
-}
-
 /** Generate inputs and write to the contract dir in tests */
-export async function txeInputCodegen() {
+export async function txeInputCodegen(log = true, save = false) {
   let codegen = "";
   // add the imports
-  codegen += IMPORTS;
-  // add the struct definition
-//   codegen +=
-//     `pub struct LinodeInputs {\n` + buildStruct(STRUCT_DEF_INPUTS) + `}\n`;
-  // add the september email
-  const sepInputs = await stringifyEmailInputs(emails.linode_sep);
-  codegen +=
-    `global LINODE_SEP = LinodeBillingParams {\n` +
-    buildStruct(sepInputs) +
-    `};\n`;
-  // add the october email
-  const octInputs = await stringifyEmailInputs(emails.linode_oct);
-  codegen +=
-    `global LINODE_OCT = LinodeBillingParams {\n` +
-    buildStruct(octInputs) +
-    `};\n`;
-    // write the generated code to the output file
-    writeFileSync(OUTPUT_PATH, codegen);
+  codegen += IMPORTS + "\n";
+  // add linode september and october emails
+  const linodeSeptember = await makeLinodeInputs(emails.linode_sep);
+  const linodeOctober = await makeLinodeInputs(emails.linode_oct);
+  codegen += buildConstStruct("LINODE_SEP", linodeSeptember) + "\n";
+  codegen += buildConstStruct("LINODE_OCT", linodeOctober);
+  if (log) console.log(codegen);
+  if (save) writeFileSync(OUTPUT_PATH, codegen);
 }
-
-// main()
-//     .then(() => console.log(`Generated email inputs at ${OUTPUT_PATH}`))
-//     .catch((err) => console.error(err));

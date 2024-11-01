@@ -1,5 +1,10 @@
- use zimburse_verifiers::{
-    linode::{constants::LinodeBillingParams, main::verify_linode_billing_receipt},
+use std::meta::derive;
+use aztec::protocol_types::traits::Serialize;
+use zimburse_verifiers::{
+    linode::{
+        constants::{LinodeBillingParams, MAX_LINODE_EMAIL_HEADER_LENGTH, MAX_LINODE_EMAIL_BODY_LENGTH},
+        main::verify_linode_billing_receipt
+    },
     zkemail::KEY_LIMBS_2048
 };
 
@@ -21,23 +26,19 @@ pub mod verifier_ids {
     pub global LYFT: u8 = 9;
 }
 
-
 /** Constrain the verification of a Linode billing receipt email and return formatted outputs */
 pub fn verify_linode(inputs: LinodeBillingParams) -> LinodeReceiptOutput {
     // verify the email receipt
     let linode_receipt_result = verify_linode_billing_receipt(
+        inputs.header,
+        inputs.pubkey,
+        inputs.signature,
+        inputs.dkim_header_sequence,
         inputs.body,
         inputs.body_hash_index,
-        inputs.body_length,
-        inputs.header,
-        inputs.header_length,
-        inputs.pubkey,
-        inputs.pubkey_redc,
-        inputs.signature,
         inputs.from_index,
         inputs.subject_index,
-        inputs.amount_index,
-        inputs.amount_length,
+        inputs.amount_sequence,
         inputs.date_index,
         inputs.receipt_id_length
     );

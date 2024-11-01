@@ -157,28 +157,28 @@ pub fn extract_departing_flight_date<let N: u32>(body: BoundedVec<u8, N>, date_s
     to_unix(datetime) as Field
 }
 
-pub fn extract_destination_airport(
-    body: BoundedVec<u8, MAX_EMAIL_BODY_LENGTH>,
-    dest_airport_sequence: Sequence
+pub fn extract_destination_airport<let N: u32>(
+    body: BoundedVec<u8, N>,
+    airport_sequence: Sequence
 ) -> Field {
     // check the prefix of the destination airport sequence
-    check_qp_sequence::<MAX_EMAIL_BODY_LENGTH, 50, DEST_AIRPORT_PREFIX_LENGTH>(
+    check_qp_sequence::<N, 50, DEST_AIRPORT_PREFIX_LENGTH>(
         body,
-        dest_airport_sequence.index,
+        airport_sequence.index,
         DEST_AIRPORT_HTML_PREFIX,
         "Index does not point to destination airport prefix"
     );
 
     // check the postfix of the date sequence
-    check_qp_sequence_reverse::<MAX_EMAIL_BODY_LENGTH, 51, DEST_AIPORT_POSTFIX_LENGTH>(
+    check_qp_sequence_reverse::<N, 51, DEST_AIPORT_POSTFIX_LENGTH>(
         body,
-        dest_airport_sequence.index + dest_airport_sequence.length - 1,
+        airport_sequence.index + airport_sequence.length - 1,
         DEST_AIRPORT_HTML_POSTFIX,
         "Index does not point to destination airport postfix"
     );
 
     // remove crlf characters
-    let crlf_parsed = remove_soft_line_break::<MAX_EMAIL_BODY_LENGTH, MAX_DEST_SEQUENCE_LENGTH>(body, dest_airport_sequence);
+    let crlf_parsed = remove_soft_line_break::<N, MAX_DEST_SEQUENCE_LENGTH>(body, airport_sequence);
 
     let mut opening_parenthesis_index = 0;
     let mut pointer = DEST_AIRPORT_PREFIX_LENGTH;

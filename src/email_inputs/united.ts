@@ -170,7 +170,6 @@ export const makeUnitedInputs = async (
     const totalParams = getTotalSequence(body);
 
     const interstitialLength = dateParams.index - (totalParams.length + totalParams.index)
-    console.log('Interstitial length: ', interstitialLength);
 
     const { partial_body_hash: partial_body_hash_date } = generateEmailVerifierInputsFromDKIMResult(dkimResult, {
         maxBodyLength: UNITED_MAX_BODY_LENGTH,
@@ -197,9 +196,6 @@ export const makeUnitedInputs = async (
 
     // check the qp sequence
     const qp = amountSelection.slice(pickedTotal.sequence.index, pickedTotal.sequence.length);
-    console.log("Amount selection: ", qp);
-    console.log("Sequence: ", pickedTotal.sequence);
-    console.log("X", Buffer.from(qp.map(x => parseInt(x, 10))).toString('utf8'));
 
     // disable body
     delete inputs.body;

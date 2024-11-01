@@ -21,23 +21,23 @@ describe("United Flight Receipt Test", () => {
         it("United", async () => {
             // build inputs
             const inputs = await makeUnitedInputs(emails.united);
-            // console.log("Body: ", JSON.stringify(inputs.body_date_selection));
-            // console.log("Amount sequence: ", JSON.stringify(inputs.date_sequence));
-            // console.log("Inputs", Object.keys(inputs));
+            
             // simulate witness
             const { returnValue } = await prover.simulateWitness(inputs);
-            // todo: better parsing
-            const extractedValues = ((returnValue as any)[3] as string[]);
-            console.log('Extracted Values: ', extractedValues);
-            const parsedValues = extractedValues.map(x => toBigIntBE(new Uint8Array(Buffer.from(x.slice(2), 'hex'))));
-            // // const destination = Buffer.from(values[3].toString(16), 'hex').toString('utf8')
-            
-            // // console.log('Destination: ', destination);
-            // // check the returned values
-            expect(parsedValues[0]).toEqual(171785n);
 
-            console.log(`Billed amount: $${Number(parsedValues[1]) / 100}`);
-            console.log(`Date of flight: ${(new Date(Number(parsedValues[1]) * 1000)).toUTCString()}`);
+            // parse extraced values
+            const extractedValues = ((returnValue as any)[3] as string[]); // todo: better parsing
+            const parsedValues = extractedValues.map(x => toBigIntBE(new Uint8Array(Buffer.from(x.slice(2), 'hex'))));
+            const destination = Buffer.from(parsedValues[2].toString(16), 'hex').toString('utf8')
+            expect(parsedValues[0]).toEqual(171785n);
+            expect(parsedValues[1]).toEqual(1682208000n); // should map to 2023-04-23 UTC+0
+            expect(destination).toEqual("TPE");
+
+            const formattedAmount = Math.floor(Number(parsedValues[0]) / 100) + '.' + (Number(parsedValues[0]) % 100); 
+            const formattedDate = new Date(Number(parsedValues[1]) * 1000).toUTCString();
+            console.log(`Billed amount: $${formattedAmount}`);
+            console.log(`Date of flight: ${formattedDate[1]}`);
+            console.log(`Destination airport code: "${destination}"`);
         })
     })
 

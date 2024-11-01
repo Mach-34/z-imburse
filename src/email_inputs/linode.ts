@@ -1,7 +1,7 @@
 import { generateEmailVerifierInputsFromDKIMResult, verifyDKIMSignature } from "@zk-email/zkemail-nr";
 import { getSequenceParams } from "./location";
 import { Regexes } from "../constants";
-import { LinodeInputs } from "../types";
+import { LinodeInputs, RedeemLinodeInputs } from "../types";
 
 const LINODE_MAX_HEADER_LENGTH = 640;
 const LINODE_MAX_BODY_LENGTH = 832;
@@ -23,32 +23,36 @@ const calculateReceiptIdLength = (subjectSlice: string) => {
 //  * Transform Linode circuit inputs into format acceptable by aztec
 //  * @param inputs - Linode inputs that are witcalc friendly but not readable by contract
 //  */
-// export const formatRedeemLinode = (
-//   inputs: LinodeInputs
-// ): RedeemLinodeInputs => {
-//   // body will be present in this email type
-//   const body = inputs.body!.map((byte) => Number(byte));
-//   const header = inputs.header.map((byte) => Number(byte));
-//   const pubkey = inputs.pubkey.map((limb) => BigInt(limb));
-//   const pubkey_redc = inputs.pubkey_redc.map((limb) => BigInt(limb));
-//   const signature = inputs.signature.map((limb) => BigInt(limb));
-//   return [
-//     body,
-//     Number(inputs.body_hash_index),
-//     Number(inputs.body_length),
-//     header,
-//     Number(inputs.header_length),
-//     pubkey,
-//     pubkey_redc,
-//     signature,
-//     inputs.from_index,
-//     inputs.subject_index,
-//     inputs.amount_index,
-//     inputs.amount_length,
-//     inputs.date_index,
-//     inputs.receipt_id_length,
-//   ];
-// };
+export const formatRedeemLinode = (
+  inputs: LinodeInputs
+): RedeemLinodeInputs => {
+  // body will be present in this email type
+  const header = inputs.header.storage.map((byte) => Number(byte));
+  const body = inputs.body?.storage.map((byte) => Number(byte));
+  const pubkey_modulus = inputs.pubkey.modulus.map((limb) => BigInt(limb));
+  const pubkey_redc = inputs.pubkey.redc.map((limb) => BigInt(limb));
+  const signature = inputs.signature.map((limb) => BigInt(limb));
+
+  return {
+    header: header,
+    header_length: Number(inputs.header.len),
+    pubkey_modulus,
+    pubkey_redc,
+    signature,
+    dkim_header_sequence: {
+      index: Number(inputs.dkim_header_sequence.index),
+      length: Number(inputs.dkim_header_sequence.length),
+    },
+    body: body as number[],
+    body_length: Number(inputs.body?.len),
+    body_hash_index: Number(inputs.body_hash_index),
+    from_index: inputs.from_index,
+    subject_index: inputs.subject_index,
+    amount_sequence: inputs.amount_sequence,
+    date_index: inputs.date_index,
+    receipt_id_length: inputs.receipt_id_length,
+  }
+};
 
 /**
  * Given an email, generate the inputs for the Linode billing receipt proof

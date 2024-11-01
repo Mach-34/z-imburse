@@ -205,13 +205,13 @@ contract ZImburseRegistry {
     }
 
     #[private]
-    fn check_and_register_participant(participant: AztecAddress, participant_name: str<60>, escrow: AztecAddress) -> bool{
+    fn check_and_register_participant(participant: AztecAddress, participant_name: str<60>, escrow: AztecAddress) -> bool {
         // todo: switch to check that the sender is an escrow
         // check that sender is admin
         let admin = storage.definition.read_private().admin;
         assert(admin == context.msg_sender(), "Sender is not the registry contract");
-        let is_registered = storage.escrow_registry.at(admin).read_private();
-        assert(is_registered, "Sender is not an escrow contract");
+        let is_registered = storage.escrow_registry.at(escrow).read_private();
+        assert(is_registered, "Escrow contract is not registered");
         // check if the participant has already been registered
         let options = NoteGetterOptions::new().select(AddressNote::properties().address, Comparator.EQ, participant).set_limit(1);
         let participant_exists = storage.participants.at(escrow).get_notes(options).len() == 0;
@@ -226,7 +226,7 @@ contract ZImburseRegistry {
     }
 
     #[private]
-    #[interal]
+    #[internal]
     fn register_participant(participant: AztecAddress, participant_name: str<60>, admin: AztecAddress, escrow: AztecAddress) {
         let admin_keys = get_public_keys(admin);
         let participant_keys = get_public_keys(participant);

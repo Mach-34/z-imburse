@@ -5,6 +5,7 @@ import {
   Fr,
   Note,
   TxHash,
+  Wallet,
 } from "@aztec/aztec.js";
 import { TokenContract } from "../artifacts/contracts";
 
@@ -18,7 +19,7 @@ import { TokenContract } from "../artifacts/contracts";
  * @param txHash - the transaction hash where the note was minted
  */
 export async function addPendingShieldNoteToPXE(
-  wallet: AccountWalletWithSecretKey,
+  wallet: Wallet,
   usdcAddress: AztecAddress,
   amount: bigint,
   secretHash: Fr,

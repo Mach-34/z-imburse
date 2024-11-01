@@ -1,5 +1,4 @@
-import { verifyDKIMSignature } from "@zk-email/helpers/dist/dkim";
-import { generateEmailVerifierInputsFromDKIMResult } from "@mach-34/zkemail-nr";
+import { generateEmailVerifierInputsFromDKIMResult, verifyDKIMSignature } from "@zk-email/zkemail-nr";
 import { getSequenceParams } from "./location";
 import { Regexes } from "../constants";
 import { FrontierInputs } from "../types";

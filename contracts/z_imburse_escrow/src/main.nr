@@ -21,7 +21,11 @@ contract ZImburseEscrow {
     };
     use zimburse_verifiers::{
         linode::constants::LinodeBillingParams,
-        zkemail::KEY_LIMBS_2048
+        united::{
+            main::united_flight_body_hash,
+            constants::MAX_EMAIL_HEADER_LENGTH,
+        },
+        zkemail::{KEY_LIMBS_2048, Sequence, dkim::RSAPubkey},
     };
     use crate::{
         library_methods::linode,
@@ -87,7 +91,7 @@ contract ZImburseEscrow {
      * @param destination - the destination that a travel receipt must go to (set to [0; 31] if not applicable)
      */
     #[private]
-    fn give_spot_entitlement(recipient: AztecAddress, amount: Field, verifier_id: u8, date_start: u32, date_end: u32, destination: str<31>) {
+    pub fn give_spot_entitlement(recipient: AztecAddress, amount: Field, verifier_id: u8, date_start: u32, date_end: u32, destination: str<31>) {
         // check that no receipt exists for this recipient and verifier
         let entitlement_exists = storage.entitlements.get_matching_entitlement(
             context.msg_sender(),
@@ -124,7 +128,7 @@ contract ZImburseEscrow {
      * @param verifier_id - the id of the email receipt type to verify
      */
     #[private]
-    fn give_recurring_entitlement(recipient: AztecAddress, amount: Field, verifier_id: u8) {
+    pub fn give_recurring_entitlement(recipient: AztecAddress, amount: Field, verifier_id: u8) {
         // check that no receipt exists for this recipient and verifier
         let entitlement_exists = storage.entitlements.get_matching_entitlement(
             context.msg_sender(),
@@ -162,7 +166,7 @@ contract ZImburseEscrow {
      * @return the amount reimbursed
      */
     #[private]
-    fn reimburse_linode_recurring(
+    pub fn reimburse_linode_recurring(
         email_receipt_inputs: LinodeBillingParams,
         claim_secret_hash: Field,
     ) -> Field {
@@ -198,7 +202,7 @@ contract ZImburseEscrow {
      * @return the amount reimbursed
      */
     #[private]
-    fn reimburse_linode_spot(
+    pub fn reimburse_linode_spot(
         email_receipt_inputs: LinodeBillingParams,
         claim_secret_hash: Field,
     ) -> Field {
@@ -235,6 +239,45 @@ contract ZImburseEscrow {
         // return the amount reimbursed
         amount_to_reimburse
     }
+
+    // #[private]
+    // pub fn united_test(
+    //     header: [u8; MAX_EMAIL_HEADER_LENGTH],
+    //     header_length: u32,
+    //     pubkey_modulus: [Field; KEY_LIMBS_2048],
+    //     pubkey_redc: [Field; KEY_LIMBS_2048],
+    //     signature: [Field; KEY_LIMBS_2048],
+    //     dkim_header_sequence: Sequence,
+    //     body_hash_index: u32,
+    //     from_index: u32,
+    //     subject_index: u32,
+    //     partial_body_hash: [u32; 8],
+    //     body_amount_selection: [u8; 256],
+    //     partial_body_hash_date: [u32; 8],
+    //     body_date_selection: [u8; 256]
+    // ) {
+    //     let header_vec: BoundedVec<u8, MAX_EMAIL_HEADER_LENGTH> = BoundedVec {
+    //         storage: header,
+    //         len: header_length
+    //     };
+    //     let pubkey: RSAPubkey<KEY_LIMBS_2048> = RSAPubkey {
+    //         modulus: pubkey_modulus,
+    //         redc: pubkey_redc
+    //     };
+    //     let (interstitial_hash_1, interstitial_hash_3, signed_body_hash) = united_flight_body_hash(
+    //         header_vec,
+    //         pubkey,
+    //         signature,
+    //         body_hash_index,
+    //         dkim_header_sequence,
+    //         from_index,
+    //         subject_index,
+    //         partial_body_hash,
+    //         body_amount_selection,
+    //         partial_body_hash_date,
+    //         body_date_selection
+    //     );
+    // }
 
     /**
      * Emit the nullifier for an entitlement

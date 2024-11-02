@@ -5,7 +5,9 @@ import {
 import {
     AccountWalletWithSecretKey,
     Fr,
+    computeSecretHash,
     createPXEClient,
+    AztecAddress
 } from "@aztec/aztec.js";
 import {
 
@@ -17,6 +19,8 @@ import {
 } from "../../src/email_inputs/united";
 import { emails } from "../utils/fs";
 import { generateEmailVerifierInputs } from "@zk-email/zkemail-nr";
+import { VERIFIER_IDS } from "../../src/contract_drivers/dkim";
+import { toUSDCDecimals } from "../../src/utils";
 
 
 const DEFAULT_PXE_URL = "http://localhost";
@@ -83,6 +87,40 @@ describe("Test deposit to zimburse", () => {
     });
 
     describe("Test Partial Hash", () => {
+        it("Give spot united entitlement", async () => {
+            // dates 0 indexed lol
+            let dateStart = (new Date(Date.UTC(2023, 3, 20))).getTime() / 1000;
+            console.log("Date Start: ", dateStart);
+            let dateEnd = (new Date(Date.UTC(2023, 3, 25))).getTime() / 1000;
+            console.log("Date End: ", dateEnd);
+            await escrow.withWallet(admin).methods.give_spot_entitlement(
+                claimant.getAddress(),
+                toUSDCDecimals(100n),
+                VERIFIER_IDS.UNITED,
+                dateStart,
+                dateEnd,
+                "TPE\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
+            ).send().wait();
+
+            // // check for note
+            // let notes = await escrow.withWallet(claimant).methods.view_entitlements(
+            //     0,
+            //     claimant.getAddress(),
+            //     {
+            //         _is_some: false,
+            //         _value: AztecAddress.ZERO
+            //     },
+            //     {
+            //         _is_some: false,
+            //         _value: 0,
+            //     },
+            //     {
+            //         _is_some: false,
+            //         _value: true,
+            //     }
+            // ).simulate();
+            // console.log("Notes: ", notes[0].storage[0]);
+        });
         it("Try partial hashing stuff", async () => {
             // generate inputs
             const { inputs: unitedInputs, deferred } = await makeUnitedInputs(emails.united);
@@ -98,14 +136,18 @@ describe("Test deposit to zimburse", () => {
             for (const capsule of capsules)
                 await claimant.addCapsule(capsule);
 
-            let start = new Date().getTime();
-            await escrow.methods.united_test(
+            // get secret hash for claiming reimbursement
+            let claimSecret = Fr.random();
+            let claimHash = computeSecretHash(claimSecret);
+            const start = new Date().getTime();
+            await escrow.withWallet(claimant).methods.reimburse_united_spot(
                 contractInputs,
                 amountToDateLength,
                 remainingLength,
-                deferred.actualLength
+                deferred.actualLength,
+                claimHash
             ).send().wait();
-            let end = new Date().getTime();
+            const end = new Date().getTime();
             console.log("Time taken: ", end - start);
         })
     });

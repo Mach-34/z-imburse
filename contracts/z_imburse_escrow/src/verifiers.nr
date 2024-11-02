@@ -89,8 +89,8 @@ pub fn verify_united_deferred(inputs: UnitedBillingParams) -> UnitedReceiptOutpu
 
     // extract outputs
     UnitedReceiptOutput {
-        timestamp: extracted_values[0],
-        billed_amount: extracted_values[1],
+        billed_amount: extracted_values[0],
+        timestamp: extracted_values[1],
         destination_airport: extracted_values[2],
         signed_body_hash,
         hash_state_after_body,

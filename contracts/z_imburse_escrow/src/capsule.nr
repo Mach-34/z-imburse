@@ -22,13 +22,13 @@ unconstrained pub fn remaining_chunks(length: u32) -> (u32, bool) {
     let mut resume = false;
     // +1 to account for final iteration being done by finalize
     // determine the length of the chunk to hash
-    if length >= HASH_CHUNK_MAX_LENGTH + 1 {
+    if length >= HASH_CHUNK_MAX_LENGTH {
         res = HASH_CHUNK_MAX_LENGTH;
     } else {
         res = length;
     }
     // determine if there are more chunks to hash
-    if (length > HASH_CHUNK_MAX_LENGTH + 1) {
+    if (length > (HASH_CHUNK_MAX_LENGTH * 2) + 1) {
         resume = true;
     }
     (res, resume)

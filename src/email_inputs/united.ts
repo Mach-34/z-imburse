@@ -189,6 +189,7 @@ export const makeUnitedInputs = async (
     const { dateSequence, airportSequence, sliceSequence } = pickDateAndAirport(dateParams, airportParams);
     const amountSelection = baseInputs.body!.storage.slice(pickedTotal.sliceSequence.index, pickedTotal.sliceSequence.length);
     const dateSelection = baseInputs.body!.storage.slice(sliceSequence.index, sliceSequence.length);
+
     const inputs = {
         ...baseInputs,
         from_index: fromParams.index,
@@ -202,13 +203,19 @@ export const makeUnitedInputs = async (
     };
 
     // grab remaining sequences
+    // todo: fix slice sequence naming length when it is end index
     const actualLength = parseInt(inputs.partial_body_real_length!);
     const amountToDateStart = pickedTotal.sliceSequence.index + pickedTotal.sliceSequence.length;
     const amountToDateEnd = sliceSequence.index;
     const amountToDateBody = baseInputs.body!.storage.slice(amountToDateStart, amountToDateEnd);
 
-    const remainingStart = sliceSequence.index + sliceSequence.length;
-    const remainingEnd = actualLength - amountToDateBody.length - amountSelection.length - dateSelection.length;
+    const remainingStart = sliceSequence.length;
+    const remainingEnd = parseInt(inputs.body!.len);
+    // console.log("Body s", inputs.body!.len);
+    // console.log("Actual length: ", actualLength);
+    // console.log("Amount to date length: ", amountToDateBody.length);
+    // console.log("Amount selection length: ", amountSelection.length);
+    // console.log("Date selection length: ", dateSelection.length);
     const remainingBody = baseInputs.body!.storage.slice(remainingStart, remainingEnd);
 
     const deferred = {

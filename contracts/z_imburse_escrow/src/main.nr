@@ -332,23 +332,24 @@ contract ZImburseEscrow {
             actual_length as u64
         );
         // check the hashes match
-        // assert(
-        //     computed_body_hash == signed_body_hash,
-        //     "SHA256 hash computed over body does not match body hash found in DKIM-signed header"
-        // );
+        assert(
+            computed_body_hash == signed_body_hash,
+            "SHA256 hash computed over body does not match body hash found in DKIM-signed header"
+        );
     }
 
     #[private]
     #[internal]
     pub fn interstitial_hash(
         state: [u32; 8],
-        length: u32
+        length: u32,
     ) -> [u32; 8] {
         // get chunk from capsule oracle and convert to u8 (unconstrained, hash check will deal with it)
         let data = unsafe { arr_field_to_u8(pop_capsule::<HASH_CHUNK_MAX_LENGTH>()) };   
         // determine length of data to hash
         let (hash_length, resume) = unsafe { remaining_chunks(length) };
         // hash the data
+        debug_log_format("LENGTH: {0}\nRESUME: {1}", [length as Field, resume as Field]);
         let mut interstitial = partial_sha256_var_interstitial(state, data, hash_length);
         // if there is more data to hash, continue hashing
         if resume {

@@ -34,7 +34,7 @@ use super::utils::server_side_interstitial;
 // | INTERSTITIAL HASH BETWEEN AMOUNT AND DATE/ARRIVAL
 // |
 // _
-// 256 bytes for the date / destination sequence
+// 320 bytes for the date / destination sequence
 // _
 // |
 // | END HASH

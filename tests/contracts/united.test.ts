@@ -84,15 +84,12 @@ describe("Test deposit to zimburse", () => {
 
     describe("Test Partial Hash", () => {
         it("Try partial hashing stuff", async () => {
-            // const inputs = 
+            // generate inputs
             const { inputs: unitedInputs, deferred } = await makeUnitedInputs(emails.united);
             const contractInputs = toContractFriendly(unitedInputs);
             const amountToDateLength: number = deferred.amountToDateBody.length;
             const remainingLength: number = deferred.remainingBody.length;
-            console.log("amountToDateLength", amountToDateLength);
-            console.log("remainingLength", remainingLength);
-            console.log("realLength", deferred.actualLength);
-            console.log("x: ", deferred.remainingBody.slice(deferred.remainingBody.length - 32, deferred.remainingBody.length));
+
 
             // add capsules to pxe
             let capsules = breakIntoCapsules(deferred.remainingBody.map((val: string) => parseInt(val)));
@@ -101,14 +98,6 @@ describe("Test deposit to zimburse", () => {
             capsules = breakIntoCapsules(deferred.amountToDateBody.map((val: string) => parseInt(val)));
             for (const capsule of capsules)
                 await claimant.addCapsule(capsule);
-
-            console.log("INput stuff");
-            console.log("Amount sequence", contractInputs.amount_sequence);
-            console.log("Airport sequence", contractInputs.airport_sequence);
-            console.log("Date sequence", contractInputs.date_sequence);
-            console.log("Modulus length", unitedInputs.pubkey.modulus.length);
-            console.log("Redc length", unitedInputs.pubkey.redc.length);
-            console.log("Signature length", unitedInputs.signature.length);
 
             let start = new Date().getTime();
             await escrow.methods.united_test(
@@ -119,9 +108,6 @@ describe("Test deposit to zimburse", () => {
             ).send().wait();
             let end = new Date().getTime();
             console.log("Time taken: ", end - start);
-            // // console.log("Amount sequence", unitedInputs.amount_sequence);
-            // // console.log("Airport sequence", unitedInputs.airport_sequence);
-            // // console.log("Date sequence", unitedInputs.date_sequence);
         })
     });
 });

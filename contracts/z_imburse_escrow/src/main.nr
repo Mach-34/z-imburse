@@ -275,7 +275,8 @@ contract ZImburseEscrow {
                 actual_length
             )
             .call(&mut context);
-        let billed_amount = U128::from_integer(extracted[0]);
+        // multiply the amount by 10000 to get the actual amount
+        let billed_amount = U128::from_integer(extracted[0] * 10000);
         let timestamp = extracted[1];
         let destination_airport = extracted[2];
         // get united entitlement note
@@ -297,12 +298,13 @@ contract ZImburseEscrow {
 
         // check the dkim key hash matches the linode verifier id
         let dkim_key_hash = pedersen_hash(email_inputs.pubkey_modulus);
-        // let registered_verifier_id = check_dkim_key_hash_private(
-        //     &mut context,
-        //     definition.registry,
-        //     dkim_key_hash
-        // );
-        // assert((registered_verifier_id as u8) == verifier_ids::UNITED_AIRLINES, "DKIM key is not registered for United Airlines");
+        debug_log_format("DKIM key hash: {0}", [dkim_key_hash]);
+        let registered_verifier_id = check_dkim_key_hash_private(
+            &mut context,
+            definition.registry,
+            dkim_key_hash
+        );
+        assert((registered_verifier_id as u8) == verifier_ids::UNITED_AIRLINES, "DKIM key is not registered for United Airlines");
 
         // check date range
         entitlement.check_date_range(timestamp as u32);
@@ -314,14 +316,14 @@ contract ZImburseEscrow {
         let amount_to_reimburse = entitlement.amount_to_reimburse(billed_amount);
 
         // release funds from escrow by shielding in public
-        // shield_to_claimant(&mut context, definition.usdc, amount_to_reimburse, claim_secret_hash);
+        shield_to_claimant(&mut context, definition.usdc, amount_to_reimburse, claim_secret_hash);
 
         // emit email nullifier
         let email_nullifier = pedersen_hash(email_inputs.signature);
         context.push_nullifier(email_nullifier);
 
         // check note nullifier for revocation/ consuption
-        let nullifier = entitlement.check_nullifier(&mut context); // <-- doesn't actually constrain nullifier to exist
+        let nullifier = entitlement.check_nullifier(&mut context);
 
         // broadcast the note nullifier
         context.push_nullifier(nullifier);
@@ -337,6 +339,7 @@ contract ZImburseEscrow {
         );
 
         // return the amount reimbursed
+        debug_log_format("Amount reimbursed: {0}", [amount_to_reimburse]);
         amount_to_reimburse
     }
 

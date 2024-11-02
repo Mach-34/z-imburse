@@ -2,7 +2,6 @@ import { describe, expect } from "@jest/globals";
 import { verifyDKIMSignature } from "@zk-email/zkemail-nr";
 import { makeLinodeInputs } from "../src/email_inputs/linode";
 import { getDKIMHashes, domains, fetchDKIMKeys, dkimPubkeyToHash } from "../src/dkim/index";
-import { prepareDKIMKeysForInputs } from "../src/contract_drivers/dkim";
 import { emails } from "./utils/fs";
 import { txeInputCodegen } from "./txe/inputCodegen";
 
@@ -24,10 +23,10 @@ describe("Test deposit to zimburse", () => {
     console.log("Domain: ", domain);
     console.log(keyHashes.map((key) => key.toString()));
   })
-  xit("Test", async () => {
-    const inputs = prepareDKIMKeysForInputs(4);
-    console.log(inputs);
-  })
+  // xit("Test", async () => {
+  //   const inputs = prepareDKIMKeysForInputs(4);
+  //   console.log(inputs);
+  // })
   xit("Check dkim key hashes line up", async () => {
     const keyHashes = await getDKIMHashes(domains[1]);
     const linodeInputs = await makeLinodeInputs(emails.linode_sep);

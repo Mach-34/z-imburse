@@ -15,7 +15,16 @@ export type LinodeInputs = {
     receipt_id_length: number;
 } & CircuitInput
 
-export type UnitedInputs = { from_index: number, subject_index: number, amount_sequence: SequenceParams, date_sequence: SequenceParams, airport_sequence: SequenceParams } & CircuitInput
+export type UnitedInputs = {
+    from_index: number,
+    subject_index: number,
+    amount_sequence: SequenceParams,
+    date_sequence: SequenceParams,
+    airport_sequence: SequenceParams,
+    partial_body_hash_date: string[],
+    body_amount_selection: string[],
+    body_date_selection: string[],
+} & CircuitInput
 
 // tuple type of redeem linode contract function params
 export type RedeemLinodeInputs = [number[], number, number, number[], number, bigint[], bigint[], bigint[], number, number, number, number, number, number];

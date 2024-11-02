@@ -1,5 +1,5 @@
 import { describe, expect, jest } from "@jest/globals";
-import { generateEmailVerifierInputs } from "@mach-34/zkemail-nr";
+import { generateEmailVerifierInputs } from "@zk-email/zkemail-nr";
 import {
   getInitialTestAccountsWallets,
   createAccount,
@@ -29,7 +29,6 @@ import {
 } from "../../src/artifacts/contracts/index";
 import { toUSDCDecimals, toBigIntBE } from "../../src/utils";
 import {
-  formatRedeemLinode,
   makeLinodeInputs,
 } from "../../src/email_inputs/linode";
 import { dkimPubkeyToHash } from "../../src/dkim";

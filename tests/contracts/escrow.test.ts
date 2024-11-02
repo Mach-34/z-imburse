@@ -232,7 +232,7 @@ describe("Test deposit to zimburse", () => {
     );
   });
 
-  xdescribe("Hosting entitlements", () => {
+  describe("Hosting entitlements", () => {
     it.todo("Cannot give entitlement if not admin");
     it.todo("Cannot give entitlement if escrow not registered");
     it.todo("Cannot give entitlement if participant not registered");

@@ -121,8 +121,6 @@ pub fn extract_departing_flight_date<let N: u32>(body: BoundedVec<u8, N>, date_s
     );
 
     let crlf_parsed = remove_soft_line_break::<N, MAX_DATETIME_SEQUENCE_LENGTH>(body, date_sequence);
-    println("\n\nCRLF PARSED: ");
-    println(crlf_parsed.storage);
 
     // convert date to timestamp
     let date_index = ARRIVAL_DATE_PREFIX_LENGTH;
@@ -253,8 +251,8 @@ fn test_check_amount() {
     let vec: BoundedVec<u8, 256> = BoundedVec::from(data);
     let sequence: Sequence = Sequence { index: 21, length: 206};
     let x = extract_billed_amount(vec, sequence);
-    println("Amont: ");
-    println(x);
+    // println("Amont: ");
+    // println(x);
 }
 
 // #[test]
@@ -263,7 +261,7 @@ fn test_check_date() {
     let vec: BoundedVec<u8, 320> = BoundedVec::from(data);
     let sequence: Sequence = Sequence { index: 14, length: 223};
     let date = extract_departing_flight_date(vec, sequence);
-    println("Date: ");
-    println(date);
+    // println("Date: ");
+    // println(date);
 }
 

@@ -183,7 +183,6 @@ fn remove_soft_line_break<let MAX_TEXT_LEN: u32, let MAX_SEQ_LEN: u32>(
         // if the current index is a linebreak, skip 3 chars
         if is_soft_linebreak(window) {
             cooldown = 3;
-            println("\n\ntriggering cooldown");
         }
         // if cooldown or end of array insert char at end and save cursor
         let mut decoded_cursor = decoded_index;

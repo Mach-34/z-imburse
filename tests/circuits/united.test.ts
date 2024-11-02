@@ -20,7 +20,7 @@ describe("United Flight Receipt Test", () => {
     describe("Simulated", () => {
         it("United", async () => {
             // build inputs
-            const inputs = await makeUnitedInputs(emails.united);
+            const { inputs } = await makeUnitedInputs(emails.united);
             
             // simulate witness
             const { returnValue } = await prover.simulateWitness(inputs);
@@ -44,7 +44,7 @@ describe("United Flight Receipt Test", () => {
     xdescribe("Proving", () => {
         it("United::Honk", async () => {
             // make inputs from email
-            const inputs = await makeUnitedInputs(emails.united);
+            const { inputs } = await makeUnitedInputs(emails.united);
             // generate proof
             const proof = await prover.fullProve(inputs, 'honk');
             // verify proof
@@ -54,7 +54,7 @@ describe("United Flight Receipt Test", () => {
 
         xit("United::Plonk", async () => {
             // make inputs from email
-            const inputs = await makeUnitedInputs(emails.united);
+            const { inputs } = await makeUnitedInputs(emails.united);
             // generate proof
             const proof = await prover.fullProve({ params: inputs }, 'plonk');
             // verify proof

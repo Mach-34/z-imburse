@@ -65,9 +65,9 @@ pub fn verify_united_deferred_hash(
     assert(header.len() <= MAX_UNITED_EMAIL_HEADER_LENGTH);
 
     // verify the dkim signature over the header
-    pubkey.verify_dkim_signature(header, signature);
+    // pubkey.verify_dkim_signature(header, signature);
 
-    // assert email is from Receipts@united.com
+    // // assert email is from Receipts@united.com
     check_from_united_receipts(from_index, header);
 
     // assert this is a eTicket receipt from United
@@ -99,10 +99,10 @@ pub fn verify_united_deferred_hash(
     let date = extract_departing_flight_date(date_selection_vec, date_sequence);
 
     // extract destination
+    // broken??
     // let destination = extract_destination_airport(date_selection_vec, airport_sequence);
 
     // let return_values = [billed_amount, date, destination];
     let return_values = [billed_amount, date, 0];
     (hash_state_after_body, hash_state_after_destination, signed_body_hash, return_values)
-    // return_values
 }

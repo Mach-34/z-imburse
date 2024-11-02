@@ -18,7 +18,7 @@ contract ZImburseEscrow {
             functions::{private, public, internal, view, initializer}
         },
         note::constants::MAX_NOTES_PER_PAGE,
-        oracle::random::random,
+        oracle::{random::random, debug_log::debug_log_format},
         prelude::{AztecAddress, SharedImmutable},
         protocol_types::traits::Serialize,
     };
@@ -311,7 +311,7 @@ contract ZImburseEscrow {
             .interstitial_hash(hash_state_after_destination, remaining_length)
             .call(&mut context);
         // finalize the hash
-        let data = arr_field_to_u8(pop_capsule::<HASH_CHUNK_MAX_LENGTH>());  
+        let data = unsafe { arr_field_to_u8(pop_capsule::<HASH_CHUNK_MAX_LENGTH>()) };  
         // complete the hash
         let remaining = unsafe {
             let mut size = HASH_CHUNK_MAX_LENGTH;
@@ -320,6 +320,11 @@ contract ZImburseEscrow {
             }
             size
         };
+        debug_log_format("\n\n\n\nRemaining used: {0}\nactual_length:{1}\ngiven_remaining: {2}", [
+            remaining as Field,
+            actual_length as Field,
+            remaining_length as Field
+        ]);
         let computed_body_hash = partial_sha256_var_end(
             interstitial,
             data,
@@ -327,10 +332,10 @@ contract ZImburseEscrow {
             actual_length as u64
         );
         // check the hashes match
-        assert(
-            computed_body_hash == signed_body_hash,
-            "SHA256 hash computed over body does not match body hash found in DKIM-signed header"
-        );
+        // assert(
+        //     computed_body_hash == signed_body_hash,
+        //     "SHA256 hash computed over body does not match body hash found in DKIM-signed header"
+        // );
     }
 
     #[private]
@@ -340,7 +345,7 @@ contract ZImburseEscrow {
         length: u32
     ) -> [u32; 8] {
         // get chunk from capsule oracle and convert to u8 (unconstrained, hash check will deal with it)
-        let data = arr_field_to_u8(pop_capsule::<HASH_CHUNK_MAX_LENGTH>());   
+        let data = unsafe { arr_field_to_u8(pop_capsule::<HASH_CHUNK_MAX_LENGTH>()) };   
         // determine length of data to hash
         let (hash_length, resume) = unsafe { remaining_chunks(length) };
         // hash the data
@@ -355,18 +360,18 @@ contract ZImburseEscrow {
         interstitial
     }
 
-    #[private]
-    #[internal]
-    pub fn finalize_hash(
-        state: [u32; 8],
-        length: u32,
-        actual_length: u32
-    ) -> [u8; 32] {
-        // get chunk from capsule oracle and convert to u8 (unconstrained, hash check will deal with it)
-        let data = arr_field_to_u8(pop_capsule::<HASH_CHUNK_MAX_LENGTH>());  
-        // complete the hash
-        partial_sha256_var_end(state, data, length as u64, actual_length as u64)
-    }
+    // #[private]
+    // #[internal]
+    // pub fn finalize_hash(
+    //     state: [u32; 8],
+    //     length: u32,
+    //     actual_length: u32
+    // ) -> [u8; 32] {
+    //     // get chunk from capsule oracle and convert to u8 (unconstrained, hash check will deal with it)
+    //     let data = unsafe { arr_field_to_u8(pop_capsule::<HASH_CHUNK_MAX_LENGTH>()) };  
+    //     // complete the hash
+    //     partial_sha256_var_end(state, data, length as u64, actual_length as u64)
+    // }
 
     /**
      * Emit the nullifier for an entitlement

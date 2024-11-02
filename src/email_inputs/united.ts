@@ -3,6 +3,7 @@ import { getSequenceParams } from "./location";
 import { Regexes } from "../constants";
 import { SequenceParams, UnitedInputs } from "../types";
 import { decodeQuotedPrintable } from "../utils";
+import { sign } from "crypto";
 
 const UNITED_MAX_HEADER_LENGTH = 640;
 const UNITED_MAX_BODY_LENGTH = 58560;
@@ -140,13 +141,19 @@ const pickDateAndAirport = (oldDate: SequenceParams, oldAirport: SequenceParams)
     }
 }
 
+export const deferred = async (email: Buffer, inputs: UnitedInputs) => {
+    // determine the actual length
+    const actualLength = inputs.partial_body_real_length!;
+    // 
+}
+
 /**
  * Given an email, generate the inputs for the United receipt proof
  * @param email - the United flight receipt email to generate the inputs for
  */
 export const makeUnitedInputs = async (
     email: Buffer
-): Promise<UnitedInputs> => {
+): Promise<{inputs: UnitedInputs, deferred: any}> => {
     const dkimResult = await verifyDKIMSignature(email);
     const baseInputs = generateEmailVerifierInputsFromDKIMResult(dkimResult, {
         maxBodyLength: UNITED_MAX_BODY_LENGTH,
@@ -194,20 +201,47 @@ export const makeUnitedInputs = async (
         body_date_selection: dateSelection,
     };
 
-    // check the qp sequence
-    const qp = amountSelection.slice(pickedTotal.sequence.index, pickedTotal.sequence.length);
+    // grab remaining sequences
+    const actualLength = parseInt(inputs.partial_body_real_length!);
+    const amountToDateStart = pickedTotal.sliceSequence.index + pickedTotal.sliceSequence.length;
+    const amountToDateEnd = sliceSequence.index;
+    const amountToDateBody = baseInputs.body!.storage.slice(amountToDateStart, amountToDateEnd);
+
+    const remainingStart = sliceSequence.index + sliceSequence.length;
+    const remainingEnd = actualLength - amountToDateBody.length - amountSelection.length - dateSelection.length;
+    const remainingBody = baseInputs.body!.storage.slice(remainingStart, remainingEnd);
+
+    const deferred = {
+        actualLength,
+        amountToDateBody,
+        remainingBody
+    }
 
     // disable body
     delete inputs.body;
-    
-    return inputs;
+    return { inputs, deferred };
 };
 
 export const toContractFriendly = (inputs: UnitedInputs) => {
-    const { header, ...rest } = inputs;
     return {
-        ...rest,
-        header: header.storage,
-        header_len: header.len,
+        header: inputs.header.storage.map((val: string) => parseInt(val)),
+        header_length: parseInt(inputs.header.len),
+        pubkey_modulus: inputs.pubkey.modulus.map((val: string) => parseInt(val)),
+        pubkey_redc: inputs.pubkey.redc.map((val: string) => parseInt(val)),
+        signature: inputs.signature.map((val: string) => parseInt(val)),
+        dkim_header_sequence: {
+            index: parseInt(inputs.dkim_header_sequence.index),
+            length: parseInt(inputs.dkim_header_sequence.length)
+        },
+        body_hash_index: parseInt(inputs.body_hash_index!),
+        from_index: inputs.from_index,
+        subject_index: inputs.subject_index,
+        amount_sequence: inputs.amount_sequence,
+        date_sequence: inputs.date_sequence,
+        airport_sequence: inputs.airport_sequence,
+        body_amount_selection: inputs.body_amount_selection.map((val: string) => parseInt(val)),
+        partial_body_hash: inputs.partial_body_hash!.map((val: string) => parseInt(val)),
+        partial_body_hash_date: inputs.partial_body_hash_date.map((val: string) => parseInt(val)),
+        body_date_selection: inputs.body_date_selection.map((val: string) => parseInt(val)),
     }
 }

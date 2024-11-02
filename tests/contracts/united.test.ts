@@ -90,7 +90,6 @@ describe("Test deposit to zimburse", () => {
             const amountToDateLength: number = deferred.amountToDateBody.length;
             const remainingLength: number = deferred.remainingBody.length;
 
-
             // add capsules to pxe
             let capsules = breakIntoCapsules(deferred.remainingBody.map((val: string) => parseInt(val)));
             for (const capsule of capsules)

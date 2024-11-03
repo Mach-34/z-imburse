@@ -202,9 +202,6 @@ ParticipantNote: {
 
     /** register_escrow(escrow_contract: struct) */
     register_escrow: ((escrow_contract: AztecAddressLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
-
-    /** register_participant(participant: struct, participant_name: string, admin: struct, escrow: struct) */
-    register_participant: ((participant: AztecAddressLike, participant_name: string, admin: AztecAddressLike, escrow: AztecAddressLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
   };
 
   

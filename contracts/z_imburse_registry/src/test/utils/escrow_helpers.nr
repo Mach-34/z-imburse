@@ -35,7 +35,6 @@ unconstrained pub fn give_recurring_entitlement(
     cheatcodes::advance_blocks_by(1);
 }
 
-
 /**
  * Send an entitlement for a single "spot" reimbursement to a user in the escrow
  *
@@ -124,16 +123,10 @@ unconstrained pub fn reimburse_linode(
     let marshalled_inputs = LinodeBillingParamsContract::unmarshal(linode_inputs);
     let mut amount_reimbursed = 0;
     if spot {
-        let reimburse_linode_call_iface = escrow.reimburse_linode_spot(
-            marshalled_inputs,
-            claim_hash
-        );
+        let reimburse_linode_call_iface = escrow.reimburse_linode_spot(marshalled_inputs, claim_hash);
         amount_reimbursed = env.call_private(reimburse_linode_call_iface);
     } else {
-        let reimburse_linode_call_iface = escrow.reimburse_linode_recurring(
-            marshalled_inputs,
-            claim_hash
-        );
+        let reimburse_linode_call_iface = escrow.reimburse_linode_recurring(marshalled_inputs, claim_hash);
         amount_reimbursed = env.call_private(reimburse_linode_call_iface);
     }
     cheatcodes::advance_blocks_by(1);

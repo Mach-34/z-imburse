@@ -27,7 +27,28 @@ export type UnitedInputs = {
 } & CircuitInput
 
 // tuple type of redeem linode contract function params
-export type RedeemLinodeInputs = [number[], number, number, number[], number, bigint[], bigint[], bigint[], number, number, number, number, number, number];
+export type RedeemLinodeInputs = {
+    header: bigint[] | number[],
+    header_length: bigint | number,
+    pubkey_modulus: bigint[] | number[],
+    pubkey_redc: bigint[] | number[],
+    signature: bigint[] | number[],
+    dkim_header_sequence: {
+        index: bigint | number,
+        length: bigint | number,
+    },
+    body: bigint[] | number[],
+    body_length: bigint | number,
+    body_hash_index: bigint | number,
+    from_index: bigint | number,
+    subject_index: bigint | number,
+    amount_sequence: {
+        index: bigint | number,
+        length: bigint | number,
+    },
+    date_index: bigint | number,
+    receipt_id_length: bigint | number,
+};
 
 // identity start and end of a string sequence
 export type SequenceParams = {

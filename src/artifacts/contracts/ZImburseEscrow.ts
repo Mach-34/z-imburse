@@ -38,14 +38,6 @@ import ZImburseEscrowContractArtifactJson from './ZImburseEscrow.json' assert { 
 export const ZImburseEscrowContractArtifact = loadContractArtifact(ZImburseEscrowContractArtifactJson as NoirCompiledContract);
 
 
-      export type RecurringReimbursementClaimed = {
-        claimant: AztecAddressLike
-amount: FieldLike
-verifier_id: (bigint | number)
-timestamp: FieldLike
-      }
-    
-
       export type SpotReimbursementClaimed = {
         claimant: AztecAddressLike
 amount: FieldLike
@@ -55,6 +47,14 @@ verifier_id: (bigint | number)
 
       export type EntitlementNullified = {
         randomness: FieldLike
+      }
+    
+
+      export type RecurringReimbursementClaimed = {
+        claimant: AztecAddressLike
+amount: FieldLike
+verifier_id: (bigint | number)
+timestamp: FieldLike
       }
     
 
@@ -227,54 +227,9 @@ EntitlementNote: {
       };
     }
 
-    public static get events(): { RecurringReimbursementClaimed: {decode: (payload: L1EventPayload | UnencryptedL2Log | undefined) => RecurringReimbursementClaimed | undefined, eventSelector: EventSelector, fieldNames: string[] }, SpotReimbursementClaimed: {decode: (payload: L1EventPayload | UnencryptedL2Log | undefined) => SpotReimbursementClaimed | undefined, eventSelector: EventSelector, fieldNames: string[] }, EntitlementNullified: {decode: (payload: L1EventPayload | UnencryptedL2Log | undefined) => EntitlementNullified | undefined, eventSelector: EventSelector, fieldNames: string[] } } {
+    public static get events(): { SpotReimbursementClaimed: {decode: (payload: L1EventPayload | UnencryptedL2Log | undefined) => SpotReimbursementClaimed | undefined, eventSelector: EventSelector, fieldNames: string[] }, EntitlementNullified: {decode: (payload: L1EventPayload | UnencryptedL2Log | undefined) => EntitlementNullified | undefined, eventSelector: EventSelector, fieldNames: string[] }, RecurringReimbursementClaimed: {decode: (payload: L1EventPayload | UnencryptedL2Log | undefined) => RecurringReimbursementClaimed | undefined, eventSelector: EventSelector, fieldNames: string[] } } {
     return {
-      RecurringReimbursementClaimed: {
-        decode: this.decodeEvent(EventSelector.fromSignature('RecurringReimbursementClaimed((Field),Field,u8,Field)'), {
-    "fields": [
-        {
-            "name": "claimant",
-            "type": {
-                "fields": [
-                    {
-                        "name": "inner",
-                        "type": {
-                            "kind": "field"
-                        }
-                    }
-                ],
-                "kind": "struct",
-                "path": "address_note::aztec::protocol_types::address::aztec_address::AztecAddress"
-            }
-        },
-        {
-            "name": "amount",
-            "type": {
-                "kind": "field"
-            }
-        },
-        {
-            "name": "verifier_id",
-            "type": {
-                "kind": "integer",
-                "sign": "unsigned",
-                "width": 8
-            }
-        },
-        {
-            "name": "timestamp",
-            "type": {
-                "kind": "field"
-            }
-        }
-    ],
-    "kind": "struct",
-    "path": "ZImburseEscrow::RecurringReimbursementClaimed"
-}),
-        eventSelector: EventSelector.fromSignature('RecurringReimbursementClaimed((Field),Field,u8,Field)'),
-        fieldNames: ["claimant","amount","verifier_id","timestamp"],
-      },
-SpotReimbursementClaimed: {
+      SpotReimbursementClaimed: {
         decode: this.decodeEvent(EventSelector.fromSignature('SpotReimbursementClaimed((Field),Field,u8)'), {
     "fields": [
         {
@@ -328,6 +283,51 @@ EntitlementNullified: {
 }),
         eventSelector: EventSelector.fromSignature('EntitlementNullified(Field)'),
         fieldNames: ["randomness"],
+      },
+RecurringReimbursementClaimed: {
+        decode: this.decodeEvent(EventSelector.fromSignature('RecurringReimbursementClaimed((Field),Field,u8,Field)'), {
+    "fields": [
+        {
+            "name": "claimant",
+            "type": {
+                "fields": [
+                    {
+                        "name": "inner",
+                        "type": {
+                            "kind": "field"
+                        }
+                    }
+                ],
+                "kind": "struct",
+                "path": "address_note::aztec::protocol_types::address::aztec_address::AztecAddress"
+            }
+        },
+        {
+            "name": "amount",
+            "type": {
+                "kind": "field"
+            }
+        },
+        {
+            "name": "verifier_id",
+            "type": {
+                "kind": "integer",
+                "sign": "unsigned",
+                "width": 8
+            }
+        },
+        {
+            "name": "timestamp",
+            "type": {
+                "kind": "field"
+            }
+        }
+    ],
+    "kind": "struct",
+    "path": "ZImburseEscrow::RecurringReimbursementClaimed"
+}),
+        eventSelector: EventSelector.fromSignature('RecurringReimbursementClaimed((Field),Field,u8,Field)'),
+        fieldNames: ["claimant","amount","verifier_id","timestamp"],
       }
     };
   }

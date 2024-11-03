@@ -15,7 +15,35 @@ import {
   ZImburseEscrowContract,
   ZImburseRegistryContract,
 } from "../../src/artifacts/contracts/index";
-import { prepareDKIMKeysForInputs } from "../../src/contract_drivers/dkim";
+// import { prepareDKIMKeysForInputs } from "../../src/contract_drivers/dkim";
+import dkimKeys from "../../src/dkim/keyHashes.json";
+
+type KeyInput = {
+  id: bigint,
+  hash: bigint
+}
+
+const getDkimInputs = (): KeyInput[][] => {
+  const batches: KeyInput[][] = [];
+  for (let i = 0; i < dkimKeys.length; i+=4) {
+    const batch: KeyInput[] = [];
+    for (let j = i; j < i+4; j++) {
+      if (j >= dkimKeys.length) {
+        batch.push({
+          id: BigInt(0),
+          hash: BigInt(0)
+        })
+      } else {
+        batch.push({
+          id: BigInt(dkimKeys[j].id),
+          hash: BigInt(dkimKeys[j].hash)
+        });
+      }
+    }
+    batches.push(batch);
+  }
+  return batches
+}
 
 /**
  * Deploys the contracts needed for the tests
@@ -49,14 +77,14 @@ export async function setup(
     .deployed();
   if (verbose) console.log(`Deployed USDC token at ${usdc.address}`);
   // deploy registry contract
-  const dkimKeys = prepareDKIMKeysForInputs(4);
+  const dkimKeys = getDkimInputs();
   const escrowClassId = getEscrowContractClassID();
   const registry = await ZImburseRegistryContract.deploy(
     superuser,
     usdc.address,
     escrowClassId,
     dkimKeys[0].map((key) => key.id),
-    dkimKeys[0].map((key) => key.keyHash)
+    dkimKeys[0].map((key) => key.hash)
   )
     .send()
     .deployed();
@@ -67,7 +95,7 @@ export async function setup(
     // cannot be batched as there is a max of 64 notes per tx
     await registry.methods.register_dkim_bulk(
       dkimKeys[i].map((key) => key.id),
-      dkimKeys[i].map((key) => key.keyHash)
+      dkimKeys[i].map((key) => key.hash)
     ).send().wait();
     console.log(`Added batch ${i} to DKIM Registry`);
   }

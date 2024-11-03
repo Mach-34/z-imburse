@@ -3,7 +3,7 @@ use aztec::{
     keys::getters::get_public_keys,
     macros::notes::note_custom_interface,
     note::utils::compute_note_hash_for_nullify,
-    oracle::{random::random, notes::check_nullifier_exists},
+    oracle::{random::random, notes::check_nullifier_exists, debug_log::debug_log_format},
     prelude::{NoteHeader, NullifiableNote, NoteInterface, PrivateContext},
     protocol_types::{
         address::AztecAddress,
@@ -236,6 +236,11 @@ impl EntitlementNote {
      * @param timestamp - the timestamp to check
      */
     fn check_date_range(self, timestamp: u32) {
+        debug_log_format("\n\n\n\nChecking date range:\nStart: {0}\nTimestamp:{1}\nEnd:{2}", [
+            self.date_start as Field,
+            timestamp as Field,
+            self.date_end as Field
+        ]);
         assert(
             (timestamp >= self.date_start) & (timestamp <= self.date_end),
             "Receipt is out of entitlement date range"

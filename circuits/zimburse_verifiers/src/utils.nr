@@ -161,25 +161,45 @@ fn check_qp_sequence_reverse<let MAX_LEN: u32, let REVERT_MSG_LEN: u32, let SEQ_
     }
 }
 
+// MAX_TEXT_LEN must >= MAX_SEQ_LEN + (MAX_SEQ_LEN / 75_ + (MAX_SEQ_LEN % 75 != 0) * 3)
 fn remove_soft_line_break<let MAX_TEXT_LEN: u32, let MAX_SEQ_LEN: u32>(
     text: BoundedVec<u8, MAX_TEXT_LEN>,
     sequence: Sequence
-) -> BoundedVec<u8, MAX_SEQ_LEN> {
-    let mut decoded = BoundedVec::new();
-    let mut index = sequence.index;
+) -> BoundedVec<u8, MAX_SEQ_LEN + 1> {
+    // let mut decoded = BoundedVec::new();
+    let mut decoded: [u8; MAX_SEQ_LEN + 1] = [0; MAX_SEQ_LEN + 1];
+    let mut decoded_index = 0;
+    let mut cooldown = 0;
     for i in 0..MAX_SEQ_LEN {
+        // check if the current index is at a linebreak
+        let encoded_cursor = i + sequence.index;
+        let current_char = text.get_unchecked(encoded_cursor);
         let window = [
-            text.get_unchecked(index),
-            text.get_unchecked(index + 1),
-            text.get_unchecked(index + 2)
+            current_char,
+            text.get_unchecked(encoded_cursor + 1),
+            text.get_unchecked(encoded_cursor + 2)
         ];
+
+        // if the current index is a linebreak, skip 3 chars
         if is_soft_linebreak(window) {
-            index = index + 3;
+            cooldown = 3;
         }
-        if i < sequence.length {
-            decoded.push(text.get_unchecked(index))
+        // if cooldown or end of array insert char at end and save cursor
+        let mut decoded_cursor = decoded_index;
+        if (cooldown > 0) | decoded_index >= sequence.length {
+            decoded_index = decoded_index - 1;
+            decoded_cursor = MAX_SEQ_LEN;
         }
-        index = index + 1;
+        if (cooldown > 0) {
+            cooldown = cooldown - 1;
+        }
+        // insert char at cursor
+        decoded[decoded_cursor] = current_char;
+        // increment
+        decoded_index = decoded_index + 1;
     }
-    decoded
+    // zero out the last element
+    decoded[MAX_SEQ_LEN] = 0;
+    let res: BoundedVec<u8, MAX_SEQ_LEN + 1> = BoundedVec { storage: decoded, len: decoded_index };
+    res
 }

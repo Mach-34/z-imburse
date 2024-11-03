@@ -1,5 +1,9 @@
 use aztec::prelude::{AztecAddress, PrivateContext};
-use zimburse_verifiers::{linode::constants::LinodeBillingParamsContract, zkemail::KEY_LIMBS_2048};
+use zimburse_verifiers::{
+    linode::constants::LinodeBillingParamsContract,
+    united::constants::UnitedBillingParamsContract,
+    zkemail::KEY_LIMBS_2048
+};
 use crate::{
     types::entitlement_note::EntitlementNote,
     contract_interfaces::{check_dkim_key_hash_private, shield_to_claimant},
@@ -63,3 +67,9 @@ fn linode(
     // return the amount reimbursed
     (entitlement, definition.admin, amount_to_reimburse, linode_outputs.timestamp)
 }
+
+
+// #[contract_library_method]
+// fn deferred_united(
+//     email_receipt_inputs: UnitedBillingParamsContract,
+// )

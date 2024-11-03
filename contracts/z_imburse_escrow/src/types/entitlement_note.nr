@@ -154,20 +154,24 @@ impl Eq for EntitlementNote {
 impl EntitlementNote {
     
     /**
-     * EntitlementNote constructor for recurring entitlements
+     * EntitlementNote constructor
      *
      * @param recipient - the address of the recipient of the entitlement (NOT THE OWNER OF THE NOTE)
      * @param verifier_id - the type of verifier that the entitlement can be used for
      * @param max_value - the maximum value that can be withdrawn from the escrow using the entitlement
+     * @param date_start - the start of the date range that the entitlement can be used for (0 for recurring)
+     * @param date_end - the end of the date range that the entitlement can be used for (0 for recurring)
+     * @param destination - the destination of the entitlement (ZERO_DESTINATION for recurring)
      * @param randomness - blinding factor for the note (inputted since must be same between the two notes)
      */
-    fn new_spot(
+    fn new(
         recipient: AztecAddress,
         verifier_id: u8,
         max_value: U128,
         date_start: u32,
         date_end: u32,
         destination: str<31>,
+        spot: bool,
         randomness: Field
     ) -> Self {
         let destination_compressed: CompressedString<1, 31> = CompressedString::from_string(destination);
@@ -179,34 +183,6 @@ impl EntitlementNote {
             date_end,
             destination: destination_compressed.value[0],
             spot: true,
-            randomness,
-            header: NoteHeader::empty()
-        }
-    }
-
-    /**
-     * EntitlementNote constructor for recurring entitlements
-     * @todo: allow destinations on recurring?
-     *
-     * @param recipient - the address of the recipient of the entitlement (NOT THE OWNER OF THE NOTE)
-     * @param verifier_id - the type of verifier that the entitlement can be used for
-     * @param max_value - the maximum value that can be withdrawn from the escrow using the entitlement
-     * @param randomness - blinding factor for the note (inputted since must be same between the two notes)
-     */
-    fn new_recurring(
-        recipient: AztecAddress,
-        verifier_id: u8,
-        max_value: U128,
-        randomness: Field
-    ) -> Self {
-        Self {
-            recipient,
-            verifier_id,
-            max_value,
-            date_start: 0,
-            date_end: 0,
-            destination: 0,
-            spot: false,
             randomness,
             header: NoteHeader::empty()
         }

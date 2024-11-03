@@ -15,7 +15,6 @@ import {
   ZImburseEscrowContract,
   ZImburseRegistryContract,
 } from "../../src/artifacts/contracts/index";
-// import { prepareDKIMKeysForInputs } from "../../src/contract_drivers/dkim";
 import dkimKeys from "../../src/dkim/keyHashes.json";
 
 type KeyInput = {

@@ -12,13 +12,13 @@ contract ZImburseRegistry {
         prelude::{AztecAddress, PrivateImmutable, PrivateSet, SharedImmutable, Map},
         macros::{storage::storage, events::event, functions::{private, public, view, initializer}},
         note::{
-        note_viewer_options::NoteViewerOptions, note_getter_options::NoteGetterOptions,
-        note_getter::{get_notes, view_notes}, constants::MAX_NOTES_PER_PAGE
-    },
+            note_viewer_options::NoteViewerOptions, note_getter_options::NoteGetterOptions,
+            note_getter::{get_notes, view_notes}, constants::MAX_NOTES_PER_PAGE
+        },
         protocol_types::{
-        contract_instance::ContractInstance, address::partial_address::PartialAddress,
-        contract_class_id::ContractClassId, abis::function_selector::FunctionSelector, traits::Serialize
-    },
+            contract_instance::ContractInstance, address::partial_address::PartialAddress,
+            contract_class_id::ContractClassId, abis::function_selector::FunctionSelector, traits::Serialize
+        },
         oracle::{get_contract_instance::get_contract_instance, header::get_header_at_oracle},
         keys::getters::get_public_keys, utils::comparison::Comparator,
         encrypted_logs::encrypted_note_emission::{encode_and_encrypt_note_unconstrained, encode_and_encrypt_note},

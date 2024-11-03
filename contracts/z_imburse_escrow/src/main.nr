@@ -1,6 +1,7 @@
 use aztec::macros::aztec;
 
 global HASH_CHUNK_MAX_LENGTH: u32 = 2048;
+global ZERO_DESTINATION = "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
 
 mod capsule;
 mod contract_interfaces;
@@ -23,7 +24,6 @@ contract ZImburseEscrow {
             functions::{private, public, internal, view, initializer}
         },
         note::constants::MAX_NOTES_PER_PAGE,
-        oracle::{random::random, debug_log::debug_log_format},
         prelude::{AztecAddress, SharedImmutable},
         protocol_types::traits::Serialize,
     };
@@ -39,8 +39,13 @@ contract ZImburseEscrow {
     };
     use crate::{
         capsule::{pop_capsule, arr_field_to_u8, remaining_chunks},
-        HASH_CHUNK_MAX_LENGTH,
-        library_methods::linode,
+        HASH_CHUNK_MAX_LENGTH, ZERO_DESTINATION,
+        library_methods::{
+            linode::linode,
+            united::{united_deferred, reimburse_united},
+            hashing::{finish_hash, interstitial_hash},
+            entitlements::give_entitlement
+        },
         contract_interfaces::{check_dkim_key_hash_private, shield_to_claimant},
         verifiers::{verify_united_deferred, verifier_ids},
         types::{
@@ -105,32 +110,24 @@ contract ZImburseEscrow {
      * @param destination - the destination that a travel receipt must go to (set to [0; 31] if not applicable)
      */
     #[private]
-    pub fn give_spot_entitlement(recipient: AztecAddress, amount: Field, verifier_id: u8, date_start: u32, date_end: u32, destination: str<31>) {
-        // check that no receipt exists for this recipient and verifier
-        let entitlement_exists = storage.entitlements.get_matching_entitlement(
-            context.msg_sender(),
+    pub fn give_spot_entitlement(
+        recipient: AztecAddress,
+        amount: Field,
+        verifier_id: u8,
+        date_start: u32,
+        date_end: u32,
+        destination: str<31>
+    ) {
+        give_entitlement(
             recipient,
+            amount,
             verifier_id,
-            true // checks spot
-        ).is_some();
-        assert(!entitlement_exists, "An entitlement already exists for this recipient and verifier");
-
-        // check is escrow admin
-        let sender = context.msg_sender();
-        let admin = storage.definition.read_private().admin;
-        assert(sender == admin, "Only the escrow admin can give entitlements");
-
-        // create the entitlement note
-        let amount = U128::from_integer(amount);
-        let blinding_factor = unsafe { random() };
-        let mut entitlement = EntitlementNote::new_spot(recipient, verifier_id, amount, date_start, date_end, destination, blinding_factor);
-
-        // insert the entitlement note for the recipient and the admin
-        storage.entitlements.add_entitlement_with_receipt(
-            &mut context,
-            sender,
-            recipient,
-            &mut entitlement
+            date_start,
+            date_end,
+            destination,
+            true, // spot
+            storage,
+            &mut context
         );
     }
 
@@ -143,31 +140,16 @@ contract ZImburseEscrow {
      */
     #[private]
     pub fn give_recurring_entitlement(recipient: AztecAddress, amount: Field, verifier_id: u8) {
-        // check that no receipt exists for this recipient and verifier
-        let entitlement_exists = storage.entitlements.get_matching_entitlement(
-            context.msg_sender(),
+        give_entitlement(
             recipient,
+            amount,
             verifier_id,
-            false // checks recurring
-        ).is_some();
-        assert(!entitlement_exists, "An entitlement already exists for this recipient and verifier");
-
-        // check is escrow admin
-        let sender = context.msg_sender();
-        let admin = storage.definition.read_private().admin;
-        assert(sender == admin, "Only the escrow admin can give entitlements");
-
-        // create the entitlement note
-        let amount = U128::from_integer(amount);
-        let blinding_factor = unsafe { random() };
-        let mut entitlement = EntitlementNote::new_recurring(recipient, verifier_id, amount, blinding_factor);
-
-        // insert the entitlement note for the recipient and the admin
-        storage.entitlements.add_entitlement_with_receipt(
-            &mut context,
-            sender,
-            recipient,
-            &mut entitlement
+            0,
+            0,
+            ZERO_DESTINATION,
+            false, // spot
+            storage,
+            &mut context
         );
     }
     
@@ -255,92 +237,33 @@ contract ZImburseEscrow {
         amount_to_reimburse
     }
 
+    /**
+     * Claim a spot reimbursement for a United Airlines receipt
+     * 
+     * @param email_inputs - the inputs from the email verifier in a contract-serializable format
+     * @param amount_to_date_length - the length of the body between the amount and date selection
+     * @param remaining_length - the length of the body after all selections have been made
+     * @param actual_length - the actual length of the entire email body
+     * @param claim_secret_hash - the hash of the claim secret used to redeem the reimbursement
+     */
     #[private]
     fn reimburse_united_spot(
-        // general email inputs
         email_inputs: UnitedBillingParamsContract,
-        // body lengths
         amount_to_date_length: u32,
         remaining_length: u32,
         actual_length: u32,
-        // claim hash
         claim_secret_hash: Field,
     ) -> Field {
-        // kick verification to a separate function
-        let extracted = ZImburseEscrow::at(context.this_address())
-            .united_deferred_verification(
-                email_inputs,
-                amount_to_date_length,
-                remaining_length,
-                actual_length
-            )
-            .call(&mut context);
-        // multiply the amount by 10000 to get the actual amount
-        let billed_amount = U128::from_integer(extracted[0] * 10000);
-        let timestamp = extracted[1];
-        let destination_airport = extracted[2];
-        // get united entitlement note
-        let sender = context.msg_sender();
-        let note_wrapped = storage.entitlements.get_matching_entitlement(
-            sender,
-            sender,
-            verifier_ids::UNITED_AIRLINES,
-            true
-        );
-        assert(note_wrapped.is_some(), "No entitlements to redeem");
-
-        // check the msg sender can use the entitlement
-        let entitlement = note_wrapped.unwrap();
-        assert(entitlement.recipient == sender, "Entitlement does not belong to the caller");
-
-        // read the escrow definition
-        let definition = storage.definition.read_private();
-
-        // check the dkim key hash matches the linode verifier id
-        let dkim_key_hash = pedersen_hash(email_inputs.pubkey_modulus);
-        debug_log_format("DKIM key hash: {0}", [dkim_key_hash]);
-        let registered_verifier_id = check_dkim_key_hash_private(
-            &mut context,
-            definition.registry,
-            dkim_key_hash
-        );
-        assert((registered_verifier_id as u8) == verifier_ids::UNITED_AIRLINES, "DKIM key is not registered for United Airlines");
-
-        // check date range
-        entitlement.check_date_range(timestamp as u32);
-
-        // check destination airport
-        // @todo
-
-        // determine the amount to reimburse
-        let amount_to_reimburse = entitlement.amount_to_reimburse(billed_amount);
-
-        // release funds from escrow by shielding in public
-        shield_to_claimant(&mut context, definition.usdc, amount_to_reimburse, claim_secret_hash);
-
-        // emit email nullifier
-        let email_nullifier = pedersen_hash(email_inputs.signature);
-        context.push_nullifier(email_nullifier);
-
-        // check note nullifier for revocation/ consuption
-        let nullifier = entitlement.check_nullifier(&mut context);
-
-        // broadcast the note nullifier
-        context.push_nullifier(nullifier);
-
-        // emit event to notify admin of spot entitlement consumption
-        entitlement.emit_nullified(&mut context, entitlement.recipient, sender);
-        
-        // notify admin of reimbursement
-        entitlement.emit_spot_claim(
-            &mut context,
-            definition.admin,
-            amount_to_reimburse,
-        );
-
-        // return the amount reimbursed
-        debug_log_format("Amount reimbursed: {0}", [amount_to_reimburse]);
-        amount_to_reimburse
+        // mainly segregated for code audit
+        reimburse_united(
+            email_inputs,
+            amount_to_date_length,
+            remaining_length,
+            actual_length,
+            claim_secret_hash,
+            storage,
+            &mut context
+        )
     }
 
     #[private]
@@ -353,25 +276,14 @@ contract ZImburseEscrow {
         remaining_length: u32,
         actual_length: u32
     ) -> [Field; 3] {
-        // verify the email with deferred hashing
-        let deferred_results = verify_united_deferred(email_inputs.marshal());
-        ZImburseEscrow::at(context.this_address())
-            .finish_hashing(
-                deferred_results.hash_state_after_body,
-                email_inputs.partial_body_hash_date,
-                deferred_results.hash_state_after_destination,
-                deferred_results.signed_body_hash,
-                actual_length,
-                amount_to_date_length,
-                remaining_length
-            )
-            .call(&mut context);
-        // return extracted values
-        [ 
-            deferred_results.billed_amount,
-            deferred_results.timestamp,
-            deferred_results.destination_airport
-        ]
+        // mainly segregated for code audit
+        united_deferred(
+            email_inputs,
+            amount_to_date_length,
+            remaining_length,
+            actual_length,
+            &mut context
+        )
     }
 
     /**
@@ -396,69 +308,27 @@ contract ZImburseEscrow {
         amount_to_date_length: u32,
         remaining_length: u32
     ) {
-        // hash from amount to date
-        let computed_hash_state_before_date = ZImburseEscrow::at(context.this_address())
-            .interstitial_hash(hash_state_after_body, amount_to_date_length)
-            .call(&mut context);
-        // check the hashes match
-        // ensures provenance over body up to to hash_state_after_destination
-        assert(
-            computed_hash_state_before_date == hash_state_before_date,
-            "Could not verify body hash between amount and date/destination"
-        );
-        // hash the remaining data
-        let interstitial = ZImburseEscrow::at(context.this_address())
-            .interstitial_hash(hash_state_after_destination, remaining_length)
-            .call(&mut context);
-        // finalize the hash
-        let data = unsafe { arr_field_to_u8(pop_capsule::<HASH_CHUNK_MAX_LENGTH>()) };  
-        // complete the hash
-        let remaining = unsafe {
-            let mut size = HASH_CHUNK_MAX_LENGTH;
-            if remaining_length % HASH_CHUNK_MAX_LENGTH != 0 {
-                size = remaining_length % HASH_CHUNK_MAX_LENGTH;
-            }
-            size
-        };
-        debug_log_format("\n\n\n\nRemaining used: {0}\nactual_length:{1}\ngiven_remaining: {2}", [
-            remaining as Field,
-            actual_length as Field,
-            remaining_length as Field
-        ]);
-        let computed_body_hash = partial_sha256_var_end(
-            interstitial,
-            data,
-            remaining as u64,
-            actual_length as u64
-        );
-        // check the hashes match
-        assert(
-            computed_body_hash == signed_body_hash,
-            "SHA256 hash computed over body does not match body hash found in DKIM-signed header"
+        // mainly segregated for code audit
+        finish_hash(
+            hash_state_after_body,
+            hash_state_before_date,
+            hash_state_after_destination,
+            signed_body_hash,
+            actual_length,
+            amount_to_date_length,
+            remaining_length,
+            &mut context
         );
     }
 
     #[private]
     #[internal]
-    pub fn interstitial_hash(
+    pub fn interstitial_hashing(
         state: [u32; 8],
         length: u32,
     ) -> [u32; 8] {
-        // get chunk from capsule oracle and convert to u8 (unconstrained, hash check will deal with it)
-        let data = unsafe { arr_field_to_u8(pop_capsule::<HASH_CHUNK_MAX_LENGTH>()) };   
-        // determine length of data to hash
-        let (hash_length, resume) = unsafe { remaining_chunks(length) };
-        // hash the data
-        debug_log_format("LENGTH: {0}\nRESUME: {1}", [length as Field, resume as Field]);
-        let mut interstitial = partial_sha256_var_interstitial(state, data, hash_length);
-        // if there is more data to hash, continue hashing
-        if resume {
-            interstitial = ZImburseEscrow::at(context.this_address())
-                .interstitial_hash(interstitial, length - HASH_CHUNK_MAX_LENGTH)
-                .call(&mut context);
-        }
-        // return the interstitial hash
-        interstitial
+        // mainly segregated for code audit
+        interstitial_hash(state, length, &mut context)
     }
 
     /**

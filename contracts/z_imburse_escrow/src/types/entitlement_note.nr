@@ -182,7 +182,7 @@ impl EntitlementNote {
             date_start,
             date_end,
             destination: destination_compressed.value[0],
-            spot: true,
+            spot,
             randomness,
             header: NoteHeader::empty()
         }

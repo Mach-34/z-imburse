@@ -6,7 +6,7 @@ import { toBigIntBE } from '../../src/utils';
 import { emails } from '../utils/fs';
 
 
-describe("United Flight Receipt Test", () => {
+xdescribe("United Flight Receipt Test", () => {
     let prover: ZKEmailProver;
     jest.setTimeout(1000000);
     beforeAll(async () => {

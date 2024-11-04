@@ -4,10 +4,12 @@
   "main": "dist",
   "types": "dist",
   "license": "MIT",
+  "type": "module",
   "scripts": {
     "compile": "yarn compile:circuits true && yarn compile:contracts",
     "compile:contracts": "./scripts/artifacts.sh",
     "compile:circuits": "cd scripts && ./compile_testers.sh",
+    "deploy": "NODE_NO_WARNINGS=1 node --experimental-vm-modules --loader ts-node/esm scripts/deploy_aztec_contracts.ts",
     "postinstall": "yarn compile:contracts true && yarn compile:circuits",
     "test": "NODE_NO_WARNINGS=1 node --experimental-vm-modules $(yarn bin jest) --config jest.integration.config.json --no-cache --runInBand --verbose",
     "test:circuits": "yarn test tests/circuits",

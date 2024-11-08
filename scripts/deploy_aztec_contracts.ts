@@ -1,13 +1,13 @@
 import { createPXEClient, Fq, Fr, waitForPXE } from "@aztec/aztec.js";
 import { createAccount } from "@aztec/accounts/testing";
 import { getSchnorrAccount } from "@aztec/accounts/schnorr";
-import { setup } from "../tests/utils";
+import { setup } from "../tests/utils/index.js";
 
 
 const DEFAULT_PXE_URL = "http://localhost:8080";
 
 const deploy = async () => {
-    const pxe = await createPXEClient("http://localhost:8080");
+    const pxe = await createPXEClient(DEFAULT_PXE_URL);
     await waitForPXE(pxe);
 
     const schnorr = getSchnorrAccount(
@@ -33,9 +33,6 @@ const deploy = async () => {
     const bob = await createAccount(pxe);
 
     const { usdc, registry } = await setup(superuser, [escrowAdmin]);
-
-    // console.log('USDC contract: ', usdc.address.toString())
-    // console.log('Registry contract: ', registry.address.toString())
 }
 
 deploy();

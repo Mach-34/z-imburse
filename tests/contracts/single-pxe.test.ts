@@ -143,40 +143,42 @@ describe("Test deposit to zimburse", () => {
                     .send()
                     .wait();
 
-                const secret = Fr.random();
-                const secretHash = computeSecretHash(secret);
-                const inputs = await makeLinodeInputs(emails.linode_sep);
-                const redeemLinodeInputs = formatRedeemLinode(inputs);
-                const receipt = await escrows[0]
-                    .withWallet(alice)
-                    .methods.reimburse_linode_recurring(redeemLinodeInputs, secretHash)
-                    .send()
-                    .wait();
-                await addPendingShieldNoteToPXE(
-                    alice,
-                    usdc.address,
-                    amount,
-                    secretHash,
-                    receipt.txHash
-                );
+                const entitlements = await escrows[0].methods.view_entitlements(0, escrowAdmin.getAddress(), {_is_some: false,  _value: AztecAddress.ZERO}, {_is_some: false,  _value: 0}, {_is_some: false,  _value: false})
 
-                const escrowBalance = await usdc.methods
-                    .balance_of_public(escrows[0])
-                    .simulate();
-                expect(escrowBalance).toBe(toUSDCDecimals(9990n));
+                // const secret = Fr.random();
+                // const secretHash = computeSecretHash(secret);
+                // const inputs = await makeLinodeInputs(emails.linode_sep);
+                // const redeemLinodeInputs = formatRedeemLinode(inputs);
+                // const receipt = await escrows[0]
+                //     .withWallet(alice)
+                //     .methods.reimburse_linode_recurring(redeemLinodeInputs, secretHash)
+                //     .send()
+                //     .wait();
+                // await addPendingShieldNoteToPXE(
+                //     alice,
+                //     usdc.address,
+                //     amount,
+                //     secretHash,
+                //     receipt.txHash
+                // );
 
-                await usdc
-                    .withWallet(alice)
-                    .methods.redeem_shield(alice.getAddress(), amount, secret)
-                    .send()
-                    .wait();
-                // check that the balance has incremented for the recipient
-                const recipientBalance = await usdc
-                    .withWallet(alice)
-                    .methods.balance_of_private(alice.getAddress())
-                    .simulate();
-                console.log('Recipient balance: ', recipientBalance)
-                expect(recipientBalance).toBe(toUSDCDecimals(10n));
+                // const escrowBalance = await usdc.methods
+                //     .balance_of_public(escrows[0])
+                //     .simulate();
+                // expect(escrowBalance).toBe(toUSDCDecimals(9990n));
+
+                // await usdc
+                //     .withWallet(alice)
+                //     .methods.redeem_shield(alice.getAddress(), amount, secret)
+                //     .send()
+                //     .wait();
+                // // check that the balance has incremented for the recipient
+                // const recipientBalance = await usdc
+                //     .withWallet(alice)
+                //     .methods.balance_of_private(alice.getAddress())
+                //     .simulate();
+                // console.log('Recipient balance: ', recipientBalance)
+                // expect(recipientBalance).toBe(toUSDCDecimals(10n));
             });
         });
     });

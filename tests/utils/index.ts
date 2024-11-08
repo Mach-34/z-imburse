@@ -6,7 +6,7 @@ import {
   Fr,
   computeSecretHash,
 } from "@aztec/aztec.js";
-import { getEscrowContractClassID } from "../../src/contract_drivers";
+import { getEscrowContractClassID } from "../../src/contract_drivers/index";
 import { addPendingShieldNoteToPXE } from "../../src/contract_drivers/notes";
 import { USDC_TOKEN } from "../../src/constants";
 import {

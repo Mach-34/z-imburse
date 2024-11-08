@@ -4,15 +4,15 @@
             "src",
             "tests"
         ],
-        "target": "ESNext",
         "lib": [
             "dom",
             "esnext",
             "es2017.object"
         ],
         "types": ["jest", "node"],
-        "module": "nodenext",
-        "moduleResolution": "nodenext",
+        "module": "NodeNext",
+        "moduleResolution": "NodeNext",
+        "target": "ES2020",
         "strict": true,
         "declaration": true,
         "allowSyntheticDefaultImports": true,

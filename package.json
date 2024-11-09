@@ -14,7 +14,7 @@
     "test": "NODE_NO_WARNINGS=1 node --experimental-vm-modules $(yarn bin jest) --config jest.integration.config.json --no-cache --runInBand --verbose",
     "test:circuits": "yarn test tests/circuits",
     "test:contracts": "yarn test tests/contracts",
-    "txe": "cd contracts/z_imburse_registry && aztec test --package z_imburse_registry",
+    "txe": "docker compose -f docker-compose.test.yml up --force-recreate --remove-orphans --abort-on-container-exit",
     "txe:regen": "yarn compile:contracts && cd contracts/z_imburse_registry && aztec test --package z_imburse_registry",
     "sandbox": "docker compose up"
   },

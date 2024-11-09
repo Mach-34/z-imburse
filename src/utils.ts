@@ -1,4 +1,4 @@
-import { USDC_TOKEN } from './constants';
+import { USDC_TOKEN } from './constants.js';
 
 
 export const decodeQuotedPrintable = (str: string) => {

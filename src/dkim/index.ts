@@ -1,7 +1,7 @@
 import forge from "node-forge";
 import { BarretenbergSync, Fr } from "@aztec/bb.js";
 import * as NoirBignum from "@mach-34/noir-bignum-paramgen";
-import { toBigIntBE } from "../utils";
+import { toBigIntBE } from "../utils.js";
 
 // domains for which we want to accept DKIM keys
 // in this version we will lazily fetch every key and add it

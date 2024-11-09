@@ -1,8 +1,8 @@
 import { generateEmailVerifierInputsFromDKIMResult, verifyDKIMSignature } from "@zk-email/zkemail-nr";
-import { getSequenceParams } from "./location";
-import { Regexes } from "../constants";
-import { SequenceParams, UnitedInputs } from "../types";
-import { decodeQuotedPrintable } from "../utils";
+import { getSequenceParams } from "./location.js";
+import { Regexes } from "../constants.js";
+import { SequenceParams, UnitedInputs } from "../types.js";
+import { decodeQuotedPrintable } from "../utils.js";
 import { sign } from "crypto";
 
 const UNITED_MAX_HEADER_LENGTH = 640;

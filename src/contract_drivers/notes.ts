@@ -7,7 +7,7 @@ import {
   TxHash,
   Wallet,
 } from "@aztec/aztec.js";
-import { TokenContract } from "../artifacts/contracts";
+import { TokenContract } from "../artifacts/contracts/index.js";
 
 /**
  * Add a pending shielded (transparent) Token note to an account's PXE

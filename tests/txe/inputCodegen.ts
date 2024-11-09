@@ -1,9 +1,9 @@
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 import { writeFileSync } from "fs";
-import { emails } from "../utils/fs";
-import { makeLinodeInputs } from "../../src/email_inputs/linode";
-import { LinodeInputs } from "../types";
+import { emails } from "../utils/fs.js";
+import { makeLinodeInputs } from "../../src/email_inputs/linode.js";
+import { LinodeInputs } from "../types.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);

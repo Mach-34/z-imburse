@@ -46,6 +46,8 @@ import ZImburseEscrowContractArtifactJson from './ZImburseEscrow.json' assert { 
 //@ts-ignore
 //@ts-ignore
 //@ts-ignore
+//@ts-ignore
+//@ts-ignore
 export const ZImburseEscrowContractArtifact = loadContractArtifact(ZImburseEscrowContractArtifactJson as NoirCompiledContract);
 
 

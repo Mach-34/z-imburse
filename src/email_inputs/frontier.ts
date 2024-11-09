@@ -1,7 +1,7 @@
 import { generateEmailVerifierInputsFromDKIMResult, verifyDKIMSignature } from "@zk-email/zkemail-nr";
-import { getSequenceParams } from "./location";
-import { Regexes } from "../constants";
-import { FrontierInputs } from "../types";
+import { getSequenceParams } from "./location.js";
+import { Regexes } from "../constants.js";
+import { FrontierInputs } from "../types.js";
 
 // const FRONTIER_MAX_HEADER_LENGTH = 640;
 const FRONTIER_MAX_BODY_LENGTH = 186560;

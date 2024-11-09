@@ -27,7 +27,7 @@ compile_artifact() {
     esac
 
     ### Generate typescript bindings
-    aztec codegen ./target/$project-$contract_name.json -o ./target
+    VERSION=0.57.0 aztec codegen ./target/$project-$contract_name.json -o ./target
 
     echo "Compiled $contract_name bytecode and typescript bindings"
 
@@ -68,7 +68,7 @@ CONTRACT_DIR="${SCRIPT_DIR}/../contracts"
 cd $CONTRACT_DIR
 
 ### Compile the contract
-aztec-nargo compile --silence-warnings
+VERSION=0.57.0 aztec-nargo compile --silence-warnings
 
 ### Only run codegen if "true" is passed as an argument
 if [ "$1" == "true" ]; then

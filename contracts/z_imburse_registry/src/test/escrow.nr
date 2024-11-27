@@ -1,7 +1,6 @@
 use aztec::{test::helpers::cheatcodes, hash::compute_secret_hash, oracle::debug_log::{debug_log, debug_log_format}};
 use z_imburse_escrow::ZImburseEscrow;
 use crate::{
-    verifiers,
     test::utils::{
         setup_helpers::{setup, ZERO_DESTINATION},
         token_helpers::{mint_public, to_usdc_decimals, redeem_shield, check_public_balance, check_private_balance},
@@ -12,6 +11,7 @@ use crate::{
         email_inputs::{LINODE_SEP, LINODE_OCT}
     }
 };
+use zimburse_verifiers::constants::verifier_ids;
 use std::option::Option;
 
 #[test]
@@ -76,7 +76,7 @@ unconstrained fn claim_linode_recurring_max_value_success() {
         accounts.escrow_admin,
         accounts.alice,
         amount_entitled,
-        verifiers::LINODE
+        verifier_ids::LINODE
     );
     // reimburse linode with the entitlement
     // the actual reimbursement call would contain 
@@ -127,7 +127,7 @@ unconstrained fn claim_linode_recurring_multiple_months_success() {
         accounts.escrow_admin,
         accounts.alice,
         amount,
-        verifiers::LINODE
+        verifier_ids::LINODE
     );
     // reimburse linode for month 1 with the entitlement
     let (claim_secret_sep, amount_reimbursed_sep) = reimburse_linode(
@@ -204,7 +204,7 @@ unconstrained fn claim_linode_recurring_nullified_month_fail() {
         accounts.escrow_admin,
         accounts.alice,
         amount,
-        verifiers::LINODE
+        verifier_ids::LINODE
     );
     // reimburse linode with the entitlement
     let (_, _) = reimburse_linode(
@@ -245,7 +245,7 @@ unconstrained fn claim_linode_recurring_nullified_fail() {
         accounts.escrow_admin,
         accounts.alice,
         amount,
-        verifiers::LINODE
+        verifier_ids::LINODE
     );
     // revoke the entitlement
     revoke_entitlement(
@@ -253,7 +253,7 @@ unconstrained fn claim_linode_recurring_nullified_fail() {
         contracts.escrows[0],
         accounts.escrow_admin,
         accounts.alice,
-        verifiers::LINODE,
+        verifier_ids::LINODE,
         false
     );
     // attempt to claim the reimbursement
@@ -292,7 +292,7 @@ unconstrained fn claim_linode_spot_success() {
         accounts.escrow_admin,
         accounts.alice,
         amount,
-        verifiers::LINODE,
+        verifier_ids::LINODE,
         start_date,
         end_date,
         ZERO_DESTINATION
@@ -347,7 +347,7 @@ unconstrained fn claim_linode_spot_double_spend_fail() {
         accounts.escrow_admin,
         accounts.alice,
         amount,
-        verifiers::LINODE,
+        verifier_ids::LINODE,
         start_date,
         end_date,
         ZERO_DESTINATION
@@ -395,7 +395,7 @@ unconstrained fn claim_linode_spot_revoked_fail() {
         accounts.escrow_admin,
         accounts.alice,
         amount,
-        verifiers::LINODE,
+        verifier_ids::LINODE,
         start_date,
         end_date,
         ZERO_DESTINATION
@@ -406,7 +406,7 @@ unconstrained fn claim_linode_spot_revoked_fail() {
         contracts.escrows[0],
         accounts.escrow_admin,
         accounts.alice,
-        verifiers::LINODE,
+        verifier_ids::LINODE,
         true
     );
     // attempt to claim the reimbursement
@@ -443,7 +443,7 @@ unconstrained fn claim_linode_spot_outside_date_range_fail() {
         accounts.escrow_admin,
         accounts.alice,
         amount,
-        verifiers::LINODE,
+        verifier_ids::LINODE,
         start_date,
         end_date,
         ZERO_DESTINATION

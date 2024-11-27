@@ -1,9 +1,0 @@
-pub global AWS: u8 = 1;
-pub global LINODE: u8 = 2;
-pub global HEROKU: u8 = 3;
-pub global FRONTIER_AIRLINES: u8 = 4;
-pub global UNITED_AIRLINES: u8 = 5;
-pub global AMERICAN_AIRLINES: u8 = 6;
-pub global DELTA_AIRLINES: u8 = 7;
-pub global UBER: u8 = 8;
-pub global LYFT: u8 = 9;

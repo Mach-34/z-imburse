@@ -2,7 +2,6 @@ use dep::aztec::macros::aztec;
 
 mod test;
 mod types;
-mod verifiers;
 
 pub global BULK_KEY_LENGTH: u32 = 4;
 
@@ -26,6 +25,7 @@ contract ZImburseRegistry {
     };
     use std::{meta::derive, collections::bounded_vec::BoundedVec};
     use dep::address_note::address_note::AddressNote;
+    use dep::zimburse_verifiers::constants::verifier_ids;
     use dep::z_imburse_escrow::ZImburseEscrow;
     use crate::{
         types::{registry_definition::RegistryDefinition, participant_note::{ParticipantNote, NAME_LENGTH}},

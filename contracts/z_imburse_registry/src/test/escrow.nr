@@ -324,6 +324,48 @@ unconstrained fn claim_linode_spot_success() {
     check_private_balance(contracts.usdc, accounts.alice, amount_reimbursed);
 }
 
+#[test]
+unconstrained fn revoke_linode_spot() {
+    // get start and end date
+    let start_date = month_timestamp("1 Aug 2024 00:00:00 +0000 ");
+    let end_date = month_timestamp("1 Sep 2024 00:00:00 +0000 ");
+    // setup test env
+    let (env, accounts, contracts) = setup::<1>();
+    // mint tokens to the escrow
+    let amount = to_usdc_decimals(10);
+    mint_public(
+        env,
+        contracts.usdc,
+        accounts.superuser,
+        contracts.escrows[0],
+        amount
+    );
+    // give entitlement to reimburse linode receipt to alice
+    give_spot_entitlement(
+        env,
+        contracts.escrows[0],
+        accounts.escrow_admin,
+        accounts.alice,
+        amount,
+        verifier_ids::LINODE,
+        start_date,
+        end_date,
+        ZERO_DESTINATION
+    );
+    // revoke the entitlement
+    revoke_entitlement(
+        env,
+        contracts.escrows[0],
+        accounts.escrow_admin,
+        accounts.alice,
+        verifier_ids::LINODE,
+        true
+    );
+
+    let (entitlements) = view_entitlements(contracts.escrows[0], 0, accounts.escrow_admin, Option::none(), Option::none(), Option::none());
+    assert(entitlements.len() == 0);
+}
+
 #[test(should_fail)]
 unconstrained fn claim_linode_spot_double_spend_fail() {
     // get start and end date

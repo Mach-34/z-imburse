@@ -413,10 +413,6 @@ contract ZImburseEscrow {
         // ensure the note is to/ from correctly
         assert(entitlement.recipient == recipient, "Entitlement does not belong to the recipient");
 
-        // broadcast the note nullifier
-        let nullifier = entitlement.compute_nullifier_without_context();
-        context.push_nullifier(nullifier);
-
         // emit event to notify recipient of revocation
         entitlement.emit_nullified(&mut context, entitlement.recipient, sender);
     }

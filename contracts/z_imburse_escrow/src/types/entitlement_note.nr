@@ -146,8 +146,12 @@ impl NullifiableNote for EntitlementNote {
 impl Eq for EntitlementNote {
     fn eq(self, other: Self) -> bool {
         (self.recipient == other.recipient)
+            & (self.date_start == other.date_start)
+            & (self.date_end == other.date_end)
+            & (self.destination == other.destination)
             & (self.max_value == other.max_value)
             & (self.randomness == other.randomness)
+            & (self.spot == other.spot)
             & (self.verifier_id == other.verifier_id)
     }
 }

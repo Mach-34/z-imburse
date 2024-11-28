@@ -22,6 +22,7 @@ contract ZImburseEscrow {
         protocol_types::traits::Serialize,
     };
     use zimburse_verifiers::{
+        constants::verifier_ids,
         united::constants::UnitedBillingParamsContract,
         zkemail::{
             KEY_LIMBS_2048, Sequence, dkim::RSAPubkey,
@@ -35,7 +36,7 @@ contract ZImburseEscrow {
             linode::linode,
             entitlements::give_entitlement,
         }, contract_interfaces::{check_dkim_key_hash_private, shield_to_claimant},
-        verifiers::{verify_united_deferred, verifier_ids},
+        verifiers::verify_united_deferred,
         types::{
             escrow_definition::{EscrowDefinition, TITLE_LENGTH}, entitlement_note::EntitlementNote,
             entitlement_set::EntitlementSet,

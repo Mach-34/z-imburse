@@ -35,7 +35,7 @@ unconstrained fn claim_linode_recurring_success() {
         accounts.escrow_admin,
         accounts.alice,
         amount,
-        verifiers::LINODE
+        verifier_ids::LINODE
     );
 
     // reimburse linode with the entitlement

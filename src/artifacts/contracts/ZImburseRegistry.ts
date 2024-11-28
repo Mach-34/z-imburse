@@ -33,8 +33,7 @@ import {
   type Wallet,
   type WrappedFieldLike,
 } from '@aztec/aztec.js';
-import ZImburseRegistryContractArtifactJson from './ZImburseRegistry.json' assert { type: 'json' };
-//@ts-ignore
+import ZImburseRegistryContractArtifactJson from './z_imburse_registry-ZImburseRegistry.json' assert { type: 'json' };
 export const ZImburseRegistryContractArtifact = loadContractArtifact(ZImburseRegistryContractArtifactJson as NoirCompiledContract);
 
 
@@ -137,7 +136,7 @@ participant_escrows: {
     }
     
 
-  public static get notes(): ContractNotes<'AddressNote' | 'TransparentNote' | 'TokenNote' | 'EntitlementNote' | 'ParticipantNote'> {
+  public static get notes(): ContractNotes<'AddressNote' | 'TransparentNote' | 'UintNote' | 'EntitlementNote' | 'ParticipantNote'> {
     return {
       AddressNote: {
           id: new NoteSelector(2232136525),
@@ -145,8 +144,8 @@ participant_escrows: {
 TransparentNote: {
           id: new NoteSelector(3193649735),
         },
-TokenNote: {
-          id: new NoteSelector(2350566847),
+UintNote: {
+          id: new NoteSelector(202136239),
         },
 EntitlementNote: {
           id: new NoteSelector(4112046478),
@@ -154,7 +153,7 @@ EntitlementNote: {
 ParticipantNote: {
           id: new NoteSelector(3017618054),
         }
-    } as ContractNotes<'AddressNote' | 'TransparentNote' | 'TokenNote' | 'EntitlementNote' | 'ParticipantNote'>;
+    } as ContractNotes<'AddressNote' | 'TransparentNote' | 'UintNote' | 'EntitlementNote' | 'ParticipantNote'>;
   }
   
 

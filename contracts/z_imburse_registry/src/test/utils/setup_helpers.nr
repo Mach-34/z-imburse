@@ -1,9 +1,12 @@
-use dep::aztec::test::helpers::{cheatcodes, test_environment::TestEnvironment};
-use dep::aztec::prelude::AztecAddress;
-use dep::token::Token;
-use dep::aztec::oracle::get_contract_instance::get_contract_instance;
-use dep::z_imburse_escrow::ZImburseEscrow;
-use crate::{ZImburseRegistry, verifiers};
+use dep::aztec::{
+    oracle::get_contract_instance::get_contract_instance,
+    prelude::AztecAddress,
+    test::helpers::{cheatcodes, test_environment::TestEnvironment}
+};
+use token::Token;
+use zimburse_verifiers::constants::verifier_ids;
+use z_imburse_escrow::ZImburseEscrow;
+use crate::ZImburseRegistry;
 
 // todo: add to codegen script
 global LINODE_DKIM_KEY_HASHES = [
@@ -166,7 +169,7 @@ unconstrained pub fn deploy_registry_contract(
     let escrow_contract_class_id = get_escrow_contract_class_id(env);
 
     // deploy the registry contract with set hashes
-    let linode_id = verifiers::LINODE as Field;
+    let linode_id = verifier_ids::LINODE as Field;
     let escrow_registry_init_call_iface = ZImburseRegistry::interface().constructor(
         token_address,
         escrow_contract_class_id,

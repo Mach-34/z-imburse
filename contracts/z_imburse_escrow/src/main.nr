@@ -165,8 +165,8 @@ contract ZImburseEscrow {
         );
 
         // check that the entitlement has not been nullified by the admin
-        // let _ = entitlement.check_nullifier(&mut context); // <-- cant be used in txe
-        let _ = entitlement.check_nullifier_txe(&mut context); // <-- doesn't actually constrain nullifier to exist
+        // let _ = entitlement.check_shared_nullifier(&mut context); // <-- cant be used in txe
+        let _ = entitlement.check_shared_nullifier_txe(&mut context); // <-- doesn't actually constrain nullifier to exist
 
         // check and emit recurring nullification
         entitlement.check_and_emit_recurring_nullifier(&mut context, timestamp);
@@ -206,10 +206,10 @@ contract ZImburseEscrow {
 
         // check that the entitlement has not been nullified by the admin
         // let nullifier = entitlement.check_nullifier(&mut context); // <-- cant be used in txe
-        let nullifier = entitlement.check_nullifier_txe(&mut context); // <-- doesn't actually constrain nullifier to exist
+        let shared_nullifier = entitlement.check_shared_nullifier_txe(&mut context); // <-- doesn't actually constrain nullifier to exist
 
         // broadcast the note nullifier
-        context.push_nullifier(nullifier);
+        context.push_nullifier(shared_nullifier);
 
         // emit event to notify admin of spot entitlement consumption
         entitlement.emit_nullified(&mut context, entitlement.recipient, sender);
@@ -272,8 +272,8 @@ contract ZImburseEscrow {
         shield_to_claimant(&mut context, definition.usdc, amount_to_reimburse, claim_secret_hash);
         let email_nullifier = pedersen_hash(email_inputs.signature);
         context.push_nullifier(email_nullifier);
-        let nullifier = entitlement.check_nullifier(&mut context);
-        context.push_nullifier(nullifier);
+        let shared_nullifier = entitlement.check_shared_nullifier(&mut context);
+        context.push_nullifier(shared_nullifier);
         entitlement.emit_nullified(&mut context, entitlement.recipient, sender);
         entitlement.emit_spot_claim(
             &mut context,

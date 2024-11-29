@@ -10,7 +10,7 @@ pub global BULK_KEY_LENGTH: u32 = 4;
 contract ZImburseRegistry {
     use dep::aztec::{
         prelude::{AztecAddress, PrivateImmutable, PrivateSet, SharedImmutable, Map},
-        macros::{storage::storage, events::event, functions::{private, public, view, initializer}},
+        macros::{storage::storage, events::event, functions::{private, public, view, initializer, internal}},
         note::{
             note_viewer_options::NoteViewerOptions, note_getter_options::NoteGetterOptions,
             note_getter::{get_notes, view_notes}, constants::MAX_NOTES_PER_PAGE

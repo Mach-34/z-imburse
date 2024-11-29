@@ -141,15 +141,16 @@ impl<T> EntitlementSet<T, &mut PrivateContext> {
         context: &mut PrivateContext,
         admin: AztecAddress,
         recipient: AztecAddress,
-        note: &mut T
+        admin_note: &mut T,
+        recipient_note: &mut T
     ) where T: NoteInterface<T_SERIALIZED_LEN> + NullifiableNote + Eq {
         // encryption/ nullifier keys keys for admin and recipient
         let recipient_keys = get_public_keys(recipient);
         let admin_keys = get_public_keys(admin);
         // add note to recipient set and receipt to admin set
         // admin really has little reason to lie here- technically they could but it would destroy their own reimbursement platform
-        self.set.at(admin).insert(note).emit(encode_and_encrypt_note_unconstrained(context, admin_keys.ovpk_m, admin_keys.ivpk_m, admin));
-        self.set.at(recipient).insert(note).emit(encode_and_encrypt_note_unconstrained(context, recipient_keys.ovpk_m, recipient_keys.ivpk_m, recipient));
+        self.set.at(admin).insert(admin_note).emit(encode_and_encrypt_note_unconstrained(context, admin_keys.ovpk_m, admin_keys.ivpk_m, admin));
+        self.set.at(recipient).insert(recipient_note).emit(encode_and_encrypt_note_unconstrained(context, recipient_keys.ovpk_m, recipient_keys.ivpk_m, recipient));
     }
 
     /**

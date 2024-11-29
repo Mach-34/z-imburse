@@ -1,6 +1,6 @@
 use aztec::{
     encrypted_logs::encrypted_event_emission::encode_and_encrypt_event,
-    keys::getters::get_public_keys,
+    keys::getters::{get_nsk_app, get_public_keys},
     macros::notes::note_custom_interface,
     note::utils::compute_note_hash_for_nullify,
     oracle::{random::random, notes::check_nullifier_exists, debug_log::debug_log_format},

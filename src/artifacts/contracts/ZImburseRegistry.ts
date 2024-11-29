@@ -33,7 +33,8 @@ import {
   type Wallet,
   type WrappedFieldLike,
 } from '@aztec/aztec.js';
-import ZImburseRegistryContractArtifactJson from './z_imburse_registry-ZImburseRegistry.json' assert { type: 'json' };
+import ZImburseRegistryContractArtifactJson from './ZImburseRegistry.json' assert { type: 'json' };
+// @ts-ignore
 export const ZImburseRegistryContractArtifact = loadContractArtifact(ZImburseRegistryContractArtifactJson as NoirCompiledContract);
 
 

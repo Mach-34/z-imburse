@@ -38,12 +38,22 @@ fn give_entitlement(
     // create the entitlement note
     let amount = U128::from_integer(amount);
     let blinding_factor = unsafe { random() };
-    let mut entitlement = EntitlementNote::new(
+    let mut entitlement_admin = EntitlementNote::new(
         recipient,
         verifier_id,
         amount,
         date_start,
         date_end,
+        destination,
+        spot,
+        blinding_factor
+    );
+    let mut entitlement_recipient = EntitlementNote::new(
+        recipient,
+        verifier_id,
+        amount,
+        date_start,
+        1,
         destination,
         spot,
         blinding_factor
@@ -54,6 +64,7 @@ fn give_entitlement(
         context,
         sender,
         recipient,
-        &mut entitlement
+        &mut entitlement_admin,
+        &mut entitlement_recipient
     );
 }

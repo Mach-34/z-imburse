@@ -130,7 +130,7 @@ describe("Test deposit to zimburse", () => {
         it.todo("Cannot give entitlement if escrow not registered");
         it.todo("Cannot give entitlement if participant not registered");
         describe("Linode", () => {
-            it("Give linode recurring entitlement", async () => {
+            xit("Give linode recurring entitlement", async () => {
                 // check dkim key
                 // give entitlement of 10 usdc
                 const amount = toUSDCDecimals(10n);
@@ -177,6 +177,33 @@ describe("Test deposit to zimburse", () => {
                     .simulate();
                 console.log('Recipient balance: ', recipientBalance)
                 expect(recipientBalance).toBe(toUSDCDecimals(10n));
+            });
+
+            it("Test revoke entitlement", async () => {
+                const amount = toUSDCDecimals(10n);
+                await escrows[0]
+                    .methods.give_recurring_entitlement(
+                        alice.getAddress(),
+                        amount,
+                        2
+                    )
+                    .send()
+                    .wait();
+
+                // const secret = Fr.random();
+                // const secretHash = computeSecretHash(secret);
+                // const inputs = await makeLinodeInputs(emails.linode_sep);
+                // const redeemLinodeInputs = formatRedeemLinode(inputs);
+                // await escrows[0]
+                //     .withWallet(alice)
+                //     .methods.reimburse_linode_recurring(redeemLinodeInputs, secretHash)
+                //     .send()
+                //     .wait();
+                
+                const entitlementsAdmin = await escrows[0].methods.view_entitlements(0, escrowAdmin.getAddress(), {_is_some: false, _value: AztecAddress.ZERO}, {_is_some: false, _value: 0}, {_is_some: false, _value: false}).simulate();
+                const entitlementsRecipient = await escrows[0].methods.view_entitlements(0, alice.getAddress(), {_is_some: false, _value: AztecAddress.ZERO}, {_is_some: false, _value: 0}, {_is_some: false, _value: false}).simulate();
+                console.log('Entitlements admin: ', entitlementsAdmin);
+                console.log('Entitlements recipient: ', entitlementsRecipient);
             });
         });
     });

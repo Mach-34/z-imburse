@@ -107,9 +107,18 @@ impl NoteInterface<ENTITLEMENT_NOTE_LENGTH> for EntitlementNote {
 
     fn compute_note_hash(self) -> Field {
         let serialized = self.serialize_content();
-        std::embedded_curve_ops::multi_scalar_mul(
-            [GENERATORS[0], GENERATORS[1], GENERATORS[2], GENERATORS[3], GENERATORS[4], GENERATORS[5], GENERATORS[6], GENERATORS[7]],
-            [
+        let generators = [
+            GENERATORS[0],
+            GENERATORS[1],
+            GENERATORS[2],
+            GENERATORS[3],
+            GENERATORS[4],
+            GENERATORS[5],
+            GENERATORS[6],
+            GENERATORS[7],
+            GENERATORS[8]
+        ];
+        let data = [
             from_field_unsafe(serialized[0]),
             from_field_unsafe(serialized[1]),
             from_field_unsafe(serialized[2]),
@@ -118,8 +127,9 @@ impl NoteInterface<ENTITLEMENT_NOTE_LENGTH> for EntitlementNote {
             from_field_unsafe(serialized[5]),
             from_field_unsafe(serialized[6]),
             from_field_unsafe(serialized[7]),
-            // do not use slot so it can be used for the nullifier
-        ]).x
+            from_field_unsafe(self.get_header().storage_slot)
+        ];
+        std::embedded_curve_ops::multi_scalar_mul(generators, data).x
     }
 }
 
@@ -155,6 +165,7 @@ impl Eq for EntitlementNote {
             & (self.verifier_id == other.verifier_id)
     }
 }
+
 impl EntitlementNote {
     
     /**

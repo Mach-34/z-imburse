@@ -53,7 +53,7 @@ fn give_entitlement(
         verifier_id,
         amount,
         date_start,
-        1,
+        date_end,
         destination,
         spot,
         blinding_factor

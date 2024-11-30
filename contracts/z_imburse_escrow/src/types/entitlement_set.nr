@@ -120,7 +120,12 @@ impl<T> EntitlementSet<T, &mut PrivateContext> {
                 Comparator.EQ,
                 spot
             ).set_limit(1).set_status(NoteStatus.ACTIVE);
-        let notes = self.set.at(scope).get_notes(options);
+        let mut notes: BoundedVec<T, 16> = BoundedVec::new();
+        if spot {
+            notes = self.set.at(scope).pop_notes(options);
+        } else {
+            notes = self.set.at(scope).get_notes(options);
+        }
         // return note if found
         if notes.len() > 0 {
             Option::some(notes.get_unchecked(0))

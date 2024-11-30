@@ -212,7 +212,9 @@ describe("Test deposit to zimburse", () => {
                     .methods
                     .reimburse_linode_spot(redeemLinodeInputs, secretHash)
                     .simulate();
-                await expect(failingCall).rejects.toThrow("Entitlement has already been claimed '!nullifier_exists'");
+                await expect(failingCall)
+                    .rejects
+                    .toThrow("(JSON-RPC PROPAGATED) Assertion failed: Entitlement is nullified '!is_nullified'");
             });
 
             it("Test revoke recurring entitlement", async () => {
@@ -245,7 +247,9 @@ describe("Test deposit to zimburse", () => {
                     .methods
                     .reimburse_linode_recurring(redeemLinodeInputs, secretHash)
                     .simulate();
-                await expect(failingCall).rejects.toThrow("Entitlement has already been claimed '!nullifier_exists'");
+                await expect(failingCall)
+                    .rejects
+                    .toThrow("(JSON-RPC PROPAGATED) Assertion failed: Entitlement is nullified '!is_nullified'");
             })
 
             it("Test cannot revoke spent Linode spot entitlement", async () => {
@@ -282,12 +286,11 @@ describe("Test deposit to zimburse", () => {
                     .methods
                     .revoke_entitlement(bob.getAddress(), 2, true)
                     .simulate();
-                await expect(failingCall).rejects.toThrow("Entitlement has already been claimed '!nullifier_exists'");
+                await expect(failingCall)
+                    .rejects
+                    .toThrow("(JSON-RPC PROPAGATED) Assertion failed: Entitlement is already nullified '!is_nullified'");
             })
-            
-            it("Test cannot revoke spent United spot entitlement", async () => {
 
-            })
         });
     });
 });

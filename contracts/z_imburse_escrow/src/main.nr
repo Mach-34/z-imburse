@@ -428,6 +428,14 @@ contract ZImburseEscrow {
         // ensure the note is to/ from correctly
         assert(entitlement.recipient == recipient, "Entitlement does not belong to the recipient");
 
+        // nullify the entitlement
+        let shared_nullifier = entitlement.derive_shared_nullifier();
+        let is_nullified = storage.nullifiers.at(shared_nullifier).read_private();
+        assert(!is_nullified, "Entitlement is already nullified");
+        ZImburseEscrow::at(context.this_address())
+            .init_nullifier(shared_nullifier)
+            .enqueue(&mut context);
+        
         // emit event to notify recipient of revocation
         entitlement.emit_nullified(&mut context, entitlement.recipient, sender);
     }

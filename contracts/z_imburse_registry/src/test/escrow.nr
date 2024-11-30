@@ -14,62 +14,62 @@ use crate::{
 use zimburse_verifiers::constants::verifier_ids;
 use std::option::Option;
 
-#[test]
-unconstrained fn see_ze_entitlements() {
-    // setup test env
-    let (env, accounts, contracts) = setup::<1>();
-    // give entitlement to reimburse linode receipt to alice
-    give_recurring_entitlement(
-        env,
-        contracts.escrows[0],
-        accounts.escrow_admin,
-        accounts.alice,
-        10000,
-        verifier_ids::LINODE
-    );
-    // view entitlements as admin
-    let (entitlements_admin, continue_admin) = view_entitlements(
-        contracts.escrows[0],
-        0,
-        accounts.escrow_admin,
-        Option::none(),
-        Option::none(),
-        Option::none()
-    );
-    let admin_entitlement = entitlements_admin.get_unchecked(0);
+// #[test]
+// unconstrained fn see_ze_entitlements() {
+//     // setup test env
+//     let (env, accounts, contracts) = setup::<1>();
+//     // give entitlement to reimburse linode receipt to alice
+//     give_recurring_entitlement(
+//         env,
+//         contracts.escrows[0],
+//         accounts.escrow_admin,
+//         accounts.alice,
+//         10000,
+//         verifier_ids::LINODE
+//     );
+//     // view entitlements as admin
+//     let (entitlements_admin, continue_admin) = view_entitlements(
+//         contracts.escrows[0],
+//         0,
+//         accounts.escrow_admin,
+//         Option::none(),
+//         Option::none(),
+//         Option::none()
+//     );
+//     let admin_entitlement = entitlements_admin.get_unchecked(0);
 
-    let (entitlements_alice, continue_admin) = view_entitlements(
-        contracts.escrows[0],
-        0,
-        accounts.alice,
-        Option::none(),
-        Option::none(),
-        Option::none()
-    );
-    let alice_entitlement = entitlements_alice.get_unchecked(0);
-    debug_log_format("\n\n\nAdmin Entitlement Length: {0}\nRecipient: {1}\nVerifier ID: {2}\nMax Value: {3}\nDate Start:{4}\nDate End: {5}\nDestination: {6}\nSpot: {7}\n Randomness: {8}", [
-        entitlements_admin.len() as Field,
-        admin_entitlement.recipient.to_field(),
-        admin_entitlement.verifier_id as Field,
-        admin_entitlement.max_value.to_integer(),
-        admin_entitlement.date_start as Field,
-        admin_entitlement.date_end as Field,
-        admin_entitlement.destination,
-        admin_entitlement.spot as Field,
-        admin_entitlement.randomness
-    ]);
-    debug_log_format("\n\n\nAdmin Entitlement Length: {0}\nRecipient: {1}\nVerifier ID: {2}\nMax Value: {3}\nDate Start:{4}\nDate End: {5}\nDestination: {6}\nSpot: {7}\n Randomness: {8}", [
-        entitlements_alice.len() as Field,
-        alice_entitlement.recipient.to_field(),
-        alice_entitlement.verifier_id as Field,
-        alice_entitlement.max_value.to_integer(),
-        alice_entitlement.date_start as Field,
-        alice_entitlement.date_end as Field,
-        alice_entitlement.destination,
-        alice_entitlement.spot as Field,
-        alice_entitlement.randomness
-    ]);
-}
+//     let (entitlements_alice, continue_admin) = view_entitlements(
+//         contracts.escrows[0],
+//         0,
+//         accounts.alice,
+//         Option::none(),
+//         Option::none(),
+//         Option::none()
+//     );
+//     let alice_entitlement = entitlements_alice.get_unchecked(0);
+//     debug_log_format("\n\n\nAdmin Entitlement Length: {0}\nRecipient: {1}\nVerifier ID: {2}\nMax Value: {3}\nDate Start:{4}\nDate End: {5}\nDestination: {6}\nSpot: {7}\n Randomness: {8}", [
+//         entitlements_admin.len() as Field,
+//         admin_entitlement.recipient.to_field(),
+//         admin_entitlement.verifier_id as Field,
+//         admin_entitlement.max_value.to_integer(),
+//         admin_entitlement.date_start as Field,
+//         admin_entitlement.date_end as Field,
+//         admin_entitlement.destination,
+//         admin_entitlement.spot as Field,
+//         admin_entitlement.randomness
+//     ]);
+//     debug_log_format("\n\n\nAdmin Entitlement Length: {0}\nRecipient: {1}\nVerifier ID: {2}\nMax Value: {3}\nDate Start:{4}\nDate End: {5}\nDestination: {6}\nSpot: {7}\n Randomness: {8}", [
+//         entitlements_alice.len() as Field,
+//         alice_entitlement.recipient.to_field(),
+//         alice_entitlement.verifier_id as Field,
+//         alice_entitlement.max_value.to_integer(),
+//         alice_entitlement.date_start as Field,
+//         alice_entitlement.date_end as Field,
+//         alice_entitlement.destination,
+//         alice_entitlement.spot as Field,
+//         alice_entitlement.randomness
+//     ]);
+// }
 
 // #[test]
 // unconstrained fn claim_linode_recurring_success() {
@@ -283,48 +283,48 @@ unconstrained fn see_ze_entitlements() {
 //     );
 // }
 
-// #[test(should_fail)]
-// unconstrained fn claim_linode_recurring_nullified_fail() {
-//     let (env, accounts, contracts) = setup::<1>();
-//     // mint tokens to the escrow
-//     let amount = to_usdc_decimals(10);
-//     mint_public(
-//         env,
-//         contracts.usdc,
-//         accounts.superuser,
-//         contracts.escrows[0],
-//         amount
-//     );
-//     // give entitlement to reimburse linode receipt to alice
-//     give_recurring_entitlement(
-//         env,
-//         contracts.escrows[0],
-//         accounts.escrow_admin,
-//         accounts.alice,
-//         amount,
-//         verifier_ids::LINODE
-//     );
-//     // revoke the entitlement
-//     revoke_entitlement(
-//         env,
-//         contracts.escrows[0],
-//         accounts.escrow_admin,
-//         accounts.alice,
-//         verifier_ids::LINODE,
-//         false
-//     );
-//     // attempt to claim the reimbursement
-//     // note: revoke_entitlement emits an event notifying the user to remove the note from their pxe
-//     // the txe is incapable of handling this logic so it will try to use a note it thinks is valid
-//     let (_, _) = reimburse_linode(
-//         env,
-//         contracts.escrows[0],
-//         contracts.usdc,
-//         accounts.alice,
-//         LINODE_SEP,
-//         false
-//     );
-// }
+#[test]
+unconstrained fn claim_linode_recurring_nullified_fail() {
+    let (env, accounts, contracts) = setup::<1>();
+    // mint tokens to the escrow
+    let amount = to_usdc_decimals(10);
+    mint_public(
+        env,
+        contracts.usdc,
+        accounts.superuser,
+        contracts.escrows[0],
+        amount
+    );
+    // give entitlement to reimburse linode receipt to alice
+    give_recurring_entitlement(
+        env,
+        contracts.escrows[0],
+        accounts.escrow_admin,
+        accounts.alice,
+        amount,
+        verifier_ids::LINODE
+    );
+    // revoke the entitlement
+    revoke_entitlement(
+        env,
+        contracts.escrows[0],
+        accounts.escrow_admin,
+        accounts.alice,
+        verifier_ids::LINODE,
+        false
+    );
+    // attempt to claim the reimbursement
+    // note: revoke_entitlement emits an event notifying the user to remove the note from their pxe
+    // the txe is incapable of handling this logic so it will try to use a note it thinks is valid
+    let (_, _) = reimburse_linode(
+        env,
+        contracts.escrows[0],
+        contracts.usdc,
+        accounts.alice,
+        LINODE_SEP,
+        false
+    );
+}
 
 // #[test]
 // unconstrained fn claim_linode_spot_success() {

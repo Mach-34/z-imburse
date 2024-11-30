@@ -281,29 +281,6 @@ impl EntitlementNote {
     }
 
     /**
-     * This check is not safe but simulates desired behavior of check_nullifier and can be used in txe
-     */
-    fn check_shared_nullifier_txe(self, context: &mut PrivateContext) -> Field {
-        // derive nullifier
-        let nullifier = self.derive_shared_nullifier();
-        // check the nullifier has not been emitted via oracle call
-        // doesnt constrain, use only for txe
-        let nullifier_exists = unsafe { check_nullifier_exists(nullifier) };
-        assert(!nullifier_exists, "Entitlement has already been claimed");
-        nullifier
-    }
-
-
-    fn check_shared_nullifier(self, context: &mut PrivateContext) -> Field {
-        // derive nullifier
-        let nullifier = self.derive_shared_nullifier();
-        // constrained proof of non-inclusion (doesn't work in TXE)
-        context.historical_header.prove_nullifier_non_inclusion(nullifier);
-        // return nullifier
-        nullifier
-    }
-
-    /**
      * Assert that a recurring nullifier has not been used before and emits it
      * @dev uses oracle check_nullifier_exists which is technically unsafe but will be caught by kernel
      *
@@ -376,9 +353,6 @@ impl EntitlementNote {
      * @param from - the address of the notifier who nullified the entitlement note
      */
     fn emit_nullified(self, context: &mut PrivateContext, to: AztecAddress, from: AztecAddress) {
-        // let nullifier = self.check_shared_nullifier(context);
-        let nullifier = self.check_shared_nullifier_txe(context);
-        context.push_nullifier(nullifier);
         EntitlementNullified { randomness: self.randomness }.emit(
             encode_and_encrypt_event(
                 context,

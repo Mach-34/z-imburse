@@ -164,7 +164,7 @@ impl<T> EntitlementSet<T, &mut PrivateContext> {
      * @param spot - if true, check for spot entitlements. If false, check for recurring entitlements
      * @return - the entitlement note that was popped
      */
-    pub fn nullify_entitlement<let T_SERIALIZED_LEN: u32>(
+    pub fn pop_entitlement<let T_SERIALIZED_LEN: u32>(
         self,
         scope: AztecAddress,
         recipient: AztecAddress,

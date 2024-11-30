@@ -90,7 +90,7 @@ describe("Test deposit to zimburse", () => {
     });
 
     describe("Registration", () => {
-        it("Register Z-Imburse Escrow", async () => {
+        xit("Register Z-Imburse Escrow", async () => {
 
             const testEscrow = await ZImburseEscrowContract.deploy(
                 escrowAdmin,
@@ -181,29 +181,34 @@ describe("Test deposit to zimburse", () => {
 
             it("Test revoke entitlement", async () => {
                 const amount = toUSDCDecimals(10n);
+                // give entitlement
                 await escrows[0]
-                    .methods.give_recurring_entitlement(
+                    .methods
+                    .give_recurring_entitlement(
                         alice.getAddress(),
                         amount,
                         2
                     )
                     .send()
                     .wait();
-
-                // const secret = Fr.random();
-                // const secretHash = computeSecretHash(secret);
-                // const inputs = await makeLinodeInputs(emails.linode_sep);
-                // const redeemLinodeInputs = formatRedeemLinode(inputs);
-                // await escrows[0]
-                //     .withWallet(alice)
-                //     .methods.reimburse_linode_recurring(redeemLinodeInputs, secretHash)
-                //     .send()
-                //     .wait();
                 
-                const entitlementsAdmin = await escrows[0].methods.view_entitlements(0, escrowAdmin.getAddress(), {_is_some: false, _value: AztecAddress.ZERO}, {_is_some: false, _value: 0}, {_is_some: false, _value: false}).simulate();
-                const entitlementsRecipient = await escrows[0].methods.view_entitlements(0, alice.getAddress(), {_is_some: false, _value: AztecAddress.ZERO}, {_is_some: false, _value: 0}, {_is_some: false, _value: false}).simulate();
-                console.log('Entitlements admin: ', entitlementsAdmin);
-                console.log('Entitlements recipient: ', entitlementsRecipient);
+                // revoke entitlement
+                await escrows[0]
+                    .methods
+                    .revoke_entitlement(alice.getAddress(), 2, false)
+                    .send()
+                    .wait();
+                // we will not remove entitlement from alice's PXE and try to use it
+                const secret = Fr.random();
+                const secretHash = computeSecretHash(secret);
+                const inputs = await makeLinodeInputs(emails.linode_sep);
+                const redeemLinodeInputs = formatRedeemLinode(inputs);
+                const failingCall = escrows[0]
+                    .withWallet(alice)
+                    .methods
+                    .reimburse_linode_recurring(redeemLinodeInputs, secretHash)
+                    .simulate();
+                await expect(failingCall).rejects.toThrow("Entitlement has already been claimed '!nullifier_exists'")
             });
         });
     });

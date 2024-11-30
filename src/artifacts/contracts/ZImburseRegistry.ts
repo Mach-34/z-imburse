@@ -34,7 +34,7 @@ import {
   type WrappedFieldLike,
 } from '@aztec/aztec.js';
 import ZImburseRegistryContractArtifactJson from './ZImburseRegistry.json' assert { type: 'json' };
-// @ts-ignore
+//@ts-ignore
 export const ZImburseRegistryContractArtifact = loadContractArtifact(ZImburseRegistryContractArtifactJson as NoirCompiledContract);
 
 

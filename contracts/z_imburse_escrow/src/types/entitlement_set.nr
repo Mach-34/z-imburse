@@ -119,7 +119,7 @@ impl<T> EntitlementSet<T, &mut PrivateContext> {
                 EntitlementNote::properties().spot,
                 Comparator.EQ,
                 spot
-            ).set_limit(1);
+            ).set_limit(1).set_status(NoteStatus.ACTIVE);
         let notes = self.set.at(scope).get_notes(options);
         // return note if found
         if notes.len() > 0 {
@@ -185,7 +185,7 @@ impl<T> EntitlementSet<T, &mut PrivateContext> {
                 EntitlementNote::properties().spot,
                 Comparator.EQ,
                 spot
-            ).set_limit(1);
+            ).set_limit(1).set_status(NoteStatus.ACTIVE);
         let notes = self.set.at(scope).pop_notes(options);
         assert(notes.len() > 0, "No matching entitlement found");
         notes.get_unchecked(0)

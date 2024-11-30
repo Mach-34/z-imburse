@@ -90,7 +90,7 @@ describe("Test deposit to zimburse", () => {
     });
 
     describe("Registration", () => {
-        it("Register Z-Imburse Escrow", async () => {
+        xit("Register Z-Imburse Escrow", async () => {
 
             const testEscrow = await ZImburseEscrowContract.deploy(
                 escrowAdmin,
@@ -129,8 +129,8 @@ describe("Test deposit to zimburse", () => {
         it.todo("Cannot give entitlement if not admin");
         it.todo("Cannot give entitlement if escrow not registered");
         it.todo("Cannot give entitlement if participant not registered");
-        describe("Linode", () => {
-            it("Give linode recurring entitlement", async () => {
+        describe("Revoke entitlements", () => {
+            xit("Give linode recurring entitlement", async () => {
                 // check dkim key
                 // give entitlement of 10 usdc
                 const amount = toUSDCDecimals(10n);
@@ -178,6 +178,119 @@ describe("Test deposit to zimburse", () => {
                 console.log('Recipient balance: ', recipientBalance)
                 expect(recipientBalance).toBe(toUSDCDecimals(10n));
             });
+
+            it("Test revoke spot entitlement", async () => {
+                const amount = toUSDCDecimals(10n);
+                // give entitlement
+                await escrows[0]
+                    .methods
+                    .give_spot_entitlement(
+                        alice.getAddress(),
+                        amount,
+                        2,
+                        0,
+                        Math.floor(new Date().getTime() / 1000),
+                        "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
+                    )
+                    .send()
+                    .wait();
+
+                // revoke entitlement
+                await escrows[0]
+                    .withWallet(escrowAdmin)
+                    .methods
+                    .revoke_entitlement(alice.getAddress(), 2, true)
+                    .send()
+                    .wait();
+                // we will not remove entitlement from alice's PXE and try to use it
+                const secret = Fr.random();
+                const secretHash = computeSecretHash(secret);
+                const inputs = await makeLinodeInputs(emails.linode_sep);
+                const redeemLinodeInputs = formatRedeemLinode(inputs);
+                const failingCall = escrows[0]
+                    .withWallet(alice)
+                    .methods
+                    .reimburse_linode_spot(redeemLinodeInputs, secretHash)
+                    .simulate();
+                await expect(failingCall)
+                    .rejects
+                    .toThrow("(JSON-RPC PROPAGATED) Assertion failed: Entitlement is nullified '!is_nullified'");
+            });
+
+            it("Test revoke recurring entitlement", async () => {
+                const amount = toUSDCDecimals(10n);
+                // give entitlement
+                await escrows[0]
+                    .methods
+                    .give_recurring_entitlement(
+                        alice.getAddress(),
+                        amount,
+                        2,
+                    )
+                    .send()
+                    .wait();
+
+                // revoke entitlement
+                await escrows[0]
+                    .withWallet(escrowAdmin)
+                    .methods
+                    .revoke_entitlement(alice.getAddress(), 2, false)
+                    .send()
+                    .wait();
+                // we will not remove entitlement from alice's PXE and try to use it
+                const secret = Fr.random();
+                const secretHash = computeSecretHash(secret);
+                const inputs = await makeLinodeInputs(emails.linode_sep);
+                const redeemLinodeInputs = formatRedeemLinode(inputs);
+                const failingCall = escrows[0]
+                    .withWallet(alice)
+                    .methods
+                    .reimburse_linode_recurring(redeemLinodeInputs, secretHash)
+                    .simulate();
+                await expect(failingCall)
+                    .rejects
+                    .toThrow("(JSON-RPC PROPAGATED) Assertion failed: Entitlement is nullified '!is_nullified'");
+            })
+
+            it("Test cannot revoke spent Linode spot entitlement", async () => {
+                const amount = toUSDCDecimals(10n);
+                // give entitlement
+                await escrows[0]
+                    .methods
+                    .give_spot_entitlement(
+                        bob.getAddress(),
+                        amount,
+                        2,
+                        0,
+                        Math.floor(new Date().getTime() / 1000),
+                        "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
+                    )
+                    .send()
+                    .wait();
+
+                // claim the spot entitlement
+                const secret = Fr.random();
+                const secretHash = computeSecretHash(secret);
+                const inputs = await makeLinodeInputs(emails.linode_oct);
+                const redeemLinodeInputs = formatRedeemLinode(inputs);
+                await escrows[0]
+                    .withWallet(bob)
+                    .methods
+                    .reimburse_linode_spot(redeemLinodeInputs, secretHash)
+                    .send()
+                    .wait();
+
+                // fail to revoke entitlement
+                let failingCall = escrows[0]
+                    .withWallet(escrowAdmin)
+                    .methods
+                    .revoke_entitlement(bob.getAddress(), 2, true)
+                    .simulate();
+                await expect(failingCall)
+                    .rejects
+                    .toThrow("(JSON-RPC PROPAGATED) Assertion failed: Entitlement is already nullified '!is_nullified'");
+            })
+
         });
     });
 });

@@ -1,8 +1,8 @@
 use dep::aztec::macros::aztec;
 
+mod library_methods;
 mod test;
 mod types;
-mod verifiers;
 
 pub global BULK_KEY_LENGTH: u32 = 4;
 
@@ -10,7 +10,7 @@ pub global BULK_KEY_LENGTH: u32 = 4;
 contract ZImburseRegistry {
     use dep::aztec::{
         prelude::{AztecAddress, PrivateImmutable, PrivateSet, SharedImmutable, Map},
-        macros::{storage::storage, events::event, functions::{private, public, view, initializer}},
+        macros::{storage::storage, events::event, functions::{private, public, view, initializer, internal}},
         note::{
             note_viewer_options::NoteViewerOptions, note_getter_options::NoteGetterOptions,
             note_getter::{get_notes, view_notes}, constants::MAX_NOTES_PER_PAGE
@@ -26,8 +26,10 @@ contract ZImburseRegistry {
     };
     use std::{meta::derive, collections::bounded_vec::BoundedVec};
     use dep::address_note::address_note::AddressNote;
+    use dep::zimburse_verifiers::constants::verifier_ids;
     use dep::z_imburse_escrow::ZImburseEscrow;
     use crate::{
+        library_methods::dkim::{register_dkim_key, register_dkim_keys_bulk},
         types::{registry_definition::RegistryDefinition, participant_note::{ParticipantNote, NAME_LENGTH}},
         BULK_KEY_LENGTH
     };
@@ -69,18 +71,7 @@ contract ZImburseRegistry {
         let definition = RegistryDefinition::new(context.msg_sender(), usdc, escrow_contract_id);
         storage.definition.initialize(definition);
         // add any DKIM key hashes that were passed in at initialization
-        for i in 0..BULK_KEY_LENGTH {
-            if (verifier_ids[i] != 0) {
-                // ensure that the dkim key has not already been registered
-                let stored_id = storage.dkim_registry.at(dkim_key_hashes[i]).read_public();
-                assert(stored_id == 0, "DKIM key has already been registered");
-                storage.dkim_registry.at(dkim_key_hashes[i]).initialize(verifier_ids[i]);
-                emit(
-                    &mut context,
-                    DKIMKeyHashRegistered { dkim_key_hash: dkim_key_hashes[i], verifier_id: verifier_ids[i] }
-                );
-            }
-        }
+        register_dkim_keys_bulk(&mut context, storage, dkim_key_hashes, verifier_ids);
     }
 
     /**
@@ -98,18 +89,7 @@ contract ZImburseRegistry {
         let admin = storage.definition.read_public().admin;
         assert(admin == context.msg_sender(), "Sender is not the registry contract");
         // bulk insert up to 50 dkim key hashes
-        for i in 0..BULK_KEY_LENGTH {
-            if (verifier_ids[i] != 0) {
-                // ensure that the dkim key has not already been registered
-                let stored_id = storage.dkim_registry.at(dkim_key_hashes[i]).read_public();
-                assert(stored_id == 0, "DKIM key has already been registered");
-                storage.dkim_registry.at(dkim_key_hashes[i]).initialize(verifier_ids[i]);
-                emit(
-                    &mut context,
-                    DKIMKeyHashRegistered { dkim_key_hash: dkim_key_hashes[i], verifier_id: verifier_ids[i] }
-                );
-            }
-        }
+        register_dkim_keys_bulk(&mut context, storage, dkim_key_hashes, verifier_ids);
     }
 
     /**
@@ -124,13 +104,7 @@ contract ZImburseRegistry {
         let admin = storage.definition.read_public().admin;
         assert(admin == context.msg_sender(), "Sender is not the registry contract");
         // ensure that the dkim key has not already been registered
-        let stored_id = storage.dkim_registry.at(dkim_key_hash).read_public();
-        assert(stored_id == 0, "DKIM key has already been registered");
-        storage.dkim_registry.at(dkim_key_hash).initialize(verifier_id);
-        emit(
-            &mut context,
-            DKIMKeyHashRegistered { dkim_key_hash, verifier_id }
-        );
+        register_dkim_key(&mut context, storage, dkim_key_hash, verifier_id);
     }
 
     /**

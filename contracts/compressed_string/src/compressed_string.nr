@@ -4,6 +4,8 @@ use dep::aztec::protocol_types::{utils::field::field_from_bytes, traits::{Serial
 // Compresses M bytes into N fields.
 // Can be used for longer strings that don't fit in a single field.
 // Each field can store 31 characters, so N should be M/31 rounded up.
+//
+// NOTE: Package copied locally instead of importing from aztec so that we can implement 'from_bytes'
 pub struct CompressedString<let N: u32, let M: u32> {
   value: [Field; N]
 }

@@ -12,16 +12,19 @@ use crate::{
 };
 use std::hash::pedersen_hash;
 
-// /**
-//  * Handles verification of united email receipt with hashing split into recursive calls
-//  *
-//  * @param email_inputs - the inputs from the email verifier, in a contract-serializable format
-//  * @param amount_to_date_length - the length of the body between the amount and date selection
-//  * @param remaining_length - the length of the body after all selections have been made
-//  * @param actual_length - the actual length of the entire email body
-//  * @param context - the contract context
-//  * @return - []
-//  */
+/**
+ *
+ * WIP
+ *
+ * Handles verification of united email receipt with hashing split into recursive calls
+ *
+ * @param email_inputs - the inputs from the email verifier, in a contract-serializable format
+ * @param amount_to_date_length - the length of the body between the amount and date selection
+ * @param remaining_length - the length of the body after all selections have been made
+ * @param actual_length - the actual length of the entire email body
+ * @param context - the contract context
+ * @return - []
+ */
 // #[contract_library_method]
 // fn united_deferred(
 //     // general email inputs
@@ -54,6 +57,9 @@ use std::hash::pedersen_hash;
 // }
 
 /**
+ *
+ * WIP
+ *
  * Claim a spot reimbursement for a United Airlines receipt
  * 
  * @param email_inputs - the inputs from the email verifier in a contract-serializable format

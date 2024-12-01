@@ -76,7 +76,7 @@ pub fn extract_billed_amount(
 
     let mut amount: Field = 0;
     let fixed_values = 4; // '$', '.', and two decimals
-    let commas: Field = ((amount_sequence.length - fixed_values - 1) / 4) as Field; // account for 
+    let commas: Field = ((amount_sequence.length - fixed_values - 1) / 4) as Field; // account for commas that may appear depending on bill amount size
     let mut power: Field = amount_sequence.length as Field - commas - 3; // 3 represents '$' and '.' and power is equal to numberic len - 1
 
     // ensure first character is '$'

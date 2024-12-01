@@ -22,7 +22,7 @@ contract ZImburseEscrow {
         protocol_types::traits::Serialize,
     };
     use zimburse_verifiers::{
-        constants::verifier_ids,
+        constants::{verifier_ids, USDC_DECIMALS},
         united::constants::UnitedBillingParamsContract,
         zkemail::{
             KEY_LIMBS_2048, Sequence, dkim::RSAPubkey,
@@ -254,7 +254,7 @@ contract ZImburseEscrow {
         claim_secret_hash: Field,
     ) -> Field {
         let extracted = [0, 0, 0];
-        let billed_amount = U128::from_integer(extracted[0] * 10000);
+        let billed_amount = U128::from_integer(extracted[0] * USDC_DECIMALS);
         let timestamp = extracted[1];
         let destination_airport = extracted[2];
         let sender = context.msg_sender();

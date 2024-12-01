@@ -1,6 +1,7 @@
 use std::meta::derive;
 use aztec::protocol_types::traits::Serialize;
 use zimburse_verifiers::{
+    constants::USDC_DECIMALS,
     linode::{
         constants::LinodeBillingParams,
         main::verify_linode_billing_receipt
@@ -46,7 +47,7 @@ pub fn verify_linode(inputs: LinodeBillingParams) -> LinodeReceiptOutput {
     // extract outputs
     let dkim_key_hash = linode_receipt_result[0];
     let timestamp = linode_receipt_result[1];
-    let billed_amount = U128::from_integer(linode_receipt_result[2] * 10000);
+    let billed_amount = U128::from_integer(linode_receipt_result[2] * USDC_DECIMALS);
     LinodeReceiptOutput { dkim_key_hash, timestamp, billed_amount }
 }
 

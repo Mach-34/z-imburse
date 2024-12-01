@@ -2,6 +2,7 @@ import { generateEmailVerifierInputsFromDKIMResult, verifyDKIMSignature } from "
 import { getSequenceParams } from "./location";
 import { Regexes } from "../constants";
 import { LinodeInputs, RedeemLinodeInputs } from "../types";
+import { base } from "viem/chains";
 
 const LINODE_MAX_HEADER_LENGTH = 640;
 const LINODE_MAX_BODY_LENGTH = 832;
@@ -100,6 +101,10 @@ export const makeLinodeInputs = async (
 
   const inputs = {
     ...baseInputs,
+    header: {
+      storage: baseInputs.header.storage.fill('0', Number(baseInputs.header.len)),
+      len: baseInputs.header.len
+    },
     amount_sequence: {
       index: billMatch.index as number,
       length: billMatch[0].length

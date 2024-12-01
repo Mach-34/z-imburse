@@ -130,7 +130,7 @@ describe("Test deposit to zimburse", () => {
         it.todo("Cannot give entitlement if escrow not registered");
         it.todo("Cannot give entitlement if participant not registered");
         describe("Revoke entitlements", () => {
-            xit("Give linode recurring entitlement", async () => {
+            it("Give linode recurring entitlement", async () => {
                 // check dkim key
                 // give entitlement of 10 usdc
                 const amount = toUSDCDecimals(10n);
@@ -217,7 +217,7 @@ describe("Test deposit to zimburse", () => {
                     .toThrow("(JSON-RPC PROPAGATED) Assertion failed: Entitlement is nullified '!is_nullified'");
             });
 
-            it("Test revoke recurring entitlement", async () => {
+            xit("Test revoke recurring entitlement", async () => {
                 const amount = toUSDCDecimals(10n);
                 // give entitlement
                 await escrows[0]

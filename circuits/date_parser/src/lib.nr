@@ -12,7 +12,7 @@ struct Datetime {
 global DATETIME_LENGTH: u32 = 26;
 
 
-global months = [
+global MONTHS = [
     "Jan".as_bytes(),
     "Feb".as_bytes(),
     "Mar".as_bytes(),
@@ -27,7 +27,7 @@ global months = [
     "Dec".as_bytes()
 ];
 
-global days_in_month = [
+global DAYS_IN_MONTH = [
     31,
     28,
     31,
@@ -42,10 +42,27 @@ global days_in_month = [
     31
 ];
 
+// determines how many chars to skip for long form of month from short
+// i.e Sep -> "tember" = 6
+global MONTH_LONG_OFFSET: [u32; 12] = [
+    4, // jan-uary
+    5, // feb-ruary
+    2, // mar-ch
+    2, // apr-il
+    0, // may
+    1, // jun-e
+    1, // jul-y
+    3, // aug-ust
+    6, // sep-tember
+    4, // oct-ober
+    5, // nov-ember
+    5, // dec-ember
+];
+
 pub fn parse_month(month: [u8; 3]) -> u8 {
     let mut index = 0;
     for i in 0..12 {
-        if month == months[i] {
+        if month == MONTHS[i] {
             index = i + 1;
         }
     }
@@ -198,7 +215,7 @@ pub fn to_unix_month(datetime: Datetime) -> u32 {
     let mut days_in_current_year = 0;
     for i in 0..12 {
         if i + 1 < datetime.month {
-            days_in_current_year += days_in_month[i];
+            days_in_current_year += DAYS_IN_MONTH[i];
         }
     }
     days_in_current_year += datetime.add_leap_day as u32;
@@ -213,7 +230,7 @@ pub fn to_unix(datetime: Datetime) -> u32 {
     let mut days_in_current_year = 0;
     for i in 0..12 {
         if i + 1 < datetime.month {
-            days_in_current_year += days_in_month[i];
+            days_in_current_year += DAYS_IN_MONTH[i];
         }
     }
     days_in_current_year += (datetime.day + datetime.add_leap_day as u8) as u32;
@@ -230,7 +247,7 @@ pub fn to_unix(datetime: Datetime) -> u32 {
 }
 
 #[test]
-fn test_main() {
+fn test_email_timestamp() {
     let date_string = "1 Sep 2024 23:22:12 +0400 ".as_bytes(); // padded 1
     // its off a lil bit
     // should be 1725247332

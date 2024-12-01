@@ -120,7 +120,7 @@ contract ZImburseRegistry {
         let contract_instance: ContractInstance = unsafe {
             get_contract_instance(escrow_contract)
         };
-        let exected_escrow_address = AztecAddress::compute(
+        let computed_escrow_address = AztecAddress::compute(
             contract_instance.public_keys_hash,
             PartialAddress::compute(
                 ContractClassId::from_field(definition.escrow_contract_id), // constrained here
@@ -130,7 +130,7 @@ contract ZImburseRegistry {
             )
         );
         assert(
-            exected_escrow_address == escrow_contract, "Escrow contract class ID does not match expected class ID"
+            computed_escrow_address == escrow_contract, "Escrow contract class ID does not match expected class ID"
         );
         // check that the contract has been deployed
         // annoying that we can't use this in the deploy tx

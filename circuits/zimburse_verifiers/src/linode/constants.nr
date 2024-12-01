@@ -26,9 +26,6 @@ global LINODE_BILLING_PAYMENT_TEXT: str<LB_PAYMENT_TEXT_LEN> = "This is your rec
 // assuming a unlikely max billed amount of "$9,999,999.99"
 global MAX_BILLED_AMOUNT = 13;
 
-// Maximum that a linode receipt length could show (i.e. September 01, 2024)
-global MAX_MONTH_YEAR_LENGTH: u32 = 18;
-
 struct LinodeBillingParams {
     header: BoundedVec<u8, MAX_LINODE_EMAIL_HEADER_LENGTH>,
     body: BoundedVec<u8, MAX_LINODE_EMAIL_BODY_LENGTH>,

@@ -6,7 +6,7 @@ use crate::linode::{
         MAX_LINODE_EMAIL_HEADER_LENGTH
     }
 };
-use date_parser::{parse_month, MONTH_LONG_OFFSET};
+use date_parser::{parse_month, from_month_and_year, to_unix_month, MONTH_LONG_OFFSET};
 use zkemail::Sequence;
 
 /**
@@ -97,12 +97,12 @@ pub fn extract_billed_amount(
  *
  * @param body - the signed email body of a linode billing receipt
  * @param date_index - the index of the first character of the "Payment Date" field
- * @return - the month and year serialized into a field
+ * @return - the unix timestamp of the month/ year
  */
-pub fn extract_month_year(
+pub fn extract_datetime(
     body: BoundedVec<u8, MAX_LINODE_EMAIL_BODY_LENGTH>,
     date_index: u32
-) -> Field {
+) -> u32 {
     // range check access (TODO)
     // check the prefix to ensure any other dates in email are not used
     let prefix: [u8; 16] = comptime { "\r\nPayment Date: ".as_bytes() };
@@ -127,25 +127,8 @@ pub fn extract_month_year(
         body.get_unchecked(date_index + offset_to_year + 2),
         body.get_unchecked(date_index + offset_to_year + 3)
     ];
-    for i in 0..4 {
-        // ensure numerical character
-        assert((extracted_year[i] >= 0x30) & (extracted_year[i] <= 0x39));
-    }
-    // check suffix
-    assert(body.get_unchecked(date_index + offset_to_year + 4) == 0x0D);
-    assert(body.get_unchecked(date_index + offset_to_year + 5) == 0x0A);
-    // build month str
-    let mut month_str: [u8; 8] = [0; 8];
-    for i in 0..3 {
-        month_str[i] = extracted_month[i];
-    }
-    // space
-    month_str[3] = 0x20;
-    for i in 0..4 {
-        month_str[i + 4] = extracted_year[i];
-    }
-    // compose to field and return
-    Field::from_le_bytes::<8>(month_str)
+    let datetime = from_month_and_year(month_idx, extracted_year);
+    to_unix_month(datetime)
 }
 
 // fix check for https://veridise.notion.site/Amount-may-be-increased-up-to-maximum-149105edf1db800fa451d9aea3e877e7
@@ -235,7 +218,7 @@ fn test_get_date_str() {
 		len: 768
 	};
     let date_index = 58;
-    let extracted_date = extract_month_year(body, date_index);
-    let expected = Field::from_le_bytes::<8>("Sep 2024".as_bytes());
+    let extracted_date = extract_datetime(body, date_index);
+    let expected = 1725148800; // new Date("2024-09-01T00:00:00.000Z").getTime() / 1000
     assert(extracted_date == expected);
 }

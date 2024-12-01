@@ -27,8 +27,9 @@ describe("Linode Billing Receipt Test", () => {
             const values = (returnValue as string[]).map(x => toBigIntBE(new Uint8Array(Buffer.from(x.slice(2), 'hex'))));
             expect(values[2]).toEqual(2200n);
             // check expected date matches
-            const monthYear = Buffer.from(toBufferBE(values[1], 8)).reverse().toString();
-            expect(monthYear).toEqual("Sep 2024");
+            const datetime = new Date(Number(values[1]) * 1000).getTime();
+            const expectedDatetime = new Date("2024-09-01T00:00:00.000Z").getTime();
+            expect(datetime).toEqual(expectedDatetime);
         })
         it("Linode::October2024", async () => {
             // build inputs
@@ -39,8 +40,9 @@ describe("Linode Billing Receipt Test", () => {
             const values = (returnValue as string[]).map(x => toBigIntBE(new Uint8Array(Buffer.from(x.slice(2), 'hex'))));
             expect(values[2]).toEqual(2200n);
             // check expected date matches
-            const monthYear = Buffer.from(toBufferBE(values[1], 8)).reverse().toString();
-            expect(monthYear).toEqual("Oct 2024");
+            const datetime = new Date(Number(values[1]) * 1000).getTime();
+            const expectedDatetime = new Date("2024-10-01T00:00:00.000Z").getTime();
+            expect(datetime).toEqual(expectedDatetime);
         })
     })
 

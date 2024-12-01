@@ -155,6 +155,29 @@ pub fn add_leap_day(year: u16, month: u8) -> bool {
     (leap_year * past_feb) as bool
 }
 
+/**
+ * Parse from an existing month IDX and year bytes
+ * @dev code smell i know but need quick fix. can refactor for prettiness in later pass
+ * @dev assumes parse_month has already been run
+ *
+ * @param month_idx - the id of the month from parse_month
+ * @param year_bytes - the 4 bytes representing the year
+ */
+pub fn from_month_and_year(month_idx: u8, year_bytes: [u8; 4]) -> Datetime {
+    let year = parse_year(year_bytes);
+    let add_leap_day = add_leap_day(year.0, month_idx);
+    Datetime { 
+        year: year.0,
+        leap_years: year.1,
+        add_leap_day,
+        month: month_idx,
+        day: 0,
+        time: 0,
+        offset: 0,
+        subtract: false
+    }
+}
+
 pub fn parse_date_string(date_bytes: [u8; DATETIME_LENGTH]) -> Datetime {
     // check day shift and set day
     let day_shift = if date_bytes[1] == 0x20 {

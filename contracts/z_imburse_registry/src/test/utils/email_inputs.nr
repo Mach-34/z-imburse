@@ -20,10 +20,7 @@ global LINODE_SEP = LinodeBillingParams {
 		len: 768
 	},
 	body_hash_index: 227,
-	amount_sequence: Sequence {
-		index: 176,
-		length: 6
-	},
+	amount_index: 176,
 	from_index: 43,
 	subject_index: 90,
 	date_index: 0,
@@ -49,10 +46,7 @@ global LINODE_OCT = LinodeBillingParams {
 		len: 766
 	},
 	body_hash_index: 227,
-	amount_sequence: Sequence {
-		index: 174,
-		length: 6
-	},
+	amount_index: 174,
 	from_index: 43,
 	subject_index: 90,
 	date_index: 0,

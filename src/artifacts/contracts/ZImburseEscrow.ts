@@ -38,16 +38,16 @@ import ZImburseEscrowContractArtifactJson from './ZImburseEscrow.json' assert { 
 export const ZImburseEscrowContractArtifact = loadContractArtifact(ZImburseEscrowContractArtifactJson as NoirCompiledContract);
 
 
+      export type EntitlementNullified = {
+        randomness: FieldLike
+      }
+    
+
       export type RecurringReimbursementClaimed = {
         claimant: AztecAddressLike
 amount: FieldLike
 verifier_id: (bigint | number)
 timestamp: FieldLike
-      }
-    
-
-      export type EntitlementNullified = {
-        randomness: FieldLike
       }
     
 
@@ -191,10 +191,10 @@ EntitlementNote: {
     public_dispatch: ((selector: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
     /** reimburse_linode_recurring(email_receipt_inputs: struct, claim_secret_hash: field) */
-    reimburse_linode_recurring: ((email_receipt_inputs: { header: (bigint | number)[], header_length: (bigint | number), pubkey_modulus: FieldLike[], pubkey_redc: FieldLike[], signature: FieldLike[], dkim_header_sequence: { index: (bigint | number), length: (bigint | number) }, body: (bigint | number)[], body_length: (bigint | number), body_hash_index: (bigint | number), from_index: (bigint | number), subject_index: (bigint | number), amount_sequence: { index: (bigint | number), length: (bigint | number) }, date_index: (bigint | number), receipt_id_length: (bigint | number) }, claim_secret_hash: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+    reimburse_linode_recurring: ((email_receipt_inputs: { header: (bigint | number)[], header_length: (bigint | number), pubkey_modulus: FieldLike[], pubkey_redc: FieldLike[], signature: FieldLike[], dkim_header_sequence: { index: (bigint | number), length: (bigint | number) }, body: (bigint | number)[], body_length: (bigint | number), body_hash_index: (bigint | number), from_index: (bigint | number), subject_index: (bigint | number), amount_index: (bigint | number), date_index: (bigint | number), receipt_id_length: (bigint | number) }, claim_secret_hash: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
     /** reimburse_linode_spot(email_receipt_inputs: struct, claim_secret_hash: field) */
-    reimburse_linode_spot: ((email_receipt_inputs: { header: (bigint | number)[], header_length: (bigint | number), pubkey_modulus: FieldLike[], pubkey_redc: FieldLike[], signature: FieldLike[], dkim_header_sequence: { index: (bigint | number), length: (bigint | number) }, body: (bigint | number)[], body_length: (bigint | number), body_hash_index: (bigint | number), from_index: (bigint | number), subject_index: (bigint | number), amount_sequence: { index: (bigint | number), length: (bigint | number) }, date_index: (bigint | number), receipt_id_length: (bigint | number) }, claim_secret_hash: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+    reimburse_linode_spot: ((email_receipt_inputs: { header: (bigint | number)[], header_length: (bigint | number), pubkey_modulus: FieldLike[], pubkey_redc: FieldLike[], signature: FieldLike[], dkim_header_sequence: { index: (bigint | number), length: (bigint | number) }, body: (bigint | number)[], body_length: (bigint | number), body_hash_index: (bigint | number), from_index: (bigint | number), subject_index: (bigint | number), amount_index: (bigint | number), date_index: (bigint | number), receipt_id_length: (bigint | number) }, claim_secret_hash: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
     /** reimburse_united_spot(email_inputs: struct, amount_to_date_length: integer, remaining_length: integer, actual_length: integer, claim_secret_hash: field) */
     reimburse_united_spot: ((email_inputs: { header: (bigint | number)[], header_length: (bigint | number), pubkey_modulus: FieldLike[], pubkey_redc: FieldLike[], signature: FieldLike[], dkim_header_sequence: { index: (bigint | number), length: (bigint | number) }, body_hash_index: (bigint | number), from_index: (bigint | number), subject_index: (bigint | number), amount_sequence: { index: (bigint | number), length: (bigint | number) }, date_sequence: { index: (bigint | number), length: (bigint | number) }, airport_sequence: { index: (bigint | number), length: (bigint | number) }, partial_body_hash: (bigint | number)[], body_amount_selection: (bigint | number)[], partial_body_hash_date: (bigint | number)[], body_date_selection: (bigint | number)[] }, amount_to_date_length: (bigint | number), remaining_length: (bigint | number), actual_length: (bigint | number), claim_secret_hash: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
@@ -233,9 +233,25 @@ EntitlementNote: {
       };
     }
 
-    public static get events(): { RecurringReimbursementClaimed: {decode: (payload: L1EventPayload | UnencryptedL2Log | undefined) => RecurringReimbursementClaimed | undefined, eventSelector: EventSelector, fieldNames: string[] }, EntitlementNullified: {decode: (payload: L1EventPayload | UnencryptedL2Log | undefined) => EntitlementNullified | undefined, eventSelector: EventSelector, fieldNames: string[] }, SpotReimbursementClaimed: {decode: (payload: L1EventPayload | UnencryptedL2Log | undefined) => SpotReimbursementClaimed | undefined, eventSelector: EventSelector, fieldNames: string[] } } {
+    public static get events(): { EntitlementNullified: {decode: (payload: L1EventPayload | UnencryptedL2Log | undefined) => EntitlementNullified | undefined, eventSelector: EventSelector, fieldNames: string[] }, RecurringReimbursementClaimed: {decode: (payload: L1EventPayload | UnencryptedL2Log | undefined) => RecurringReimbursementClaimed | undefined, eventSelector: EventSelector, fieldNames: string[] }, SpotReimbursementClaimed: {decode: (payload: L1EventPayload | UnencryptedL2Log | undefined) => SpotReimbursementClaimed | undefined, eventSelector: EventSelector, fieldNames: string[] } } {
     return {
-      RecurringReimbursementClaimed: {
+      EntitlementNullified: {
+        decode: this.decodeEvent(EventSelector.fromSignature('EntitlementNullified(Field)'), {
+    "fields": [
+        {
+            "name": "randomness",
+            "type": {
+                "kind": "field"
+            }
+        }
+    ],
+    "kind": "struct",
+    "path": "ZImburseEscrow::EntitlementNullified"
+}),
+        eventSelector: EventSelector.fromSignature('EntitlementNullified(Field)'),
+        fieldNames: ["randomness"],
+      },
+RecurringReimbursementClaimed: {
         decode: this.decodeEvent(EventSelector.fromSignature('RecurringReimbursementClaimed((Field),Field,u8,Field)'), {
     "fields": [
         {
@@ -279,22 +295,6 @@ EntitlementNote: {
 }),
         eventSelector: EventSelector.fromSignature('RecurringReimbursementClaimed((Field),Field,u8,Field)'),
         fieldNames: ["claimant","amount","verifier_id","timestamp"],
-      },
-EntitlementNullified: {
-        decode: this.decodeEvent(EventSelector.fromSignature('EntitlementNullified(Field)'), {
-    "fields": [
-        {
-            "name": "randomness",
-            "type": {
-                "kind": "field"
-            }
-        }
-    ],
-    "kind": "struct",
-    "path": "ZImburseEscrow::EntitlementNullified"
-}),
-        eventSelector: EventSelector.fromSignature('EntitlementNullified(Field)'),
-        fieldNames: ["randomness"],
       },
 SpotReimbursementClaimed: {
         decode: this.decodeEvent(EventSelector.fromSignature('SpotReimbursementClaimed((Field),Field,u8)'), {

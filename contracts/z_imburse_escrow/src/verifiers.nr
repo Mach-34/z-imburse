@@ -39,7 +39,7 @@ pub fn verify_linode(inputs: LinodeBillingParams) -> LinodeReceiptOutput {
         inputs.body_hash_index,
         inputs.from_index,
         inputs.subject_index,
-        inputs.amount_sequence,
+        inputs.amount_index,
         inputs.date_index,
         inputs.receipt_id_length
     );

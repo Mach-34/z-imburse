@@ -1,5 +1,8 @@
 use dep::aztec::protocol_types::point::Point;
 
+// Set of generator points derived via `derive_generators(...)` function from noir::std used to 
+// compute note hashes
+
 global Ga1 = Point {
     x: 0x30426e64aee30e998c13c8ceecda3a77807dbead52bc2f3bf0eae851b4b710c1,
     y: 0x113156a068f603023240c96b4da5474667db3b8711c521c748212a15bc034ea6,

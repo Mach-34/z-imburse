@@ -87,7 +87,7 @@ contract ZImburseRegistry {
     ) {
         // check that the sender is the admin
         let admin = storage.definition.read_public().admin;
-        assert(admin == context.msg_sender(), "Sender is not the registry contract");
+        assert(admin == context.msg_sender(), "Sender is not the registry admin");
         // bulk insert up to 50 dkim key hashes
         register_dkim_keys_bulk(&mut context, storage, dkim_key_hashes, verifier_ids);
     }
@@ -102,7 +102,7 @@ contract ZImburseRegistry {
     fn register_dkim(verifier_id: Field, dkim_key_hash: Field) {
         // check that the sender is the admin
         let admin = storage.definition.read_public().admin;
-        assert(admin == context.msg_sender(), "Sender is not the registry contract");
+        assert(admin == context.msg_sender(), "Sender is not registry admin");
         // ensure that the dkim key has not already been registered
         register_dkim_key(&mut context, storage, dkim_key_hash, verifier_id);
     }
@@ -183,7 +183,7 @@ contract ZImburseRegistry {
         // todo: switch to check that the sender is an escrow
         // check that sender is admin
         let admin = storage.definition.read_private().admin;
-        assert(admin == context.msg_sender(), "Sender is not the registry contract");
+        assert(admin == context.msg_sender(), "Sender is not the registry admin");
         let is_registered = storage.escrow_registry.at(escrow).read_private();
         assert(is_registered, "Escrow contract is not registered");
         // check if the participant has already been registered

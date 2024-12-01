@@ -16,7 +16,7 @@ use aztec::{
 use compressed_string::CompressedString;
 use generators::GENERATORS;
 use std::{embedded_curve_ops::multi_scalar_mul, hash::from_field_unsafe};
-use crate::ZImburseEscrow::{SpotReimbursementClaimed, RecurringReimbursementClaimed, EntitlementNullified};
+use crate::{ZERO_DESTINATION, ZImburseEscrow::{SpotReimbursementClaimed, RecurringReimbursementClaimed, EntitlementNullified}};
 
 global ENTITLEMENT_NOTE_LENGTH: u32 = 8;
 
@@ -190,6 +190,14 @@ impl EntitlementNote {
         randomness: Field
     ) -> Self {
         let destination_compressed: CompressedString<1, 31> = CompressedString::from_string(destination);
+
+        // assert destination 
+        if spot {
+            assert(date_end == 0, "Date end must be zero if entitlement is spot.");
+            assert(date_start == 0, "Date start must be zero if entitlement is spot.");
+            assert(destination == ZERO_DESTINATION, "Destination must be empty if entitlement is spot.");
+        }
+
         Self {
             recipient,
             verifier_id,

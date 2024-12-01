@@ -1,6 +1,6 @@
 use aztec::{
     encrypted_logs::encrypted_event_emission::encode_and_encrypt_event,
-    keys::getters::get_public_keys,
+    keys::getters::{get_nsk_app, get_public_keys},
     macros::notes::note_custom_interface,
     note::utils::compute_note_hash_for_nullify,
     oracle::{random::random, notes::check_nullifier_exists, debug_log::debug_log_format},
@@ -107,9 +107,18 @@ impl NoteInterface<ENTITLEMENT_NOTE_LENGTH> for EntitlementNote {
 
     fn compute_note_hash(self) -> Field {
         let serialized = self.serialize_content();
-        std::embedded_curve_ops::multi_scalar_mul(
-            [GENERATORS[0], GENERATORS[1], GENERATORS[2], GENERATORS[3], GENERATORS[4], GENERATORS[5], GENERATORS[6], GENERATORS[7]],
-            [
+        let generators = [
+            GENERATORS[0],
+            GENERATORS[1],
+            GENERATORS[2],
+            GENERATORS[3],
+            GENERATORS[4],
+            GENERATORS[5],
+            GENERATORS[6],
+            GENERATORS[7],
+            GENERATORS[8]
+        ];
+        let data = [
             from_field_unsafe(serialized[0]),
             from_field_unsafe(serialized[1]),
             from_field_unsafe(serialized[2]),
@@ -118,8 +127,9 @@ impl NoteInterface<ENTITLEMENT_NOTE_LENGTH> for EntitlementNote {
             from_field_unsafe(serialized[5]),
             from_field_unsafe(serialized[6]),
             from_field_unsafe(serialized[7]),
-            // do not use slot so it can be used for the nullifier
-        ]).x
+            from_field_unsafe(self.get_header().storage_slot)
+        ];
+        std::embedded_curve_ops::multi_scalar_mul(generators, data).x
     }
 }
 
@@ -146,11 +156,16 @@ impl NullifiableNote for EntitlementNote {
 impl Eq for EntitlementNote {
     fn eq(self, other: Self) -> bool {
         (self.recipient == other.recipient)
+            & (self.date_start == other.date_start)
+            & (self.date_end == other.date_end)
+            & (self.destination == other.destination)
             & (self.max_value == other.max_value)
             & (self.randomness == other.randomness)
+            & (self.spot == other.spot)
             & (self.verifier_id == other.verifier_id)
     }
 }
+
 impl EntitlementNote {
     
     /**
@@ -237,6 +252,13 @@ impl EntitlementNote {
         }
     }
 
+    fn derive_shared_nullifier(self) -> Field {
+        poseidon2_hash_with_separator(
+            self.serialize_content(),
+            GENERATOR_INDEX__NOTE_NULLIFIER as Field
+        )
+    }
+
     /**
      * Derives the nullifier for recurring notes
      * @dev recurring notes are nullified for a scope (month) without destroying the ntoe
@@ -246,32 +268,16 @@ impl EntitlementNote {
      * @return - the month nullifier for the note
      */
     fn derive_recurring_nullifier(self, timestamp: Field) -> Field {
+        let serialized = self.serialize_content();
+        let mut inputs: [Field; ENTITLEMENT_NOTE_LENGTH + 1] = [0; ENTITLEMENT_NOTE_LENGTH + 1];
+        for i in 0..ENTITLEMENT_NOTE_LENGTH {
+            inputs[i] = serialized[i];
+        }
+        inputs[ENTITLEMENT_NOTE_LENGTH] = timestamp;
         poseidon2_hash_with_separator(
-            [self.randomness, timestamp],
+            inputs,
             GENERATOR_INDEX__NOTE_NULLIFIER as Field
         )
-    }
-
-    /**
-     * This check is not safe but simulates desired behavior of check_nullifier and can be used in txe
-     */
-    fn check_nullifier_txe(self, context: &mut PrivateContext) -> Field {
-        let nullifier = self.compute_nullifier_without_context();
-        let nullifier_exists = unsafe { check_nullifier_exists(nullifier) };
-        assert(!nullifier_exists, "Entitlement has already been claimed");
-        nullifier
-    }
-
-    /**
-     * Ensure that the note nullifier has not been used before
-     *
-     * @param context - the private context to use for the oracle call
-     * @return - the nullifier for the note
-     */
-    fn check_nullifier(self, context: &mut PrivateContext) -> Field {
-        let nullifier = self.compute_nullifier_without_context();
-        context.historical_header.prove_nullifier_non_inclusion(nullifier);
-        nullifier
     }
 
     /**
@@ -284,8 +290,8 @@ impl EntitlementNote {
     fn check_and_emit_recurring_nullifier(self, context: &mut PrivateContext, timestamp: Field) {
         // derive recurring nullifier for the month
         let recurring_nullifier = self.derive_recurring_nullifier(timestamp);
+        // check the nullifier has not been emitted via oracle call (rely on kernel to actually constrain)
         let recurring_nullifier_exists = unsafe { check_nullifier_exists(recurring_nullifier) };
-        // check the nullifeir has not been emitted via oracle call (rely on kernel to actually constrain)
         assert(!recurring_nullifier_exists, "Entitlement has already been claimed for this month");
         // emit the nullifier
         context.push_nullifier(recurring_nullifier);

@@ -119,8 +119,13 @@ impl<T> EntitlementSet<T, &mut PrivateContext> {
                 EntitlementNote::properties().spot,
                 Comparator.EQ,
                 spot
-            ).set_limit(1);
-        let notes = self.set.at(scope).get_notes(options);
+            ).set_limit(1).set_status(NoteStatus.ACTIVE);
+        let mut notes: BoundedVec<T, 16> = BoundedVec::new();
+        if spot {
+            notes = self.set.at(scope).pop_notes(options);
+        } else {
+            notes = self.set.at(scope).get_notes(options);
+        }
         // return note if found
         if notes.len() > 0 {
             Option::some(notes.get_unchecked(0))
@@ -141,15 +146,16 @@ impl<T> EntitlementSet<T, &mut PrivateContext> {
         context: &mut PrivateContext,
         admin: AztecAddress,
         recipient: AztecAddress,
-        note: &mut T
+        admin_note: &mut T,
+        recipient_note: &mut T
     ) where T: NoteInterface<T_SERIALIZED_LEN> + NullifiableNote + Eq {
         // encryption/ nullifier keys keys for admin and recipient
         let recipient_keys = get_public_keys(recipient);
         let admin_keys = get_public_keys(admin);
         // add note to recipient set and receipt to admin set
         // admin really has little reason to lie here- technically they could but it would destroy their own reimbursement platform
-        self.set.at(admin).insert(note).emit(encode_and_encrypt_note_unconstrained(context, admin_keys.ovpk_m, admin_keys.ivpk_m, admin));
-        self.set.at(recipient).insert(note).emit(encode_and_encrypt_note_unconstrained(context, recipient_keys.ovpk_m, recipient_keys.ivpk_m, recipient));
+        self.set.at(admin).insert(admin_note).emit(encode_and_encrypt_note_unconstrained(context, admin_keys.ovpk_m, admin_keys.ivpk_m, admin));
+        self.set.at(recipient).insert(recipient_note).emit(encode_and_encrypt_note_unconstrained(context, recipient_keys.ovpk_m, recipient_keys.ivpk_m, recipient));
     }
 
     /**
@@ -163,7 +169,7 @@ impl<T> EntitlementSet<T, &mut PrivateContext> {
      * @param spot - if true, check for spot entitlements. If false, check for recurring entitlements
      * @return - the entitlement note that was popped
      */
-    pub fn nullify_entitlement<let T_SERIALIZED_LEN: u32>(
+    pub fn pop_entitlement<let T_SERIALIZED_LEN: u32>(
         self,
         scope: AztecAddress,
         recipient: AztecAddress,
@@ -184,7 +190,7 @@ impl<T> EntitlementSet<T, &mut PrivateContext> {
                 EntitlementNote::properties().spot,
                 Comparator.EQ,
                 spot
-            ).set_limit(1);
+            ).set_limit(1).set_status(NoteStatus.ACTIVE);
         let notes = self.set.at(scope).pop_notes(options);
         assert(notes.len() > 0, "No matching entitlement found");
         notes.get_unchecked(0)

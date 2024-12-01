@@ -204,15 +204,6 @@ impl EntitlementNote {
     }
 
     /**
-     * Determine if the entitlement is a spot entitlement by checking if date_start is set
-     *
-     * @return true if entitlement can only be used once, and false if it is recurring
-     */
-    fn is_spot(self) -> bool {
-        self.date_start != 0
-    }
-
-    /**
      * Return the destination of the entitlement
      *
      * @return the utf8 bytes of the destination

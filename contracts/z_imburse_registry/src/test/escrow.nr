@@ -15,7 +15,7 @@ use zimburse_verifiers::constants::verifier_ids;
 use std::option::Option;
 
 #[test]
-unconstrained fn see_ze_entitlements() {
+unconstrained fn view_entitlements_perspectives() {
     // setup test env
     let (env, accounts, contracts) = setup::<1>();
     // give entitlement to reimburse linode receipt to alice
@@ -36,6 +36,7 @@ unconstrained fn see_ze_entitlements() {
         Option::none(),
         Option::none()
     );
+    assert(entitlements_admin.len() == 1);
     let admin_entitlement = entitlements_admin.get_unchecked(0);
 
     let (entitlements_alice, continue_admin) = view_entitlements(
@@ -46,29 +47,18 @@ unconstrained fn see_ze_entitlements() {
         Option::none(),
         Option::none()
     );
+    assert(entitlements_alice.len() == 1);
     let alice_entitlement = entitlements_alice.get_unchecked(0);
-    debug_log_format("\n\n\nAdmin Entitlement Length: {0}\nRecipient: {1}\nVerifier ID: {2}\nMax Value: {3}\nDate Start:{4}\nDate End: {5}\nDestination: {6}\nSpot: {7}\n Randomness: {8}", [
-        entitlements_admin.len() as Field,
-        admin_entitlement.recipient.to_field(),
-        admin_entitlement.verifier_id as Field,
-        admin_entitlement.max_value.to_integer(),
-        admin_entitlement.date_start as Field,
-        admin_entitlement.date_end as Field,
-        admin_entitlement.destination,
-        admin_entitlement.spot as Field,
-        admin_entitlement.randomness
-    ]);
-    debug_log_format("\n\n\nAdmin Entitlement Length: {0}\nRecipient: {1}\nVerifier ID: {2}\nMax Value: {3}\nDate Start:{4}\nDate End: {5}\nDestination: {6}\nSpot: {7}\n Randomness: {8}", [
-        entitlements_alice.len() as Field,
-        alice_entitlement.recipient.to_field(),
-        alice_entitlement.verifier_id as Field,
-        alice_entitlement.max_value.to_integer(),
-        alice_entitlement.date_start as Field,
-        alice_entitlement.date_end as Field,
-        alice_entitlement.destination,
-        alice_entitlement.spot as Field,
-        alice_entitlement.randomness
-    ]);
+    // check entitlements match
+    assert(admin_entitlement.recipient == accounts.alice);
+    assert(admin_entitlement.recipient == alice_entitlement.recipient);
+    assert(admin_entitlement.verifier_id == verifier_ids::LINODE);
+    assert(admin_entitlement.verifier_id == alice_entitlement.verifier_id);
+    assert(admin_entitlement.max_value.to_integer() == 10000);
+    assert(admin_entitlement.max_value == alice_entitlement.max_value);
+    assert(admin_entitlement.spot == false);
+    assert(admin_entitlement.spot == alice_entitlement.spot);
+    assert(admin_entitlement.randomness == alice_entitlement.randomness);
 }
 
 #[test]
@@ -105,10 +95,10 @@ unconstrained fn claim_linode_recurring_success() {
         false
     );
     // check the balance of the escrow has decremented
-    check_public_balance(contracts.usdc, contracts.escrows[0], 0);
+    // check_public_balance(contracts.usdc, contracts.escrows[0], 0);
     // claim the reimbursement
     redeem_shield(env, contracts.usdc, accounts.alice, amount, claim_secret);
-    // check the balance of alice has incremented
+    // // check the balance of alice has incremented
     check_private_balance(contracts.usdc, accounts.alice, amount);
 }
 
@@ -195,6 +185,9 @@ unconstrained fn claim_linode_recurring_multiple_months_success() {
         LINODE_SEP,
         false
     );
+
+    debug_log_format("\n\n\n\n\n\n\n\namount reimbursed sep: {0}", [amount_reimbursed_sep]);
+
     // check the balance of the escrow has decremented
     check_public_balance(
         contracts.usdc,

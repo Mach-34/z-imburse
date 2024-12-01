@@ -85,6 +85,10 @@ unconstrained pub fn check_public_balance(
     let balances_slot = Token::storage_layout().public_balances.slot;
     let address_slot = derive_storage_slot_in_map(balances_slot, address);
     let amount: U128 = storage_read(token_contract_address, address_slot, block_number);
+    aztec::oracle::debug_log::debug_log_format("\n\n\nAddress amount: {0}\nAmount: {1}", [
+        address_amount,
+        amount.to_field()
+    ]);
     assert(amount.to_field() == address_amount, "Public balance is not correct");
     cheatcodes::set_contract_address(current_contract_address);
 }

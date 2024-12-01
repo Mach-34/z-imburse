@@ -277,9 +277,7 @@ contract ZImburseRegistry {
         let notes = storage.managed_escrows.view_notes(options);
         let mut managed_escrows = BoundedVec::new();
         for i in 0..notes.len() {
-            if i < notes.len() {
-                managed_escrows.push(notes.get_unchecked(i).address);
-            }
+            managed_escrows.push(notes.get_unchecked(i).address);
         }
         (managed_escrows, notes.len() == MAX_NOTES_PER_PAGE)
     }
@@ -300,9 +298,7 @@ contract ZImburseRegistry {
         let notes = storage.participant_escrows.view_notes(options);
         let mut participant_escrows: BoundedVec<AztecAddress, MAX_NOTES_PER_PAGE> = BoundedVec::new();
         for i in 0..notes.len() {
-            if i < notes.len() {
-                participant_escrows.push(notes.get_unchecked(i).address);
-            }
+            participant_escrows.push(notes.get_unchecked(i).address);
         }
         (participant_escrows, notes.len() == MAX_NOTES_PER_PAGE)
     }

@@ -5,10 +5,7 @@ export type AmericanAirlinesInputs = { from_index: number, subject_index: number
 export type FrontierInputs = { from_index: number, purchase_total_indices: number[], subject_index: number } & CircuitInput;
 
 export type LinodeInputs = {
-    amount_sequence: {
-        index: number,
-        length: number
-    };
+    amount_index: number;
     from_index: number;
     subject_index: number;
     date_index: number
@@ -42,10 +39,7 @@ export type RedeemLinodeInputs = {
     body_hash_index: bigint | number,
     from_index: bigint | number,
     subject_index: bigint | number,
-    amount_sequence: {
-        index: bigint | number,
-        length: bigint | number,
-    },
+    amount_index: bigint | number,
     date_index: bigint | number,
     receipt_id_length: bigint | number,
 };

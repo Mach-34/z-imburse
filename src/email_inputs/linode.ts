@@ -49,7 +49,7 @@ export const formatRedeemLinode = (
     body_hash_index: Number(inputs.body_hash_index),
     from_index: inputs.from_index,
     subject_index: inputs.subject_index,
-    amount_sequence: inputs.amount_sequence,
+    amount_index: inputs.amount_index,
     date_index: inputs.date_index,
     receipt_id_length: inputs.receipt_id_length,
   }
@@ -73,10 +73,6 @@ export const makeLinodeInputs = async (
   const fromParams = getSequenceParams(Regexes.from, header);
   if (fromParams === null) throw new Error("No 'from' field found in email");
 
-  // extract the index of the date field
-  const dateField = Regexes.date.exec(header);
-  if (dateField === null) throw new Error("No 'date' field found in email");
-
   // extract the index and length of the subject field
   const subjectParams = getSequenceParams(Regexes.subject, header);
   if (subjectParams === null)
@@ -88,6 +84,13 @@ export const makeLinodeInputs = async (
   if (billMatch === null) {
     throw Error("No 'amount' could be extracted from body");
   }
+
+  // get the index of the date field
+  let dateIndex = body.indexOf("Payment Date: ");
+  if (dateIndex === -1) {
+    throw Error("No 'Payment Date' field found in email body");
+  }
+  dateIndex = dateIndex + "Payment Date: ".length;
 
   const { length: subjectLen, index: subjectIndex } = subjectParams;
   const receipt_id_length = calculateReceiptIdLength(
@@ -105,13 +108,10 @@ export const makeLinodeInputs = async (
       storage: baseInputs.header.storage.fill('0', Number(baseInputs.header.len)),
       len: baseInputs.header.len
     },
-    amount_sequence: {
-      index: billMatch.index as number,
-      length: billMatch[0].length
-    },
+    amount_index: billMatch.index as number,
     from_index: fromParams.index,
     subject_index: subjectParams.index,
-    date_index: dateField.index,
+    date_index: dateIndex,
     receipt_id_length,
   };
   return inputs;

@@ -35,23 +35,6 @@ import {
 } from '@aztec/aztec.js';
 import ZImburseEscrowContractArtifactJson from './ZImburseEscrow.json' assert { type: 'json' };
 //@ts-ignore
-//@ts-ignore
-//@ts-ignore
-//@ts-ignore
-//@ts-ignore
-//@ts-ignore
-//@ts-ignore
-//@ts-ignore
-//@ts-ignore
-//@ts-ignore
-//@ts-ignore
-//@ts-ignore
-//@ts-ignore
-//@ts-ignore
-//@ts-ignore
-//@ts-ignore
-//@ts-ignore
-//@ts-ignore
 export const ZImburseEscrowContractArtifact = loadContractArtifact(ZImburseEscrowContractArtifactJson as NoirCompiledContract);
 
 
@@ -144,15 +127,18 @@ export class ZImburseEscrowContract extends ContractBase {
   }
   
 
-  public static get storage(): ContractStorageLayout<'definition' | 'entitlements'> {
+  public static get storage(): ContractStorageLayout<'definition' | 'entitlements' | 'nullifiers'> {
       return {
         definition: {
       slot: new Fr(1n),
     },
 entitlements: {
       slot: new Fr(6n),
+    },
+nullifiers: {
+      slot: new Fr(7n),
     }
-      } as ContractStorageLayout<'definition' | 'entitlements'>;
+      } as ContractStorageLayout<'definition' | 'entitlements' | 'nullifiers'>;
     }
     
 
@@ -189,6 +175,9 @@ EntitlementNote: {
     /** get_registration_params() */
     get_registration_params: (() => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
+    /** get_shared_nullifier(offset: integer, scope: struct, recipient: struct, verifier_id: integer, spot: boolean) */
+    get_shared_nullifier: ((offset: (bigint | number), scope: AztecAddressLike, recipient: AztecAddressLike, verifier_id: (bigint | number), spot: boolean) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+
     /** get_title() */
     get_title: (() => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
@@ -202,10 +191,10 @@ EntitlementNote: {
     public_dispatch: ((selector: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
     /** reimburse_linode_recurring(email_receipt_inputs: struct, claim_secret_hash: field) */
-    reimburse_linode_recurring: ((email_receipt_inputs: { header: (bigint | number)[], header_length: (bigint | number), pubkey_modulus: FieldLike[], pubkey_redc: FieldLike[], signature: FieldLike[], dkim_header_sequence: { index: (bigint | number), length: (bigint | number) }, body: (bigint | number)[], body_length: (bigint | number), body_hash_index: (bigint | number), from_index: (bigint | number), subject_index: (bigint | number), amount_sequence: { index: (bigint | number), length: (bigint | number) }, date_index: (bigint | number), receipt_id_length: (bigint | number) }, claim_secret_hash: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+    reimburse_linode_recurring: ((email_receipt_inputs: { header: (bigint | number)[], header_length: (bigint | number), pubkey_modulus: FieldLike[], pubkey_redc: FieldLike[], signature: FieldLike[], dkim_header_sequence: { index: (bigint | number), length: (bigint | number) }, body: (bigint | number)[], body_length: (bigint | number), body_hash_index: (bigint | number), from_index: (bigint | number), subject_index: (bigint | number), amount_index: (bigint | number), date_index: (bigint | number), receipt_id_length: (bigint | number) }, claim_secret_hash: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
     /** reimburse_linode_spot(email_receipt_inputs: struct, claim_secret_hash: field) */
-    reimburse_linode_spot: ((email_receipt_inputs: { header: (bigint | number)[], header_length: (bigint | number), pubkey_modulus: FieldLike[], pubkey_redc: FieldLike[], signature: FieldLike[], dkim_header_sequence: { index: (bigint | number), length: (bigint | number) }, body: (bigint | number)[], body_length: (bigint | number), body_hash_index: (bigint | number), from_index: (bigint | number), subject_index: (bigint | number), amount_sequence: { index: (bigint | number), length: (bigint | number) }, date_index: (bigint | number), receipt_id_length: (bigint | number) }, claim_secret_hash: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+    reimburse_linode_spot: ((email_receipt_inputs: { header: (bigint | number)[], header_length: (bigint | number), pubkey_modulus: FieldLike[], pubkey_redc: FieldLike[], signature: FieldLike[], dkim_header_sequence: { index: (bigint | number), length: (bigint | number) }, body: (bigint | number)[], body_length: (bigint | number), body_hash_index: (bigint | number), from_index: (bigint | number), subject_index: (bigint | number), amount_index: (bigint | number), date_index: (bigint | number), receipt_id_length: (bigint | number) }, claim_secret_hash: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
     /** reimburse_united_spot(email_inputs: struct, amount_to_date_length: integer, remaining_length: integer, actual_length: integer, claim_secret_hash: field) */
     reimburse_united_spot: ((email_inputs: { header: (bigint | number)[], header_length: (bigint | number), pubkey_modulus: FieldLike[], pubkey_redc: FieldLike[], signature: FieldLike[], dkim_header_sequence: { index: (bigint | number), length: (bigint | number) }, body_hash_index: (bigint | number), from_index: (bigint | number), subject_index: (bigint | number), amount_sequence: { index: (bigint | number), length: (bigint | number) }, date_sequence: { index: (bigint | number), length: (bigint | number) }, airport_sequence: { index: (bigint | number), length: (bigint | number) }, partial_body_hash: (bigint | number)[], body_amount_selection: (bigint | number)[], partial_body_hash_date: (bigint | number)[], body_date_selection: (bigint | number)[] }, amount_to_date_length: (bigint | number), remaining_length: (bigint | number), actual_length: (bigint | number), claim_secret_hash: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;

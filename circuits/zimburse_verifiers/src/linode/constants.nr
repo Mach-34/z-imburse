@@ -35,7 +35,7 @@ struct LinodeBillingParams {
     body_hash_index: u32,
     from_index: u32,
     subject_index: u32,
-    amount_sequence: Sequence,
+    amount_index: u32,
     date_index: u32,
     receipt_id_length: u32
 }
@@ -53,7 +53,7 @@ struct LinodeBillingParamsContract {
 	body_hash_index: u32,
 	from_index: u32,
 	subject_index: u32,
-	amount_sequence: Sequence,
+	amount_index: u32,
 	date_index: u32,
 	receipt_id_length: u32
 }
@@ -73,7 +73,7 @@ impl LinodeBillingParamsContract {
 			body_hash_index: params.body_hash_index,
 			from_index: params.from_index,
 			subject_index: params.subject_index,
-			amount_sequence: params.amount_sequence,
+			amount_index: params.amount_index,
 			date_index: params.date_index,
 			receipt_id_length: params.receipt_id_length
 		}
@@ -89,7 +89,7 @@ impl LinodeBillingParamsContract {
 			body_hash_index: self.body_hash_index,
 			from_index: self.from_index,
 			subject_index: self.subject_index,
-			amount_sequence: self.amount_sequence,
+			amount_index: self.amount_index,
 			date_index: self.date_index,
 			receipt_id_length: self.receipt_id_length
 		}

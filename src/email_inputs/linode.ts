@@ -48,7 +48,7 @@ export const formatRedeemLinode = (
     body_hash_index: Number(inputs.body_hash_index),
     from_index: inputs.from_index,
     subject_index: inputs.subject_index,
-    amount_sequence: inputs.amount_sequence,
+    amount_index: inputs.amount_index,
     date_index: inputs.date_index,
     receipt_id_length: inputs.receipt_id_length,
   }
@@ -100,10 +100,7 @@ export const makeLinodeInputs = async (
 
   const inputs = {
     ...baseInputs,
-    amount_sequence: {
-      index: billMatch.index as number,
-      length: billMatch[0].length
-    },
+    amount_index: billMatch.index as number,
     from_index: fromParams.index,
     subject_index: subjectParams.index,
     date_index: dateField.index,

@@ -15,7 +15,7 @@ pub fn verify_linode_billing_receipt(
     body_hash_index: u32,
     from_index: u32,
     subject_index: u32,
-    amount_sequence: Sequence,
+    amount_index: u32,
     date_index: u32,
     receipt_id_length: u32
 ) -> [Field; 3] {
@@ -45,7 +45,7 @@ pub fn verify_linode_billing_receipt(
 
     // extract billed amount
     // note: the billed amount has 2 decimals
-    let billed_amount = extract_billed_amount(body, amount_sequence);
+    let billed_amount = extract_billed_amount(body, amount_index);
 
     // extract the timestamp header from the email
     let datetime = extract_datetime(header.storage, date_index);

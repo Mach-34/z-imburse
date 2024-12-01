@@ -52,8 +52,6 @@ pub fn parse_month(month: [u8; 3]) -> u8 {
     index
 }
 
-// todo: is leap year + is past feb 29th
-
 pub fn compute_leap_years(year: u16) -> u16 {
     year / 4 - year / 100 + year / 400
 }

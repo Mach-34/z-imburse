@@ -45,16 +45,16 @@ verifier_id: (bigint | number)
       }
     
 
+      export type EntitlementNullified = {
+        randomness: FieldLike
+      }
+    
+
       export type RecurringReimbursementClaimed = {
         claimant: AztecAddressLike
 amount: FieldLike
 verifier_id: (bigint | number)
 timestamp: FieldLike
-      }
-    
-
-      export type EntitlementNullified = {
-        randomness: FieldLike
       }
     
 
@@ -233,7 +233,7 @@ EntitlementNote: {
       };
     }
 
-    public static get events(): { SpotReimbursementClaimed: {decode: (payload: L1EventPayload | UnencryptedL2Log | undefined) => SpotReimbursementClaimed | undefined, eventSelector: EventSelector, fieldNames: string[] }, RecurringReimbursementClaimed: {decode: (payload: L1EventPayload | UnencryptedL2Log | undefined) => RecurringReimbursementClaimed | undefined, eventSelector: EventSelector, fieldNames: string[] }, EntitlementNullified: {decode: (payload: L1EventPayload | UnencryptedL2Log | undefined) => EntitlementNullified | undefined, eventSelector: EventSelector, fieldNames: string[] } } {
+    public static get events(): { SpotReimbursementClaimed: {decode: (payload: L1EventPayload | UnencryptedL2Log | undefined) => SpotReimbursementClaimed | undefined, eventSelector: EventSelector, fieldNames: string[] }, EntitlementNullified: {decode: (payload: L1EventPayload | UnencryptedL2Log | undefined) => EntitlementNullified | undefined, eventSelector: EventSelector, fieldNames: string[] }, RecurringReimbursementClaimed: {decode: (payload: L1EventPayload | UnencryptedL2Log | undefined) => RecurringReimbursementClaimed | undefined, eventSelector: EventSelector, fieldNames: string[] } } {
     return {
       SpotReimbursementClaimed: {
         decode: this.decodeEvent(EventSelector.fromSignature('SpotReimbursementClaimed((Field),Field,u8)'), {
@@ -273,6 +273,22 @@ EntitlementNote: {
 }),
         eventSelector: EventSelector.fromSignature('SpotReimbursementClaimed((Field),Field,u8)'),
         fieldNames: ["claimant","amount","verifier_id"],
+      },
+EntitlementNullified: {
+        decode: this.decodeEvent(EventSelector.fromSignature('EntitlementNullified(Field)'), {
+    "fields": [
+        {
+            "name": "randomness",
+            "type": {
+                "kind": "field"
+            }
+        }
+    ],
+    "kind": "struct",
+    "path": "ZImburseEscrow::EntitlementNullified"
+}),
+        eventSelector: EventSelector.fromSignature('EntitlementNullified(Field)'),
+        fieldNames: ["randomness"],
       },
 RecurringReimbursementClaimed: {
         decode: this.decodeEvent(EventSelector.fromSignature('RecurringReimbursementClaimed((Field),Field,u8,Field)'), {
@@ -318,22 +334,6 @@ RecurringReimbursementClaimed: {
 }),
         eventSelector: EventSelector.fromSignature('RecurringReimbursementClaimed((Field),Field,u8,Field)'),
         fieldNames: ["claimant","amount","verifier_id","timestamp"],
-      },
-EntitlementNullified: {
-        decode: this.decodeEvent(EventSelector.fromSignature('EntitlementNullified(Field)'), {
-    "fields": [
-        {
-            "name": "randomness",
-            "type": {
-                "kind": "field"
-            }
-        }
-    ],
-    "kind": "struct",
-    "path": "ZImburseEscrow::EntitlementNullified"
-}),
-        eventSelector: EventSelector.fromSignature('EntitlementNullified(Field)'),
-        fieldNames: ["randomness"],
       }
     };
   }

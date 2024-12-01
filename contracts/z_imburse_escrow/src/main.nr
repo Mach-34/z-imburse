@@ -18,10 +18,11 @@ contract ZImburseEscrow {
         macros::{
             storage::storage, events::event,
             functions::{private, public, internal, view, initializer},
-        }, note::constants::MAX_NOTES_PER_PAGE, prelude::{AztecAddress, SharedImmutable},
+        }, note::constants::MAX_NOTES_PER_PAGE, prelude::{AztecAddress, SharedImmutable, Map},
         protocol_types::traits::Serialize,
     };
     use zimburse_verifiers::{
+        constants::{verifier_ids, USDC_DECIMALS},
         united::constants::UnitedBillingParamsContract,
         zkemail::{
             KEY_LIMBS_2048, Sequence, dkim::RSAPubkey,
@@ -35,7 +36,7 @@ contract ZImburseEscrow {
             linode::linode,
             entitlements::give_entitlement,
         }, contract_interfaces::{check_dkim_key_hash_private, shield_to_claimant},
-        verifiers::{verify_united_deferred, verifier_ids},
+        verifiers::verify_united_deferred,
         types::{
             escrow_definition::{EscrowDefinition, TITLE_LENGTH}, entitlement_note::EntitlementNote,
             entitlement_set::EntitlementSet,
@@ -69,6 +70,7 @@ contract ZImburseEscrow {
     struct Storage<Context> {
         definition: SharedImmutable<EscrowDefinition, Context>,
         entitlements: EntitlementSet<EntitlementNote, Context>,
+        nullifiers: Map<Field, SharedImmutable<bool, Context>, Context>
     }
 
     /**
@@ -140,6 +142,12 @@ contract ZImburseEscrow {
         );
     }
 
+    #[public]
+    #[internal]
+    pub fn init_nullifier(nullifier: Field) { 
+        storage.nullifiers.at(nullifier).initialize(true);
+    }
+
     /**
      * Claim a recurring reimbursement for a Linode hosting receipt
      * @dev use separate function from spot to optimize gates by avoiding if statements
@@ -164,8 +172,9 @@ contract ZImburseEscrow {
         );
 
         // check that the entitlement has not been nullified by the admin
-        // let _ = entitlement.check_nullifier(&mut context); // <-- cant be used in txe
-        let _ = entitlement.check_nullifier_txe(&mut context); // <-- doesn't actually constrain nullifier to exist
+        let shared_nullifier = entitlement.derive_shared_nullifier();
+        let is_nullified = storage.nullifiers.at(shared_nullifier).read_private();
+        assert(!is_nullified, "Entitlement is nullified");
 
         // check and emit recurring nullification
         entitlement.check_and_emit_recurring_nullifier(&mut context, timestamp);
@@ -204,11 +213,14 @@ contract ZImburseEscrow {
         entitlement.check_date_range(timestamp as u32);
 
         // check that the entitlement has not been nullified by the admin
-        // let nullifier = entitlement.check_nullifier(&mut context); // <-- cant be used in txe
-        let nullifier = entitlement.check_nullifier_txe(&mut context); // <-- doesn't actually constrain nullifier to exist
+        let shared_nullifier = entitlement.derive_shared_nullifier();
+        let is_nullified = storage.nullifiers.at(shared_nullifier).read_private();
+        assert(!is_nullified, "Entitlement is nullified");
 
         // broadcast the note nullifier
-        context.push_nullifier(nullifier);
+        ZImburseEscrow::at(context.this_address())
+            .init_nullifier(shared_nullifier)
+            .enqueue(&mut context);
 
         // emit event to notify admin of spot entitlement consumption
         entitlement.emit_nullified(&mut context, entitlement.recipient, sender);
@@ -217,7 +229,7 @@ contract ZImburseEscrow {
         entitlement.emit_spot_claim(
             &mut context,
             admin,
-            amount_to_reimburse,
+            amount_to_reimburse
         );
 
         // return the amount reimbursed
@@ -242,7 +254,7 @@ contract ZImburseEscrow {
         claim_secret_hash: Field,
     ) -> Field {
         let extracted = [0, 0, 0];
-        let billed_amount = U128::from_integer(extracted[0] * 10000);
+        let billed_amount = U128::from_integer(extracted[0] * USDC_DECIMALS);
         let timestamp = extracted[1];
         let destination_airport = extracted[2];
         let sender = context.msg_sender();
@@ -271,8 +283,12 @@ contract ZImburseEscrow {
         shield_to_claimant(&mut context, definition.usdc, amount_to_reimburse, claim_secret_hash);
         let email_nullifier = pedersen_hash(email_inputs.signature);
         context.push_nullifier(email_nullifier);
-        let nullifier = entitlement.check_nullifier(&mut context);
-        context.push_nullifier(nullifier);
+
+        let shared_nullifier = entitlement.derive_shared_nullifier();
+        let is_nullified = storage.nullifiers.at(shared_nullifier).read_private();
+        assert(!is_nullified, "Entitlement is nullified");
+        ZImburseEscrow::at(context.this_address()).init_nullifier(shared_nullifier).enqueue(&mut context);
+        
         entitlement.emit_nullified(&mut context, entitlement.recipient, sender);
         entitlement.emit_spot_claim(
             &mut context,
@@ -403,7 +419,7 @@ contract ZImburseEscrow {
         assert(sender == defintion.admin, "Only the escrow admin can revoke entitlements");
 
         // try to pop a note for this recipient
-        let entitlement = storage.entitlements.nullify_entitlement(
+        let entitlement = storage.entitlements.pop_entitlement(
             sender,
             recipient,
             verifier_type,
@@ -412,10 +428,14 @@ contract ZImburseEscrow {
         // ensure the note is to/ from correctly
         assert(entitlement.recipient == recipient, "Entitlement does not belong to the recipient");
 
-        // broadcast the note nullifier
-        let nullifier = entitlement.compute_nullifier_without_context();
-        context.push_nullifier(nullifier);
-
+        // nullify the entitlement
+        let shared_nullifier = entitlement.derive_shared_nullifier();
+        let is_nullified = storage.nullifiers.at(shared_nullifier).read_private();
+        assert(!is_nullified, "Entitlement is already nullified");
+        ZImburseEscrow::at(context.this_address())
+            .init_nullifier(shared_nullifier)
+            .enqueue(&mut context);
+        
         // emit event to notify recipient of revocation
         entitlement.emit_nullified(&mut context, entitlement.recipient, sender);
     }
@@ -476,6 +496,28 @@ contract ZImburseEscrow {
             verifier_id,
             spot
         )
+    }
+
+    unconstrained pub fn get_shared_nullifier(
+        offset: u32,
+        scope: AztecAddress,
+        recipient: AztecAddress,
+        verifier_id: u8,
+        spot: bool
+    ) -> Option<Field> {
+        let (entitlements, _) = storage.entitlements.view_entitlements(
+            offset,
+            scope,
+            Option::some(recipient),
+            Option::some(verifier_id),
+            Option::some(spot)
+        );
+        if entitlements.len() == 0 {
+            Option::none()
+        } else {
+            let entitlement = entitlements.get_unchecked(0);
+            Option::some(entitlement.derive_shared_nullifier())
+        }
     }
 }
 

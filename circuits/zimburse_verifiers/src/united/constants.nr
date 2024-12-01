@@ -108,6 +108,12 @@ impl UnitedBillingParamsContract {
 	}
 
 	fn marshal(self) -> UnitedBillingParams {
+
+		// check that header sequence falls within specified length
+		for i in 0..MAX_UNITED_EMAIL_HEADER_LENGTH {
+			assert((i < self.header_length) | (self.header[i] == 0), "Header exceeds specified length");
+		}
+
 		UnitedBillingParams {
 			header: BoundedVec { storage: self.header, len: self.header_length },
 			pubkey: RSAPubkey { modulus: self.pubkey_modulus, redc: self.pubkey_redc },

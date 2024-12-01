@@ -113,9 +113,7 @@ unconstrained pub fn reimburse_linode(
 ) -> (Field, Field) {
     env.impersonate(claimant);
     // get claim hash
-    let secret = unsafe {
-        random()
-    };
+    let secret = unsafe { random() };
     let claim_hash = compute_secret_hash(secret);
     let escrow = ZImburseEscrow::at(escrow_address);
 

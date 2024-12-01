@@ -2,7 +2,7 @@ import { describe, expect, jest } from "@jest/globals";
 import { ZKEmailProver } from "@zk-email/zkemail-nr/dist/prover"
 import { makeLinodeInputs } from '../../src/email_inputs/linode';
 import LinodeCircuit from '../../src/artifacts/circuits/linode_email_verifier.json';
-import { toBigIntBE } from '../../src/utils';
+import { parseStringBytes, toBigIntBE, toBufferBE } from '../../src/utils';
 import { emails } from '../utils/fs';
 
 describe("Linode Billing Receipt Test", () => {
@@ -20,19 +20,17 @@ describe("Linode Billing Receipt Test", () => {
         it("Linode::September2024", async () => {
             // build inputs
             const inputs = await makeLinodeInputs(emails.linode_sep);
-            let x = new Uint8Array(inputs.body!.storage.map((byte) => parseInt(byte)));
-            console.log("x", x)
-            // // simulate witness
-            // const { returnValue } = await prover.simulateWitness({ params: inputs });
-            // // check the returned values
-            // // this linode email has a value of $22.00
-            // const values = (returnValue as string[]).map(x => toBigIntBE(new Uint8Array(Buffer.from(x.slice(2), 'hex'))));
-            // expect(values[2]).toEqual(2200n);
-            // // todo: check expected date matches
-            // console.log(new Date(Number(values[1]) * 1000))
-
+            // simulate witness
+            const { returnValue } = await prover.simulateWitness({ params: inputs });
+            // check the returned values
+            // this linode email has a value of $22.00
+            const values = (returnValue as string[]).map(x => toBigIntBE(new Uint8Array(Buffer.from(x.slice(2), 'hex'))));
+            expect(values[2]).toEqual(2200n);
+            // check expected date matches
+            const monthYear = Buffer.from(toBufferBE(values[1], 8)).reverse().toString();
+            expect(monthYear).toEqual("Sep 2024");
         })
-        xit("Linode::October2024", async () => {
+        it("Linode::October2024", async () => {
             // build inputs
             const inputs = await makeLinodeInputs(emails.linode_oct);
             // simulate witness
@@ -40,8 +38,9 @@ describe("Linode Billing Receipt Test", () => {
             // check the returned values
             const values = (returnValue as string[]).map(x => toBigIntBE(new Uint8Array(Buffer.from(x.slice(2), 'hex'))));
             expect(values[2]).toEqual(2200n);
-            // todo: check expected date matches
-            console.log(new Date(Number(values[1]) * 1000))
+            // check expected date matches
+            const monthYear = Buffer.from(toBufferBE(values[1], 8)).reverse().toString();
+            expect(monthYear).toEqual("Oct 2024");
         })
     })
 

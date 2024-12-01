@@ -5,7 +5,6 @@ import LinodeCircuit from '../../src/artifacts/circuits/linode_email_verifier.js
 import { toBigIntBE } from '../../src/utils';
 import { emails } from '../utils/fs';
 
-
 describe("Linode Billing Receipt Test", () => {
     let prover: ZKEmailProver;
     jest.setTimeout(1000000);
@@ -21,9 +20,7 @@ describe("Linode Billing Receipt Test", () => {
         it("Linode::September2024", async () => {
             // build inputs
             const inputs = await makeLinodeInputs(emails.linode_sep);
-            const header = Buffer.from(inputs.header!.storage.slice(0, parseInt(inputs.header!.len)).map((byte) => parseInt(byte))).toString();
-            const x = header.slice(inputs.from_index, inputs.from_index + 22);
-            // // simulate witness
+            // simulate witness
             const { returnValue } = await prover.simulateWitness({ params: inputs });
             // check the returned values
             // this linode email has a value of $22.00
@@ -31,8 +28,9 @@ describe("Linode Billing Receipt Test", () => {
             expect(values[2]).toEqual(2200n);
             // todo: check expected date matches
             console.log(new Date(Number(values[1]) * 1000))
+
         })
-        xit("Linode::October2024", async () => {
+        it("Linode::October2024", async () => {
             // build inputs
             const inputs = await makeLinodeInputs(emails.linode_oct);
             // simulate witness

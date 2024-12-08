@@ -10,8 +10,8 @@ use zimburse_verifiers::{
         constants::UnitedBillingParams,
         main::verify_united_deferred_hash
     },
-    zkemail::KEY_LIMBS_2048
 };
+use zkemail::KEY_LIMBS_2048;
 
 pub struct LinodeReceiptOutput {
     dkim_key_hash: Field,

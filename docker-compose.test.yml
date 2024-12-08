@@ -1,6 +1,6 @@
 services:
   txe:
-    image: "aztecprotocol/aztec:0.57.0"
+    image: "aztecprotocol/aztec:0.66.0"
     environment:
       DEBUG: # Loaded from the user shell if explicitly set
       LOG_LEVEL: # Loaded from the user shell if explicitly set
@@ -11,7 +11,7 @@ services:
     command: start --txe --port 8081
 
   aztec-nargo:
-    image: "aztecprotocol/aztec-nargo:0.57.0"
+    image: "aztecprotocol/aztec-nargo:0.66.0"
     environment:
       HOME: # Loaded from the user shell
       NARGO_FOREIGN_CALL_TIMEOUT: "300000" # To avoid timeouts when many tests run at once

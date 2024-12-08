@@ -24,10 +24,7 @@ contract ZImburseEscrow {
     use zimburse_verifiers::{
         constants::{verifier_ids, USDC_DECIMALS},
         united::constants::UnitedBillingParamsContract,
-        zkemail::{
-            KEY_LIMBS_2048, Sequence, dkim::RSAPubkey,
-            partial_hash::{partial_sha256_var_interstitial, partial_sha256_var_end},
-        }, linode::constants::LinodeBillingParamsContract,
+        linode::constants::LinodeBillingParamsContract,
     };
     use crate::{
         capsule::{pop_capsule, arr_field_to_u8, remaining_chunks}, HASH_CHUNK_MAX_LENGTH,
@@ -41,6 +38,10 @@ contract ZImburseEscrow {
             escrow_definition::{EscrowDefinition, TITLE_LENGTH}, entitlement_note::EntitlementNote,
             entitlement_set::EntitlementSet,
         },
+    };
+    use zkemail::{
+        KEY_LIMBS_2048, Sequence, dkim::RSAPubkey,
+        partial_hash::{partial_sha256_var_interstitial, partial_sha256_var_end},
     };
 
     #[event]

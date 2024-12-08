@@ -121,7 +121,7 @@ contract ZImburseRegistry {
             get_contract_instance(escrow_contract)
         };
         let computed_escrow_address = AztecAddress::compute(
-            contract_instance.public_keys_hash,
+            contract_instance.public_keys,
             PartialAddress::compute(
                 ContractClassId::from_field(definition.escrow_contract_id), // constrained here
                 contract_instance.salt,
@@ -158,7 +158,7 @@ contract ZImburseRegistry {
             encode_and_encrypt_note_unconstrained(
                 &mut context,
                 admin_keys.ovpk_m,
-                admin_keys.ivpk_m,
+                context.msg_sender(),
                 context.msg_sender()
             )
         );
@@ -210,14 +210,14 @@ contract ZImburseRegistry {
             encode_and_encrypt_note(
                 &mut context,
                 admin_keys.ovpk_m,
-                participant_keys.ivpk_m,
+                participant,
                 participant
             )
         );
         // add the participant to the admin set of participants
         let mut participant_note = ParticipantNote::new(participant, participant_name, admin_keys.npk_m.hash());
         storage.participants.at(escrow).insert(&mut participant_note).emit(
-            encode_and_encrypt_note_unconstrained(&mut context, admin_keys.ovpk_m, admin_keys.ivpk_m, admin)
+            encode_and_encrypt_note_unconstrained(&mut context, admin_keys.ovpk_m, admin, admin)
         );
     }
 

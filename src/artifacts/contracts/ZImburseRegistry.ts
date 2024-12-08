@@ -29,12 +29,12 @@ import {
   NoteSelector,
   Point,
   type PublicKey,
+  PublicKeys,
   type UnencryptedL2Log,
   type Wallet,
   type WrappedFieldLike,
 } from '@aztec/aztec.js';
-import ZImburseRegistryContractArtifactJson from './ZImburseRegistry.json' assert { type: 'json' };
-// @ts-ignore
+import ZImburseRegistryContractArtifactJson from './z_imburse_registry-ZImburseRegistry.json' assert { type: 'json' };
 export const ZImburseRegistryContractArtifact = loadContractArtifact(ZImburseRegistryContractArtifactJson as NoirCompiledContract);
 
 
@@ -76,25 +76,25 @@ export class ZImburseRegistryContract extends ContractBase {
    * Creates a tx to deploy a new instance of this contract.
    */
   public static deploy(wallet: Wallet, usdc: AztecAddressLike, escrow_contract_id: FieldLike, verifier_ids: FieldLike[], dkim_key_hashes: FieldLike[]) {
-    return new DeployMethod<ZImburseRegistryContract>(Fr.ZERO, wallet, ZImburseRegistryContractArtifact, ZImburseRegistryContract.at, Array.from(arguments).slice(1));
+    return new DeployMethod<ZImburseRegistryContract>(PublicKeys.default(), wallet, ZImburseRegistryContractArtifact, ZImburseRegistryContract.at, Array.from(arguments).slice(1));
   }
 
   /**
    * Creates a tx to deploy a new instance of this contract using the specified public keys hash to derive the address.
    */
-  public static deployWithPublicKeysHash(publicKeysHash: Fr, wallet: Wallet, usdc: AztecAddressLike, escrow_contract_id: FieldLike, verifier_ids: FieldLike[], dkim_key_hashes: FieldLike[]) {
-    return new DeployMethod<ZImburseRegistryContract>(publicKeysHash, wallet, ZImburseRegistryContractArtifact, ZImburseRegistryContract.at, Array.from(arguments).slice(2));
+  public static deployWithPublicKeys(publicKeys: PublicKeys, wallet: Wallet, usdc: AztecAddressLike, escrow_contract_id: FieldLike, verifier_ids: FieldLike[], dkim_key_hashes: FieldLike[]) {
+    return new DeployMethod<ZImburseRegistryContract>(publicKeys, wallet, ZImburseRegistryContractArtifact, ZImburseRegistryContract.at, Array.from(arguments).slice(2));
   }
 
   /**
    * Creates a tx to deploy a new instance of this contract using the specified constructor method.
    */
   public static deployWithOpts<M extends keyof ZImburseRegistryContract['methods']>(
-    opts: { publicKeysHash?: Fr; method?: M; wallet: Wallet },
+    opts: { publicKeys?: PublicKeys; method?: M; wallet: Wallet },
     ...args: Parameters<ZImburseRegistryContract['methods'][M]>
   ) {
     return new DeployMethod<ZImburseRegistryContract>(
-      opts.publicKeysHash ?? Fr.ZERO,
+      opts.publicKeys ?? PublicKeys.default(),
       opts.wallet,
       ZImburseRegistryContractArtifact,
       ZImburseRegistryContract.at,
@@ -205,36 +205,11 @@ ParticipantNote: {
   };
 
   
-    // Partial application is chosen is to avoid the duplication of so much codegen.
-    private static decodeEvent<T>(
-      eventSelector: EventSelector,
-      eventType: AbiType,
-    ): (payload: L1EventPayload | UnencryptedL2Log | undefined) => T | undefined {
-      return (payload: L1EventPayload | UnencryptedL2Log | undefined): T | undefined => {
-        if (payload === undefined) {
-          return undefined;
-        }
-
-        if (payload instanceof L1EventPayload) {
-          if (!eventSelector.equals(payload.eventTypeId)) {
-            return undefined;
-          }
-          return decodeFromAbi([eventType], payload.event.items) as T;
-        } else {
-          let items = [];
-          for (let i = 0; i < payload.data.length; i += 32) {
-            items.push(new Fr(payload.data.subarray(i, i + 32)));
-          }
-
-          return decodeFromAbi([eventType], items) as T;
-        }
-      };
-    }
-
-    public static get events(): { DKIMKeyHashRegistered: {decode: (payload: L1EventPayload | UnencryptedL2Log | undefined) => DKIMKeyHashRegistered | undefined, eventSelector: EventSelector, fieldNames: string[] } } {
+    public static get events(): { DKIMKeyHashRegistered: {abiType: AbiType, eventSelector: EventSelector, fieldNames: string[] } } {
     return {
       DKIMKeyHashRegistered: {
-        decode: this.decodeEvent(EventSelector.fromSignature('DKIMKeyHashRegistered(Field,Field)'), {
+        abiType: {
+    "kind": "struct",
     "fields": [
         {
             "name": "dkim_key_hash",
@@ -249,9 +224,8 @@ ParticipantNote: {
             }
         }
     ],
-    "kind": "struct",
     "path": "ZImburseRegistry::DKIMKeyHashRegistered"
-}),
+},
         eventSelector: EventSelector.fromSignature('DKIMKeyHashRegistered(Field,Field)'),
         fieldNames: ["dkim_key_hash","verifier_id"],
       }

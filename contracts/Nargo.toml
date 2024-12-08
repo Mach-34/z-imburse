@@ -3,5 +3,5 @@ members = [
     "address_note",
     "generators",
     "z_imburse_escrow",
-    "z_imburse_registry",
+    # "z_imburse_registry",
 ]

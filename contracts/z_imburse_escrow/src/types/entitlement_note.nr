@@ -314,7 +314,7 @@ impl EntitlementNote {
             encode_and_encrypt_event(
                 context,
                 get_public_keys(self.recipient).ovpk_m,
-                get_public_keys(admin).ivpk_m,
+                admin,
                 admin
             )
         );
@@ -336,7 +336,7 @@ impl EntitlementNote {
             encode_and_encrypt_event(
                 context,
                 get_public_keys(self.recipient).ovpk_m,
-                get_public_keys(admin).ivpk_m,
+                admin,
                 admin
             )
         );
@@ -356,7 +356,7 @@ impl EntitlementNote {
             encode_and_encrypt_event(
                 context,
                 get_public_keys(from).ovpk_m,
-                get_public_keys(to).ivpk_m,
+                to,
                 to
             )
         );

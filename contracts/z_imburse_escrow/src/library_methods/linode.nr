@@ -1,16 +1,16 @@
 use aztec::prelude::{AztecAddress, PrivateContext};
-use zimburse_verifiers::{
-    constants::verifier_ids,
-    linode::constants::LinodeBillingParamsContract,
-    united::constants::UnitedBillingParamsContract,
-    zkemail::KEY_LIMBS_2048
-};
 use crate::{
     types::entitlement_note::EntitlementNote,
     contract_interfaces::{check_dkim_key_hash_private, shield_to_claimant},
     verifiers::verify_linode,
     ZImburseEscrow::Storage
 };
+use zimburse_verifiers::{
+    constants::verifier_ids,
+    linode::constants::LinodeBillingParamsContract,
+    united::constants::UnitedBillingParamsContract,
+};
+use zkemail::KEY_LIMBS_2048;
 
 /**
  * Shared logic for claiming Linode entitlement

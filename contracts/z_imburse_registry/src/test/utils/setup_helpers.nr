@@ -142,7 +142,7 @@ unconstrained pub fn deploy_token_contract(
     );
     let token_contract = env
         .deploy("./@token_contract", "Token")
-        .with_public_initializer(token_init_call_iface);
+        .with_public_void_initializer(token_init_call_iface);
 
     cheatcodes::advance_blocks_by(1);
 
@@ -178,7 +178,7 @@ unconstrained pub fn deploy_registry_contract(
     );
     let escrow_registry_contract = env
         .deploy_self("ZImburseRegistry")
-        .with_public_initializer(escrow_registry_init_call_iface);
+        .with_public_void_initializer(escrow_registry_init_call_iface);
 
     cheatcodes::advance_blocks_by(1);
 
@@ -209,7 +209,7 @@ unconstrained pub fn deploy_escrow_contract(
     );
     let escrow_contract = env
         .deploy("./@z_imburse_escrow", "ZImburseEscrow")
-        .with_public_initializer(escrow_init_call_iface);
+        .with_public_void_initializer(escrow_init_call_iface);
     cheatcodes::advance_blocks_by(1);
     escrow_contract.to_address()
 }
@@ -223,7 +223,7 @@ unconstrained pub fn get_escrow_contract_class_id(env: &mut TestEnvironment) -> 
     );
     let escrow_contract = env
         .deploy("./@z_imburse_escrow", "ZImburseEscrow")
-        .with_public_initializer(escrow_init_call_iface);
+        .with_public_void_initializer(escrow_init_call_iface);
     cheatcodes::advance_blocks_by(1);    
     escrow_contract.contract_class_id.to_field()
 }

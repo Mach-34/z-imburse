@@ -23,8 +23,7 @@ unconstrained pub fn mint_public(
     amount: Field
 ) {
     env.impersonate(minter);
-    let mint_call_iface = Token::at(token_address).mint_public(recipient, amount);
-    env.call_public(mint_call_iface);
+    let _ = Token::at(token_address).mint_public(recipient, amount).call(&mut env.public());
     cheatcodes::advance_blocks_by(1);
 }
 
@@ -67,8 +66,7 @@ unconstrained pub fn redeem_shield(
 ) {
     env.impersonate(bearer);
     let usdc = Token::at(usdc);
-    let redeem_shield_call_iface = usdc.redeem_shield(bearer, amount, claim_secret);
-    env.call_private_void(redeem_shield_call_iface);
+    let _ = usdc.redeem_shield(bearer, amount, claim_secret).env(&mut env.private());
     cheatcodes::advance_blocks_by(1);
 }
 

@@ -30,8 +30,7 @@ unconstrained pub fn give_recurring_entitlement(
 ) {
     env.impersonate(escrow_admin);
     let escrow = ZImburseEscrow::at(escrow_address);
-    let give_recurring_entitlement_call_iface = escrow.give_recurring_entitlement(recipient, amount, verifier);
-    env.call_private_void(give_recurring_entitlement_call_iface);
+    let _ = escrow.give_recurring_entitlement(recipient, amount, verifier).call(&mut env.private());
     cheatcodes::advance_blocks_by(1);
 }
 
@@ -61,8 +60,7 @@ unconstrained pub fn give_spot_entitlement(
 ) {
     env.impersonate(escrow_admin);
     let escrow = ZImburseEscrow::at(escrow_address);
-    let give_spot_entitlement_call_iface = escrow.give_spot_entitlement(recipient, amount, verifier, date_start, date_end, destination);
-    env.call_private_void(give_spot_entitlement_call_iface);
+    let _ = escrow.give_spot_entitlement(recipient, amount, verifier, date_start, date_end, destination).call(&mut env.private());
     cheatcodes::advance_blocks_by(1);
 }
 
@@ -85,8 +83,7 @@ unconstrained pub fn revoke_entitlement(
 ) {
     env.impersonate(escrow_admin);
     let escrow = ZImburseEscrow::at(escrow_address);
-    let revoke_entitlement_call_iface = escrow.revoke_entitlement(recipient, verifier, spot);
-    env.call_private_void(revoke_entitlement_call_iface);
+    let _ = escrow.revoke_entitlement(recipient, verifier, spot).call(&mut env.private());
     cheatcodes::advance_blocks_by(1);
 }
 
@@ -121,11 +118,9 @@ unconstrained pub fn reimburse_linode(
     let marshalled_inputs = LinodeBillingParamsContract::unmarshal(linode_inputs);
     let mut amount_reimbursed = 0;
     if spot {
-        let reimburse_linode_call_iface = escrow.reimburse_linode_spot(marshalled_inputs, claim_hash);
-        amount_reimbursed = env.call_private(reimburse_linode_call_iface);
+        amount_reimbursed = escrow.reimburse_linode_spot(marshalled_inputs, claim_hash).call(&mut env.private());
     } else {
-        let reimburse_linode_call_iface = escrow.reimburse_linode_recurring(marshalled_inputs, claim_hash);
-        amount_reimbursed = env.call_private(reimburse_linode_call_iface);
+        amount_reimbursed = escrow.reimburse_linode_recurring(marshalled_inputs, claim_hash).call(&mut env.private());
     }
     cheatcodes::advance_blocks_by(1);
 

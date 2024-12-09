@@ -24,14 +24,14 @@ pub fn check_dkim_key_hash_private(
 }
 
 /**
- * Enqueue a public call to shield tokens so the claimant can claim them
+ * Sends tokens from the escrow contract's public balance to the claimant's private balance
  * 
  * @param context - the private execution context
  * @param token_address - the address of the usdc token to shield
  * @param amount - the amount of tokens to shield
  * @param claim_secret_hash - the hash of the claim secret used to privately redeem the tokens
  */
-pub fn shield_to_claimant(
+pub fn (
     context: &mut PrivateContext,
     token_address: AztecAddress,
     amount: Field,

@@ -1,7 +1,7 @@
 use aztec::macros::aztec;
 
 global HASH_CHUNK_MAX_LENGTH: u32 = 2048;
-global ZERO_DESTINATION = "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
+global ZERO_DESTINATION: str<31> = "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
 
 mod capsule;
 mod contract_interfaces;
@@ -18,7 +18,7 @@ contract ZImburseEscrow {
         macros::{
             storage::storage, events::event,
             functions::{private, public, internal, view, initializer},
-        }, note::constants::MAX_NOTES_PER_PAGE, prelude::{AztecAddress, SharedImmutable, Map},
+        }, note::constants::MAX_NOTES_PER_PAGE, prelude::{AztecAddress, Map, PublicImmutable},
         protocol_types::traits::Serialize,
     };
     use zimburse_verifiers::{
@@ -69,9 +69,9 @@ contract ZImburseEscrow {
 
     #[storage]
     struct Storage<Context> {
-        definition: SharedImmutable<EscrowDefinition, Context>,
+        definition: PublicImmutable<EscrowDefinition, Context>,
         entitlements: EntitlementSet<EntitlementNote, Context>,
-        nullifiers: Map<Field, SharedImmutable<bool, Context>, Context>
+        nullifiers: Map<Field, PublicImmutable<bool, Context>, Context>
     }
 
     /**
@@ -174,7 +174,7 @@ contract ZImburseEscrow {
 
         // check that the entitlement has not been nullified by the admin
         let shared_nullifier = entitlement.derive_shared_nullifier();
-        let is_nullified = storage.nullifiers.at(shared_nullifier).read_private();
+        let is_nullified = storage.nullifiers.at(shared_nullifier).read();
         assert(!is_nullified, "Entitlement is nullified");
 
         // check and emit recurring nullification
@@ -215,7 +215,7 @@ contract ZImburseEscrow {
 
         // check that the entitlement has not been nullified by the admin
         let shared_nullifier = entitlement.derive_shared_nullifier();
-        let is_nullified = storage.nullifiers.at(shared_nullifier).read_private();
+        let is_nullified = storage.nullifiers.at(shared_nullifier).read();
         assert(!is_nullified, "Entitlement is nullified");
 
         // broadcast the note nullifier
@@ -268,7 +268,7 @@ contract ZImburseEscrow {
         assert(note_wrapped.is_some(), "No entitlements to redeem");
         let entitlement = note_wrapped.unwrap();
         assert(entitlement.recipient == sender, "Entitlement does not belong to the caller");
-        let definition = storage.definition.read_private();
+        let definition = storage.definition.read();
         let dkim_key_hash = pedersen_hash(email_inputs.pubkey_modulus);
         let registered_verifier_id = check_dkim_key_hash_private(
             &mut context,
@@ -286,7 +286,7 @@ contract ZImburseEscrow {
         context.push_nullifier(email_nullifier);
 
         let shared_nullifier = entitlement.derive_shared_nullifier();
-        let is_nullified = storage.nullifiers.at(shared_nullifier).read_private();
+        let is_nullified = storage.nullifiers.at(shared_nullifier).read();
         assert(!is_nullified, "Entitlement is nullified");
         ZImburseEscrow::at(context.this_address()).init_nullifier(shared_nullifier).enqueue(&mut context);
         
@@ -416,7 +416,7 @@ contract ZImburseEscrow {
     pub fn revoke_entitlement(recipient: AztecAddress, verifier_type: u8, spot: bool) {
         // check is escrow admin
         let sender = context.msg_sender();
-        let defintion = storage.definition.read_private();
+        let defintion = storage.definition.read();
         assert(sender == defintion.admin, "Only the escrow admin can revoke entitlements");
 
         // try to pop a note for this recipient
@@ -431,7 +431,7 @@ contract ZImburseEscrow {
 
         // nullify the entitlement
         let shared_nullifier = entitlement.derive_shared_nullifier();
-        let is_nullified = storage.nullifiers.at(shared_nullifier).read_private();
+        let is_nullified = storage.nullifiers.at(shared_nullifier).read();
         assert(!is_nullified, "Entitlement is already nullified");
         ZImburseEscrow::at(context.this_address())
             .init_nullifier(shared_nullifier)
@@ -447,7 +447,7 @@ contract ZImburseEscrow {
     #[public]
     #[view]
     pub fn get_title() -> [u8; TITLE_LENGTH] {
-        storage.definition.read_public().title_as_string()
+        storage.definition.read().title_as_string()
     }
 
     /**
@@ -458,7 +458,7 @@ contract ZImburseEscrow {
     #[private]
     #[view]
     pub fn get_admin_private() -> AztecAddress {
-        storage.definition.read_private().admin
+        storage.definition.read().admin
     }
 
     /**
@@ -469,7 +469,7 @@ contract ZImburseEscrow {
     #[private]
     #[view]
     pub fn get_registration_params() -> [AztecAddress; 3] {
-        let definition = storage.definition.read_private();
+        let definition = storage.definition.read();
         [definition.registry, definition.usdc, definition.admin]
     }
 

@@ -49,7 +49,7 @@ fn linode(
     let linode_outputs = verify_linode(email_receipt_inputs.marshal());
         
     // read the escrow definition
-    let definition = storage.definition.read_private();
+    let definition = storage.definition.read();
 
     // check the dkim key hash matches the linode verifier id
     let registered_verifier_id = check_dkim_key_hash_private(

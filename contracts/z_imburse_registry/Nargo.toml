@@ -13,3 +13,4 @@ date_parser = { path = "../../circuits/date_parser"}
 generators = { path = "../generators" }
 zimburse_verifiers = { path = "../../circuits/zimburse_verifiers" }
 z_imburse_escrow = { path = "../z_imburse_escrow" }
+zkemail = { path = '../../../zkemail.nr/lib' }

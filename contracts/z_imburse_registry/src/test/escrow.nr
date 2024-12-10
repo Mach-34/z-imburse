@@ -3,7 +3,7 @@ use z_imburse_escrow::ZImburseEscrow;
 use crate::{
     test::utils::{
         setup_helpers::{setup, ZERO_DESTINATION},
-        token_helpers::{mint_public, to_usdc_decimals, redeem_shield, check_public_balance, check_private_balance},
+        token_helpers::{mint_public, to_usdc_decimals, check_public_balance, check_private_balance},
         escrow_helpers::{
             give_recurring_entitlement, give_spot_entitlement, reimburse_linode, view_entitlements,
             revoke_entitlement, month_timestamp
@@ -86,18 +86,15 @@ unconstrained fn claim_linode_recurring_success() {
     );
 
     // reimburse linode with the entitlement
-    let (claim_secret, _) = reimburse_linode(
+    let _ = reimburse_linode(
         env,
         contracts.escrows[0],
-        contracts.usdc,
         accounts.alice,
         LINODE_SEP,
         false
     );
     // check the balance of the escrow has decremented
     // check_public_balance(contracts.usdc, contracts.escrows[0], 0);
-    // claim the reimbursement
-    redeem_shield(env, contracts.usdc, accounts.alice, amount, claim_secret);
     // // check the balance of alice has incremented
     check_private_balance(contracts.usdc, accounts.alice, amount);
 }
@@ -127,10 +124,9 @@ unconstrained fn claim_linode_recurring_max_value_success() {
     );
     // reimburse linode with the entitlement
     // the actual reimbursement call would contain 
-    let (claim_secret, amount_reimbursed) = reimburse_linode(
+    let amount_reimbursed = reimburse_linode(
         env,
         contracts.escrows[0],
-        contracts.usdc,
         accounts.alice,
         LINODE_SEP,
         false
@@ -140,14 +136,6 @@ unconstrained fn claim_linode_recurring_max_value_success() {
         contracts.usdc,
         contracts.escrows[0],
         amount_entitled - amount_reimbursed
-    );
-    // claim the reimbursement
-    redeem_shield(
-        env,
-        contracts.usdc,
-        accounts.alice,
-        amount_reimbursed,
-        claim_secret
     );
     // check the balance of alice has incremented
     check_private_balance(contracts.usdc, accounts.alice, amount_reimbursed);
@@ -177,10 +165,9 @@ unconstrained fn claim_linode_recurring_multiple_months_success() {
         verifier_ids::LINODE
     );
     // reimburse linode for month 1 with the entitlement
-    let (claim_secret_sep, amount_reimbursed_sep) = reimburse_linode(
+    let amount_reimbursed_sep = reimburse_linode(
         env,
         contracts.escrows[0],
-        contracts.usdc,
         accounts.alice,
         LINODE_SEP,
         false
@@ -196,10 +183,9 @@ unconstrained fn claim_linode_recurring_multiple_months_success() {
     );
 
     // reimburse linode for month 2 with the entitlement
-    let (claim_secret_oct, amount_reimbursed_oct) = reimburse_linode(
+    let amount_reimbursed_oct = reimburse_linode(
         env,
         contracts.escrows[0],
-        contracts.usdc,
         accounts.alice,
         LINODE_OCT,
         false
@@ -209,21 +195,6 @@ unconstrained fn claim_linode_recurring_multiple_months_success() {
         contracts.usdc,
         contracts.escrows[0],
         amount * 2 - amount_reimbursed_sep - amount_reimbursed_oct
-    );
-    // claim both reimbursements
-    redeem_shield(
-        env,
-        contracts.usdc,
-        accounts.alice,
-        amount_reimbursed_sep,
-        claim_secret_sep
-    );
-    redeem_shield(
-        env,
-        contracts.usdc,
-        accounts.alice,
-        amount_reimbursed_oct,
-        claim_secret_oct
     );
     // check the balance of alice has incremented
     check_private_balance(
@@ -257,19 +228,17 @@ unconstrained fn claim_linode_recurring_nullified_month_fail() {
         verifier_ids::LINODE
     );
     // reimburse linode with the entitlement
-    let (_, _) = reimburse_linode(
+    let _ = reimburse_linode(
         env,
         contracts.escrows[0],
-        contracts.usdc,
         accounts.alice,
         LINODE_SEP,
         false
     );
     // try to claim the reimbursement again
-    let (_, _) = reimburse_linode(
+    let _ = reimburse_linode(
         env,
         contracts.escrows[0],
-        contracts.usdc,
         accounts.alice,
         LINODE_SEP,
         false
@@ -309,10 +278,9 @@ unconstrained fn claim_linode_recurring_nullified_fail() {
     // attempt to claim the reimbursement
     // note: revoke_entitlement emits an event notifying the user to remove the note from their pxe
     // the txe is incapable of handling this logic so it will try to use a note it thinks is valid
-    let (_, _) = reimburse_linode(
+    let _ = reimburse_linode(
         env,
         contracts.escrows[0],
-        contracts.usdc,
         accounts.alice,
         LINODE_SEP,
         false
@@ -348,10 +316,9 @@ unconstrained fn claim_linode_spot_success() {
         ZERO_DESTINATION
     );
     // claim the reimbursement
-    let (claim_secret, amount_reimbursed) = reimburse_linode(
+    let amount_reimbursed = reimburse_linode(
         env,
         contracts.escrows[0],
-        contracts.usdc,
         accounts.alice,
         LINODE_SEP,
         true
@@ -361,14 +328,6 @@ unconstrained fn claim_linode_spot_success() {
         contracts.usdc,
         contracts.escrows[0],
         amount - amount_reimbursed
-    );
-    // claim the reimbursement
-    redeem_shield(
-        env,
-        contracts.usdc,
-        accounts.alice,
-        amount_reimbursed,
-        claim_secret
     );
     // check the balance of alice has incremented
     check_private_balance(contracts.usdc, accounts.alice, amount_reimbursed);
@@ -445,20 +404,18 @@ unconstrained fn claim_linode_spot_double_spend_fail() {
         ZERO_DESTINATION
     );
     // claim the reimbursement
-    let (_, _) = reimburse_linode(
+    let _ = reimburse_linode(
         env,
         contracts.escrows[0],
-        contracts.usdc,
         accounts.alice,
         LINODE_SEP,
         true
     );
     debug_log_format("\n\n\nCLAIMED ONE", []);
     // try to claim the reimbursement again
-    let (_, _) = reimburse_linode(
+    let _ = reimburse_linode(
         env,
         contracts.escrows[0],
-        contracts.usdc,
         accounts.alice,
         LINODE_SEP,
         true
@@ -504,10 +461,9 @@ unconstrained fn claim_linode_spot_revoked_fail() {
         true
     );
     // attempt to claim the reimbursement
-    let (_, _) = reimburse_linode(
+    let _ = reimburse_linode(
         env,
         contracts.escrows[0],
-        contracts.usdc,
         accounts.alice,
         LINODE_SEP,
         true
@@ -543,10 +499,9 @@ unconstrained fn claim_linode_spot_outside_date_range_fail() {
         ZERO_DESTINATION
     );
     // attempt to claim the reimbursement
-    let (_, _) = reimburse_linode(
+    let _ = reimburse_linode(
         env,
         contracts.escrows[0],
-        contracts.usdc,
         accounts.alice,
         LINODE_OCT,
         true

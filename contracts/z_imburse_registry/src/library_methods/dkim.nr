@@ -14,7 +14,7 @@ use crate::{
 */
 
 pub fn register_dkim_key(context: &mut PublicContext, storage: Storage<&mut PublicContext>, dkim_key_hash: Field, verifier_id: Field) {
-    let stored_id = storage.dkim_registry.at(dkim_key_hash).read_public();
+    let stored_id = storage.dkim_registry.at(dkim_key_hash).read();
     assert(stored_id == 0, "DKIM key has already been registered");
     storage.dkim_registry.at(dkim_key_hash).initialize(verifier_id);
     emit(

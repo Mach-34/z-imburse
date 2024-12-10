@@ -4,7 +4,7 @@ use dep::aztec::{
     test::helpers::{cheatcodes, test_environment::TestEnvironment},
     protocol_types::storage::map::derive_storage_slot_in_map
 };
-use dep::token::{Token, types::transparent_note::TransparentNote};
+use dep::token::Token;
 use crate::test::utils::setup_helpers::USDC_DECIMALS;
 
 /**
@@ -23,51 +23,13 @@ unconstrained pub fn mint_public(
     amount: Field
 ) {
     env.impersonate(minter);
-    let _ = Token::at(token_address).mint_public(recipient, amount).call(&mut env.public());
+    let _ = Token::at(token_address).mint_to_public(recipient, amount).call(&mut env.public());
     cheatcodes::advance_blocks_by(1);
 }
 
 // is this just kinda unnecessary at this level
 unconstrained pub fn to_usdc_decimals(amount: Field) -> Field {
     amount * 10.pow_32(USDC_DECIMALS as Field)
-}
-
-/**
- * Add a shielded transparent note to privately claim USDC tokens to the TXE (PXE)
- *
- * @param env - The test environment
- * @param usdc - The address of the USDC token contract
- * @param amount - The amount of USDC tokens in the note
- * @param claim_hash - The hash of the secret used to claim the note
- */
-unconstrained pub fn add_shielded_note(env: &mut TestEnvironment, usdc: AztecAddress, amount: Field, claim_hash: Field) {
-    env.add_note(
-        &mut TransparentNote::new(amount, claim_hash),
-        Token::storage_layout().pending_shields.slot,
-        usdc
-    )
-}
-
-/**
- * Redeem a shielded note to a private balance
- *
- * @param env - The test environment
- * @param usdc - The address of the USDC token contract
- * @param bearer - The address of the bearer of the shielded note to receive the private balance
- * @param amount - The amount of USDC tokens in the note
- * @param claim_secret - The secret used to claim the note
- */
-unconstrained pub fn redeem_shield(
-    env: &mut TestEnvironment,
-    usdc: AztecAddress,
-    bearer: AztecAddress,
-    amount: Field,
-    claim_secret: Field
-) {
-    env.impersonate(bearer);
-    let usdc = Token::at(usdc);
-    let _ = usdc.redeem_shield(bearer, amount, claim_secret).env(&mut env.private());
-    cheatcodes::advance_blocks_by(1);
 }
 
 // https://github.com/AztecProtocol/aztec-packages/blob/72a2cd9cf66abfc4075a5ae06d73de2259928254/noir-projects/noir-contracts/contracts/token_contract/src/test/utils.nr#L74

@@ -1,7 +1,7 @@
 use aztec::prelude::{AztecAddress, PrivateContext};
 use crate::{
     types::entitlement_note::EntitlementNote,
-    contract_interfaces::{check_dkim_key_hash_private, shield_to_claimant},
+    contract_interfaces::{check_dkim_key_hash_private, reimburse_to_claimant},
     verifiers::verify_linode,
     ZImburseEscrow::Storage
 };
@@ -16,7 +16,6 @@ use zkemail::KEY_LIMBS_2048;
  * Shared logic for claiming Linode entitlement
  * 
  * @param email_receipt_inputs - the inputs from the email verifier, in a contract-serializable format
- * @param claim_secret_hash - the hash of the claim secret used to redeem the reimbursement
  * @param spot - if true, check for spot entitlements. If false, check for recurring entitlements
  * @param context - the contract context
  * @param storage - the contract storage
@@ -25,7 +24,6 @@ use zkemail::KEY_LIMBS_2048;
 #[contract_library_method]
 fn linode(
     email_receipt_inputs: LinodeBillingParamsContract,
-    claim_secret_hash: Field,
     spot: bool,
     context: &mut PrivateContext,
     storage: Storage<&mut PrivateContext>
@@ -62,8 +60,8 @@ fn linode(
     // determine the amount to reimburse
     let amount_to_reimburse = entitlement.amount_to_reimburse(linode_outputs.billed_amount);
 
-    // release funds from escrow by shielding in public
-    shield_to_claimant(context, definition.usdc, amount_to_reimburse, claim_secret_hash);
+    // tranfer funds from escrow public balance to claimant private balance
+    reimburse_to_claimant(definition.usdc, context.msg_sender(), amount_to_reimburse);
         
     // return the amount reimbursed
     (entitlement, definition.admin, amount_to_reimburse, linode_outputs.timestamp)

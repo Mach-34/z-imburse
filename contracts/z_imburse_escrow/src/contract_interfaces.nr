@@ -29,18 +29,11 @@ pub fn check_dkim_key_hash_private(
  * @param context - the private execution context
  * @param token_address - the address of the usdc token to shield
  * @param amount - the amount of tokens to shield
- * @param claim_secret_hash - the hash of the claim secret used to privately redeem the tokens
  */
-pub fn (
-    context: &mut PrivateContext,
+pub fn reimburse_to_claimant(
     token_address: AztecAddress,
+    to: AztecAddress,
     amount: Field,
-    claim_secret_hash: Field
 ) { 
-    Token::at(token_address).shield(
-        context.this_address(),
-        amount,
-        claim_secret_hash,
-        0
-    ).enqueue(context);
+    let _ = Token::at(token_address).transfer_to_private(to, amount);
 }

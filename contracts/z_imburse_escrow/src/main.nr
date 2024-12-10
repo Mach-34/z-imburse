@@ -32,7 +32,7 @@ contract ZImburseEscrow {
         library_methods::{
             linode::linode,
             entitlements::give_entitlement,
-        }, contract_interfaces::{check_dkim_key_hash_private, shield_to_claimant},
+        }, contract_interfaces::{check_dkim_key_hash_private, reimburse_to_claimant},
         verifiers::verify_united_deferred,
         types::{
             escrow_definition::{EscrowDefinition, TITLE_LENGTH}, entitlement_note::EntitlementNote,
@@ -43,7 +43,7 @@ contract ZImburseEscrow {
         KEY_LIMBS_2048, Sequence, dkim::RSAPubkey,
         partial_hash::{partial_sha256_var_interstitial, partial_sha256_var_end},
     };
-
+    
     #[event]
     #[derive(Serialize)]
     struct RecurringReimbursementClaimed {
@@ -154,19 +154,15 @@ contract ZImburseEscrow {
      * @dev use separate function from spot to optimize gates by avoiding if statements
      *
      * @param email_receipt_inputs - the inputs from the email verifier
-     * @param claim_secret_hash - the hash of the claim secret used to redeem the reimbursement
      * @return the amount reimbursed
      */
     #[private]
     pub fn reimburse_linode_recurring(
         email_receipt_inputs: LinodeBillingParamsContract,
-        // claim secret hash
-        claim_secret_hash: Field,
     ) -> Field {
         // common logic for claiming a Linode entitlement
         let (entitlement, admin, amount_to_reimburse, timestamp) = linode(
             email_receipt_inputs,
-            claim_secret_hash,
             false, // recurring
             &mut context,
             storage
@@ -192,19 +188,16 @@ contract ZImburseEscrow {
      * @dev use separate function from recurring to optimize gates by avoiding if statements
      *
      * @param email_receipt_inputs - the inputs from the email verifier
-     * @param claim_secret_hash - the hash of the claim secret used to redeem the reimbursement
      * @return the amount reimbursed
      */
     #[private]
     fn reimburse_linode_spot(
         email_receipt_inputs: LinodeBillingParamsContract,
-        claim_secret_hash: Field,
     ) -> Field {
         let sender = context.msg_sender();
         // common logic for claiming a Linode entitlement
         let (entitlement, admin, amount_to_reimburse, timestamp) = linode(
             email_receipt_inputs,
-            claim_secret_hash,
             true, // spot
             &mut context,
             storage
@@ -252,7 +245,6 @@ contract ZImburseEscrow {
         amount_to_date_length: u32,
         remaining_length: u32,
         actual_length: u32,
-        claim_secret_hash: Field,
     ) -> Field {
         let extracted = [0, 0, 0];
         let billed_amount = U128::from_integer(extracted[0] * USDC_DECIMALS);
@@ -281,7 +273,7 @@ contract ZImburseEscrow {
         );
         entitlement.check_date_range(timestamp as u32);
         let amount_to_reimburse = entitlement.amount_to_reimburse(billed_amount);
-        shield_to_claimant(&mut context, definition.usdc, amount_to_reimburse, claim_secret_hash);
+        reimburse_to_claimant(definition.usdc, context.msg_sender(), amount_to_reimburse);
         let email_nullifier = pedersen_hash(email_inputs.signature);
         context.push_nullifier(email_nullifier);
 

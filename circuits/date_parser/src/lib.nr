@@ -12,7 +12,7 @@ struct Datetime {
 global DATETIME_LENGTH: u32 = 26;
 
 
-global MONTHS = [
+global MONTHS: [[u8; 3]; 12] = [
     "Jan".as_bytes(),
     "Feb".as_bytes(),
     "Mar".as_bytes(),
@@ -27,7 +27,7 @@ global MONTHS = [
     "Dec".as_bytes()
 ];
 
-global DAYS_IN_MONTH = [
+global DAYS_IN_MONTH: [u32; 12] = [
     31,
     28,
     31,

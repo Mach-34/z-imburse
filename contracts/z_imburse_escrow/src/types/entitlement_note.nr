@@ -1,7 +1,7 @@
 use aztec::{
     encrypted_logs::encrypted_event_emission::encode_and_encrypt_event,
     keys::getters::{get_nsk_app, get_public_keys},
-    macros::notes::note_custom_interface,
+    macros::notes::{note, note_custom_interface},
     note::utils::compute_note_hash_for_nullify,
     oracle::{random::random, notes::check_nullifier_exists, debug_log::debug_log_format},
     prelude::{NoteHeader, NullifiableNote, NoteInterface, PrivateContext},
@@ -20,7 +20,7 @@ use crate::{ZERO_DESTINATION, ZImburseEscrow::{SpotReimbursementClaimed, Recurri
 
 global ENTITLEMENT_NOTE_LENGTH: u32 = 8;
 
-#[note_custom_interface]
+#[note]
 pub struct EntitlementNote {
     // the user that is allowed to use this entitlement
     recipient: AztecAddress,
@@ -39,99 +39,99 @@ pub struct EntitlementNote {
     randomness: Field,
 }
 
-impl NoteInterface<ENTITLEMENT_NOTE_LENGTH> for EntitlementNote {
+// impl NoteInterface<ENTITLEMENT_NOTE_LENGTH> for EntitlementNote {
 
-    fn serialize_content(self) -> [Field; ENTITLEMENT_NOTE_LENGTH] {
+//     fn serialize_content(self) -> [Field; ENTITLEMENT_NOTE_LENGTH] {
 
-        [
-            self.recipient.to_field(),
-            self.verifier_id as Field,
-            self.max_value.to_integer(),
-            self.date_start as Field,
-            self.date_end as Field,
-            self.destination,
-            self.spot as Field,
-            self.randomness
-        ]
-    }
+//         [
+//             self.recipient.to_field(),
+//             self.verifier_id as Field,
+//             self.max_value.to_integer(),
+//             self.date_start as Field,
+//             self.date_end as Field,
+//             self.destination,
+//             self.spot as Field,
+//             self.randomness
+//         ]
+//     }
 
-    fn deserialize_content(serialized_note: [Field; ENTITLEMENT_NOTE_LENGTH]) -> EntitlementNote {
-        EntitlementNote {
-            recipient: AztecAddress::from_field(serialized_note[0]),
-            verifier_id: serialized_note[1] as u8,
-            max_value: U128::from_integer(serialized_note[2]),
-            date_start: serialized_note[3] as u32,
-            date_end: serialized_note[4] as u32,
-            destination: serialized_note[5],
-            spot: serialized_note[6] as bool,
-            randomness: serialized_note[7],
-            header: NoteHeader::empty()
-        }
-    }
+//     fn deserialize_content(serialized_note: [Field; ENTITLEMENT_NOTE_LENGTH]) -> EntitlementNote {
+//         EntitlementNote {
+//             recipient: AztecAddress::from_field(serialized_note[0]),
+//             verifier_id: serialized_note[1] as u8,
+//             max_value: U128::from_integer(serialized_note[2]),
+//             date_start: serialized_note[3] as u32,
+//             date_end: serialized_note[4] as u32,
+//             destination: serialized_note[5],
+//             spot: serialized_note[6] as bool,
+//             randomness: serialized_note[7],
+//             header: NoteHeader::empty()
+//         }
+//     }
 
-    fn to_be_bytes(self, storage_slot: Field) -> [u8; ENTITLEMENT_NOTE_LENGTH * 32 + 64] {
-        let serialized_note = self.serialize_content();
-        let mut buffer: [u8; ENTITLEMENT_NOTE_LENGTH * 32 + 64] = [0; ENTITLEMENT_NOTE_LENGTH * 32 + 64];
-        let storage_slot_bytes: [u8; 32] = storage_slot.to_be_bytes();
-        let note_type_id_bytes: [u8; 32] = EntitlementNote::get_note_type_id().to_be_bytes();
-        for i in 0..32 {
-            buffer[i] = storage_slot_bytes[i];
-            buffer[32 + i] = note_type_id_bytes[i];
-        }
-        for i in 0..serialized_note.len() {
-            let bytes: [u8; 32] = serialized_note[i].to_be_bytes();
-            for j in 0..32 {
-                buffer[64 + i * 32 + j] = bytes[j];
-            }
-        }
-        buffer
-    }
+//     fn to_be_bytes(self, storage_slot: Field) -> [u8; ENTITLEMENT_NOTE_LENGTH * 32 + 64] {
+//         let serialized_note = self.serialize_content();
+//         let mut buffer: [u8; ENTITLEMENT_NOTE_LENGTH * 32 + 64] = [0; ENTITLEMENT_NOTE_LENGTH * 32 + 64];
+//         let storage_slot_bytes: [u8; 32] = storage_slot.to_be_bytes();
+//         let note_type_id_bytes: [u8; 32] = EntitlementNote::get_note_type_id().to_be_bytes();
+//         for i in 0..32 {
+//             buffer[i] = storage_slot_bytes[i];
+//             buffer[32 + i] = note_type_id_bytes[i];
+//         }
+//         for i in 0..serialized_note.len() {
+//             let bytes: [u8; 32] = serialized_note[i].to_be_bytes();
+//             for j in 0..32 {
+//                 buffer[64 + i * 32 + j] = bytes[j];
+//             }
+//         }
+//         buffer
+//     }
 
-    fn get_note_type_id() -> Field {
-        comptime
-        {
-            let bytes = "EntitlementNote".as_bytes();
-            let hash = poseidon2_hash_bytes(bytes);
-            let hash_bytes = hash.to_be_bytes::<4>();
-            field_from_bytes(hash_bytes, true)
-        }
-    }
+//     fn get_note_type_id() -> Field {
+//         comptime
+//         {
+//             let bytes = "EntitlementNote".as_bytes();
+//             let hash = poseidon2_hash_bytes(bytes);
+//             let hash_bytes = hash.to_be_bytes::<4>();
+//             field_from_bytes(hash_bytes, true)
+//         }
+//     }
 
-    fn get_header(self) -> NoteHeader {
-        self.header
-    }
+//     fn get_header(self) -> NoteHeader {
+//         self.header
+//     }
 
-    fn set_header(&mut self, header: NoteHeader) {
-        self.header = header;
-    }
+//     fn set_header(&mut self, header: NoteHeader) {
+//         self.header = header;
+//     }
 
-    fn compute_note_hash(self) -> Field {
-        let serialized = self.serialize_content();
-        let generators = [
-            GENERATORS[0],
-            GENERATORS[1],
-            GENERATORS[2],
-            GENERATORS[3],
-            GENERATORS[4],
-            GENERATORS[5],
-            GENERATORS[6],
-            GENERATORS[7],
-            GENERATORS[8]
-        ];
-        let data = [
-            from_field_unsafe(serialized[0]),
-            from_field_unsafe(serialized[1]),
-            from_field_unsafe(serialized[2]),
-            from_field_unsafe(serialized[3]),
-            from_field_unsafe(serialized[4]),
-            from_field_unsafe(serialized[5]),
-            from_field_unsafe(serialized[6]),
-            from_field_unsafe(serialized[7]),
-            from_field_unsafe(self.get_header().storage_slot)
-        ];
-        std::embedded_curve_ops::multi_scalar_mul(generators, data).x
-    }
-}
+//     fn compute_note_hash(self) -> Field {
+//         let serialized = self.serialize_content();
+//         let generators = [
+//             GENERATORS[0],
+//             GENERATORS[1],
+//             GENERATORS[2],
+//             GENERATORS[3],
+//             GENERATORS[4],
+//             GENERATORS[5],
+//             GENERATORS[6],
+//             GENERATORS[7],
+//             GENERATORS[8]
+//         ];
+//         let data = [
+//             from_field_unsafe(serialized[0]),
+//             from_field_unsafe(serialized[1]),
+//             from_field_unsafe(serialized[2]),
+//             from_field_unsafe(serialized[3]),
+//             from_field_unsafe(serialized[4]),
+//             from_field_unsafe(serialized[5]),
+//             from_field_unsafe(serialized[6]),
+//             from_field_unsafe(serialized[7]),
+//             from_field_unsafe(self.get_header().storage_slot)
+//         ];
+//         std::embedded_curve_ops::multi_scalar_mul(generators, data).x
+//     }
+// }
 
 impl NullifiableNote for EntitlementNote {
     fn compute_nullifier(self, context: &mut PrivateContext, note_hash_for_nullify: Field) -> Field {
@@ -313,7 +313,6 @@ impl EntitlementNote {
         }.emit(
             encode_and_encrypt_event(
                 context,
-                get_public_keys(self.recipient).ovpk_m,
                 admin,
                 admin
             )
@@ -335,7 +334,6 @@ impl EntitlementNote {
         }.emit(
             encode_and_encrypt_event(
                 context,
-                get_public_keys(self.recipient).ovpk_m,
                 admin,
                 admin
             )
@@ -355,7 +353,6 @@ impl EntitlementNote {
         EntitlementNullified { randomness: self.randomness }.emit(
             encode_and_encrypt_event(
                 context,
-                get_public_keys(from).ovpk_m,
                 to,
                 to
             )

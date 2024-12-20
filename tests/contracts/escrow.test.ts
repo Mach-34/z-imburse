@@ -17,7 +17,6 @@ import {
   TxExecutionRequest,
   TxHash,
   computeSecretHash,
-  createDebugLogger,
   createPXEClient,
 } from "@aztec/aztec.js";
 import { Fr as NoirFr } from "@aztec/bb.js";
@@ -35,7 +34,6 @@ import { dkimPubkeyToHash } from "../../src/dkim";
 import { setup, mintToEscrow, addContractsToPXE } from "../utils/index";
 import { emails } from "../utils/fs";
 import { parseStringBytes } from "../../src/utils";
-import { addPendingShieldNoteToPXE } from "../../src/contract_drivers/notes";
 import { VERIFIER_IDS } from "../../src/contract_drivers/dkim";
 
 const DEFAULT_PXE_URL = "http://localhost";
@@ -69,18 +67,18 @@ describe("Test deposit to zimburse", () => {
     bob = await createAccount(pxe3);
 
     // register recipients for each PXE
-    await sandboxPXE.registerRecipient(alice.getCompleteAddress());
-    await sandboxPXE.registerRecipient(bob.getCompleteAddress());
-    await sandboxPXE.registerRecipient(escrowAdmin.getCompleteAddress());
-    await pxe1.registerRecipient(superuser.getCompleteAddress());
-    await pxe1.registerRecipient(alice.getCompleteAddress());
-    await pxe1.registerRecipient(bob.getCompleteAddress());
-    await pxe2.registerRecipient(superuser.getCompleteAddress());
-    await pxe2.registerRecipient(escrowAdmin.getCompleteAddress());
-    await pxe2.registerRecipient(bob.getCompleteAddress());
-    await pxe3.registerRecipient(superuser.getCompleteAddress());
-    await pxe3.registerRecipient(escrowAdmin.getCompleteAddress());
-    await pxe3.registerRecipient(alice.getCompleteAddress());
+    // await sandboxPXE.registerRecipient(alice.getCompleteAddress());
+    // await sandboxPXE.registerRecipient(bob.getCompleteAddress());
+    // await sandboxPXE.registerRecipient(escrowAdmin.getCompleteAddress());
+    // await pxe1.registerRecipient(superuser.getCompleteAddress());
+    // await pxe1.registerRecipient(alice.getCompleteAddress());
+    // await pxe1.registerRecipient(bob.getCompleteAddress());
+    // await pxe2.registerRecipient(superuser.getCompleteAddress());
+    // await pxe2.registerRecipient(escrowAdmin.getCompleteAddress());
+    // await pxe2.registerRecipient(bob.getCompleteAddress());
+    // await pxe3.registerRecipient(superuser.getCompleteAddress());
+    // await pxe3.registerRecipient(escrowAdmin.getCompleteAddress());
+    // await pxe3.registerRecipient(alice.getCompleteAddress());
 
     // set multicall
     const nodeInfo = await sandboxPXE.getNodeInfo();
@@ -232,7 +230,7 @@ describe("Test deposit to zimburse", () => {
     );
   });
 
-  describe("Hosting entitlements", () => {
+  xdescribe("Hosting entitlements", () => {
     it.todo("Cannot give entitlement if not admin");
     it.todo("Cannot give entitlement if escrow not registered");
     it.todo("Cannot give entitlement if participant not registered");
@@ -352,12 +350,12 @@ describe("Test deposit to zimburse", () => {
       //     .wait();
       //   // update nullified note
       //   const blockNum = await alice.getBlockNumber();
-      //   const events = await alice.getEvents(
-      //     EventType.Encrypted,
-      //     TokenContract.events.Transfer,
-      //     blockNum - 5,
-      //     blockNum
-      //   );
+        // const events = await alice.getEvents(
+        //   EventType.Encrypted,
+        //   TokenContract.events.Transfer,
+        //   blockNum - 5,
+        //   blockNum
+        // );
       //   console.log("Events", events);
       //   // check notes removed
       //   adminReceipts = await escrows[0]

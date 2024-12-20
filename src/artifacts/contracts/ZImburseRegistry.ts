@@ -34,7 +34,7 @@ import {
   type Wallet,
   type WrappedFieldLike,
 } from '@aztec/aztec.js';
-import ZImburseRegistryContractArtifactJson from './z_imburse_registry-ZImburseRegistry.json' assert { type: 'json' };
+import ZImburseRegistryContractArtifactJson from './ZImburseRegistry.json' assert { type: 'json' };
 export const ZImburseRegistryContractArtifact = loadContractArtifact(ZImburseRegistryContractArtifactJson as NoirCompiledContract);
 
 
@@ -137,16 +137,13 @@ participant_escrows: {
     }
     
 
-  public static get notes(): ContractNotes<'AddressNote' | 'TransparentNote' | 'TokenNote' | 'EntitlementNote' | 'ParticipantNote'> {
+  public static get notes(): ContractNotes<'AddressNote' | 'UintNote' | 'EntitlementNote' | 'ParticipantNote'> {
     return {
       AddressNote: {
           id: new NoteSelector(2232136525),
         },
-TransparentNote: {
-          id: new NoteSelector(3193649735),
-        },
-TokenNote: {
-          id: new NoteSelector(2350566847),
+UintNote: {
+          id: new NoteSelector(202136239),
         },
 EntitlementNote: {
           id: new NoteSelector(4112046478),
@@ -154,7 +151,7 @@ EntitlementNote: {
 ParticipantNote: {
           id: new NoteSelector(3017618054),
         }
-    } as ContractNotes<'AddressNote' | 'TransparentNote' | 'TokenNote' | 'EntitlementNote' | 'ParticipantNote'>;
+    } as ContractNotes<'AddressNote' | 'UintNote' | 'EntitlementNote' | 'ParticipantNote'>;
   }
   
 
@@ -202,6 +199,9 @@ ParticipantNote: {
 
     /** register_escrow(escrow_contract: struct) */
     register_escrow: ((escrow_contract: AztecAddressLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+
+    /** sync_notes() */
+    sync_notes: (() => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
   };
 
   

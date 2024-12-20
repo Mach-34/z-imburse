@@ -103,7 +103,7 @@ unconstrained pub fn setup<let N: u32>() -> (&mut TestEnvironment, TestAccounts,
     // deploy escrow registry contract
     let registry_address = deploy_registry_contract(&mut env, accounts.superuser, usdc_address);
     
-    // deploy as many escrow contracts as requested
+    // // deploy as many escrow contracts as requested
     let mut escrows: [AztecAddress; N] = [AztecAddress::zero(); N];
     for i in 0..N {
         escrows[i] = deploy_escrow_contract(&mut env, accounts.escrow_admin, registry_address, usdc_address, ESCROW_NAMES[i]);

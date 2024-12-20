@@ -19,7 +19,7 @@ contract ZImburseRegistry {
             contract_instance::ContractInstance, address::partial_address::PartialAddress,
             contract_class_id::ContractClassId, abis::function_selector::FunctionSelector, traits::Serialize
         },
-        oracle::{get_contract_instance::get_contract_instance, header::get_header_at_oracle},
+        oracle::get_contract_instance::get_contract_instance,
         keys::getters::get_public_keys, utils::comparison::Comparator,
         encrypted_logs::encrypted_note_emission::{encode_and_encrypt_note_unconstrained, encode_and_encrypt_note},
         unencrypted_logs::unencrypted_event_emission::emit
@@ -34,8 +34,8 @@ contract ZImburseRegistry {
         BULK_KEY_LENGTH
     };
 
-    #[event]
     #[derive(Serialize)]
+    #[event]
     struct DKIMKeyHashRegistered {
         dkim_key_hash: Field,
         verifier_id: Field,
@@ -157,7 +157,6 @@ contract ZImburseRegistry {
         storage.managed_escrows.insert(&mut escrow_note).emit(
             encode_and_encrypt_note_unconstrained(
                 &mut context,
-                admin_keys.ovpk_m,
                 context.msg_sender(),
                 context.msg_sender()
             )
@@ -209,7 +208,6 @@ contract ZImburseRegistry {
         storage.participant_escrows.insert(&mut escrow_note).emit(
             encode_and_encrypt_note(
                 &mut context,
-                admin_keys.ovpk_m,
                 participant,
                 participant
             )
@@ -217,7 +215,7 @@ contract ZImburseRegistry {
         // add the participant to the admin set of participants
         let mut participant_note = ParticipantNote::new(participant, participant_name, admin_keys.npk_m.hash());
         storage.participants.at(escrow).insert(&mut participant_note).emit(
-            encode_and_encrypt_note_unconstrained(&mut context, admin_keys.ovpk_m, admin, admin)
+            encode_and_encrypt_note_unconstrained(&mut context, admin, admin)
         );
     }
 

@@ -44,8 +44,8 @@ contract ZImburseEscrow {
         partial_hash::{partial_sha256_var_interstitial, partial_sha256_var_end},
     };
     
-    #[event]
     #[derive(Serialize)]
+    #[event]
     struct RecurringReimbursementClaimed {
         claimant: AztecAddress,
         amount: Field,
@@ -53,16 +53,16 @@ contract ZImburseEscrow {
         timestamp: Field,
     }
 
-    #[event]
     #[derive(Serialize)]
+    #[event]
     struct SpotReimbursementClaimed {
         claimant: AztecAddress,
         amount: Field,
         verifier_id: u8,
     }
 
-    #[event]
     #[derive(Serialize)]
+    #[event]
     struct EntitlementNullified {
         randomness: Field,
     }

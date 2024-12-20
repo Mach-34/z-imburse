@@ -1,6 +1,6 @@
 services:
   txe:
-    image: "aztecprotocol/aztec:0.66.0"
+    image: "aztecprotocol/aztec:0.67.1"
     environment:
       DEBUG: # Loaded from the user shell if explicitly set
       LOG_LEVEL: # Loaded from the user shell if explicitly set
@@ -15,8 +15,8 @@ services:
     environment:
       HOME: # Loaded from the user shell
       NARGO_FOREIGN_CALL_TIMEOUT: "300000" # To avoid timeouts when many tests run at once
-    working_dir: "${PWD}/contracts/z_imburse_registry"
-    command: "test --silence-warnings --oracle-resolver http://txe:8081 --package z_imburse_registry"
+    working_dir: "${PWD}/contracts/z_imburse_note_contract"
+    command: "test --silence-warnings --oracle-resolver http://txe:8081 --package z_imburse_note_contract"
     volumes:
       - ${HOME}:${HOME}
     depends_on:

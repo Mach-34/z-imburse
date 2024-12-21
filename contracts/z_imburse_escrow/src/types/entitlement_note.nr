@@ -192,10 +192,10 @@ impl EntitlementNote {
         let destination_compressed: CompressedString<1, 31> = CompressedString::from_string(destination);
 
         // assert destination 
-        if spot {
-            assert(date_end == 0, "Date end must be zero if entitlement is spot.");
-            assert(date_start == 0, "Date start must be zero if entitlement is spot.");
-            assert(destination == ZERO_DESTINATION, "Destination must be empty if entitlement is spot.");
+        if !spot {
+            assert(date_end == 0, "Date end must be zero if entitlement is recurring.");
+            assert(date_start == 0, "Date start must be zero if entitlement is recurring.");
+            assert(destination == ZERO_DESTINATION, "Destination must be empty if entitlement is recurring.");
         }
 
         Self {

@@ -1,10 +1,11 @@
-use dep::aztec::{
-    prelude::AztecAddress,
+use aztec::{
+    prelude::{AztecAddress, NoteHeader},
     oracle::{execution::{get_block_number, get_contract_address}, storage::storage_read},
     test::helpers::{cheatcodes, test_environment::TestEnvironment},
     protocol_types::storage::map::derive_storage_slot_in_map
 };
-use dep::token::Token;
+use uint_note::uint_note::UintNote;
+use token::Token;
 use crate::test::utils::setup_helpers::USDC_DECIMALS;
 
 /**
@@ -30,6 +31,37 @@ unconstrained pub fn mint_public(
 // is this just kinda unnecessary at this level
 unconstrained pub fn to_usdc_decimals(amount: Field) -> Field {
     amount * 10.pow_32(USDC_DECIMALS as Field)
+}
+
+/**
+ * Add a private token balance note for USDC contract to PXE
+ *
+ * @param env - The test environment
+ * @param usdc - The address of the USDC token contract
+ * @param amount - The amount of USDC tokens in the note
+ * @param note_randomness - Randomness used to generate note
+ */
+unconstrained pub fn add_token_note(
+    env: &mut TestEnvironment,
+    usdc: AztecAddress,
+    owner: AztecAddress,
+    amount: Field,
+    note_randomness: Field,
+) {
+    // docs:start:txe_test_add_note
+    let balances_owner_slot =
+        derive_storage_slot_in_map(Token::storage_layout().balances.slot, owner);
+
+    env.add_note(
+        &mut UintNote {
+            value: U128::from_integer(amount),
+            owner: owner,
+            randomness: note_randomness,
+            header: NoteHeader::empty(),
+        },
+        balances_owner_slot,
+        usdc,
+    );
 }
 
 // https://github.com/AztecProtocol/aztec-packages/blob/72a2cd9cf66abfc4075a5ae06d73de2259928254/noir-projects/noir-contracts/contracts/token_contract/src/test/utils.nr#L74

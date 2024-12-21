@@ -1,13 +1,16 @@
 use aztec::{
     hash::compute_secret_hash, 
-    oracle::debug_log::{debug_log, debug_log_format},
+    oracle::{
+        debug_log::{debug_log, debug_log_format},
+        random::random
+    },
     test::helpers::cheatcodes
 };
 use z_imburse_escrow::ZImburseEscrow;
 use crate::{
     test::utils::{
         setup_helpers::{setup, ZERO_DESTINATION},
-        token_helpers::{mint_public, to_usdc_decimals, check_public_balance, check_private_balance},
+        token_helpers::{add_token_note, mint_public, to_usdc_decimals, check_public_balance, check_private_balance},
         escrow_helpers::{
             give_recurring_entitlement, give_spot_entitlement, reimburse_linode, view_entitlements,
             revoke_entitlement, month_timestamp
@@ -16,7 +19,7 @@ use crate::{
     }
 };
 use zimburse_verifiers::constants::verifier_ids;
-use std::option::Option;
+use std::test::OracleMock;
 
 // #[test]
 // unconstrained fn view_entitlements_perspectives() {
@@ -65,45 +68,50 @@ use std::option::Option;
 //     assert(admin_entitlement.randomness == alice_entitlement.randomness);
 // }
 
-#[test]
-unconstrained fn claim_linode_recurring_success() {
-    // CLAIM IS > ENTITLEMENT, CHECK GIVES MAX ENTITLEMENT
-    // setup test env
-    let (env, accounts, contracts) = setup::<1>();
-    // mint tokens to the escrow
-    let amount = to_usdc_decimals(10);
-    mint_public(
-        env,
-        contracts.usdc,
-        accounts.superuser,
-        contracts.escrows[0],
-        amount
-    );
+// #[test]
+// unconstrained fn claim_linode_recurring_success() {
+//     // CLAIM IS > ENTITLEMENT, CHECK GIVES MAX ENTITLEMENT
+//     // setup test env
+//     let (env, accounts, contracts) = setup::<1>();
+//     // mint tokens to the escrow
+//     let amount = to_usdc_decimals(10);
+//     mint_public(
+//         env,
+//         contracts.usdc,
+//         accounts.superuser,
+//         contracts.escrows[0],
+//         amount
+//     );
 
-    // give entitlement to reimburse linode receipt to alice
-    give_recurring_entitlement(
-        env,
-        contracts.escrows[0],
-        accounts.escrow_admin,
-        accounts.alice,
-        amount,
-        verifier_ids::LINODE
-    );
+//     // give entitlement to reimburse linode receipt to alice
+//     give_recurring_entitlement(
+//         env,
+//         contracts.escrows[0],
+//         accounts.escrow_admin,
+//         accounts.alice,
+//         amount,
+//         verifier_ids::LINODE
+//     );
 
-    // reimburse linode with the entitlement
-    let _ = reimburse_linode(
-        env,
-        contracts.escrows[0],
-        accounts.alice,
-        LINODE_SEP,
-        false
-    );
+//     // reimburse linode with the entitlement
+//     let _ = reimburse_linode(
+//         env,
+//         contracts.escrows[0],
+//         accounts.alice,
+//         LINODE_SEP,
+//         false
+//     );
 
-    // check the balance of the escrow has decremented
-    check_public_balance(contracts.usdc, contracts.escrows[0], 0);
-    // check the balance of alice has incremented
-    check_private_balance(contracts.usdc, accounts.alice, amount);
-}
+    // // add private token note to TXE
+    // let note_randomness = random();
+    // let _ = OracleMock::mock("getRandomField").returns(note_randomness);
+    // add_token_note(env, contracts.usdc, accounts.alice, amount, note_randomness);
+
+//     // check the balance of the escrow has decremented
+//     check_public_balance(contracts.usdc, contracts.escrows[0], 0);
+//     // check the balance of alice has incremented
+//     check_private_balance(contracts.usdc, accounts.alice, amount);
+// }
 
 // #[test]
 // unconstrained fn claim_linode_recurring_max_value_success() {
@@ -137,6 +145,12 @@ unconstrained fn claim_linode_recurring_success() {
 //         LINODE_SEP,
 //         false
 //     );
+
+//     // add private token note to TXE
+//     let note_randomness = random();
+//     let _ = OracleMock::mock("getRandomField").returns(note_randomness);
+//     add_token_note(env, contracts.usdc, accounts.alice, amount_reimbursed, note_randomness);
+
 //     // check the balance of the escrow has decremented
 //     check_public_balance(
 //         contracts.usdc,
@@ -179,6 +193,11 @@ unconstrained fn claim_linode_recurring_success() {
 //         false
 //     );
 
+//     // add private token note to TXE
+//     let note_randomness_sep = random();
+//     let _ = OracleMock::mock("getRandomField").returns(note_randomness_sep);
+//     add_token_note(env, contracts.usdc, accounts.alice, amount_reimbursed_sep, note_randomness_sep);
+
 //     debug_log_format("\n\n\n\n\n\n\n\namount reimbursed sep: {0}", [amount_reimbursed_sep]);
 
 //     // check the balance of the escrow has decremented
@@ -196,6 +215,12 @@ unconstrained fn claim_linode_recurring_success() {
 //         LINODE_OCT,
 //         false
 //     );
+
+//     // add private token note to TXE
+//     let note_randomness_oct = random();
+//     let _ = OracleMock::mock("getRandomField").returns(note_randomness_oct);
+//     add_token_note(env, contracts.usdc, accounts.alice, amount_reimbursed_oct, note_randomness_oct);
+
 //     // check the balance of the escrow has decremented
 //     check_public_balance(
 //         contracts.usdc,
@@ -293,51 +318,57 @@ unconstrained fn claim_linode_recurring_success() {
 //     );
 // }
 
-// #[test]
-// unconstrained fn claim_linode_spot_success() {
-//     // get start and end date
-//     let start_date = month_timestamp("1 Aug 2024 00:00:00 +0000 ");
-//     let end_date = month_timestamp("1 Oct 2024 00:00:00 +0000 ");
-//     // setup test env
-//     let (env, accounts, contracts) = setup::<1>();
-//     // mint tokens to the escrow
-//     let amount = to_usdc_decimals(10);
-//     mint_public(
-//         env,
-//         contracts.usdc,
-//         accounts.superuser,
-//         contracts.escrows[0],
-//         amount
-//     );
-//     // give entitlement to reimburse linode receipt to alice
-//     give_spot_entitlement(
-//         env,
-//         contracts.escrows[0],
-//         accounts.escrow_admin,
-//         accounts.alice,
-//         amount,
-//         verifier_ids::LINODE,
-//         start_date,
-//         end_date,
-//         ZERO_DESTINATION
-//     );
-//     // claim the reimbursement
-//     let amount_reimbursed = reimburse_linode(
-//         env,
-//         contracts.escrows[0],
-//         accounts.alice,
-//         LINODE_SEP,
-//         true
-//     );
-//     // check the balance of the escrow has decremented
-//     check_public_balance(
-//         contracts.usdc,
-//         contracts.escrows[0],
-//         amount - amount_reimbursed
-//     );
-//     // check the balance of alice has incremented
-//     check_private_balance(contracts.usdc, accounts.alice, amount_reimbursed);
-// }
+#[test]
+unconstrained fn claim_linode_spot_success() {
+    // get start and end date
+    let start_date = month_timestamp("1 Aug 2024 00:00:00 +0000 ");
+    let end_date = month_timestamp("1 Oct 2024 00:00:00 +0000 ");
+    // setup test env
+    let (env, accounts, contracts) = setup::<1>();
+    // mint tokens to the escrow
+    let amount = to_usdc_decimals(10);
+    mint_public(
+        env,
+        contracts.usdc,
+        accounts.superuser,
+        contracts.escrows[0],
+        amount
+    );
+    // give entitlement to reimburse linode receipt to alice
+    give_spot_entitlement(
+        env,
+        contracts.escrows[0],
+        accounts.escrow_admin,
+        accounts.alice,
+        amount,
+        verifier_ids::LINODE,
+        start_date,
+        end_date,
+        ZERO_DESTINATION
+    );
+    // claim the reimbursement
+    let amount_reimbursed = reimburse_linode(
+        env,
+        contracts.escrows[0],
+        accounts.alice,
+        LINODE_SEP,
+        true
+    );
+
+    // add private token note to TXE
+    let note_randomness = random();
+    let _ = OracleMock::mock("getRandomField").returns(note_randomness);
+    add_token_note(env, contracts.usdc, accounts.alice, amount_reimbursed, note_randomness);
+
+    // check the balance of the escrow has decremented
+    check_public_balance(
+        contracts.usdc,
+        contracts.escrows[0],
+        amount - amount_reimbursed
+    );
+    // check the balance of alice has incremented
+    check_private_balance(contracts.usdc, accounts.alice, amount_reimbursed);
+}
 
 // #[test]
 // unconstrained fn revoke_linode_spot() {

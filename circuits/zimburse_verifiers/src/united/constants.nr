@@ -3,17 +3,17 @@ use std::meta::derive;
 use aztec::protocol_types::traits::Serialize;
 
 // assuming a unlikely max billed amount of "9999999.99"
-global MAX_BILLED_AMOUNT = 10;
+global MAX_BILLED_AMOUNT: u32 = 10;
 
 // estimate maximum text length of destination airport
-global MAX_DEST_AIRPORT_LENGTH = 25;
+global MAX_DEST_AIRPORT_LENGTH: u32 = 25;
 
-global DATE_LENGTH = 17;
+global DATE_LENGTH: u32 = 17;
 
 global MAX_EMAIL_BODY_LENGTH: u32 = 25792;
 global MAX_UNITED_EMAIL_HEADER_LENGTH: u32 = 640;
 
-global PURCHASE_SUMMARY_INDICE_LEN = 5;
+global PURCHASE_SUMMARY_INDICE_LEN: Field = 5;
 
 // expected sequence for the sender in an email body for United flight receipt
 // "from:billing@linode.com"
@@ -23,24 +23,24 @@ global UNITED_FLIGHT_RECEIPT_FROM: [u8; 42] = comptime { "from:United Airlines <
 // "subject: eTicket Itinerary and Receipt for Confirmation"
 global UNITED_FLIGHT_RECEIPT_SUBJECT: [u8; 54] = comptime { "subject:eTicket Itinerary and Receipt for Confirmation".as_bytes() };
 
-global TOTAL_BILLED_PREFIX_LENGTH = 184;
-global TOTAL_BILLED_POSTFIX_LENGTH = 9;
+global TOTAL_BILLED_PREFIX_LENGTH: u32 = 184;
+global TOTAL_BILLED_POSTFIX_LENGTH: u32 = 9;
 global TOTAL_BILLED_HTML_PREFIX: [u8; TOTAL_BILLED_PREFIX_LENGTH] = comptime { "Total:</td><td style=3D\"padding-right:10px; padding-top:12px; padding-bottom:10px; text-align: right; font-weight: 600; font-size: 20px; font-family: &#39;Open Sans&#39;, sans-serif;\">".as_bytes() };
 global TOTAL_BILLED_HTML_POSTFIX: [u8; TOTAL_BILLED_POSTFIX_LENGTH] = comptime { " USD</td>".as_bytes() };
 
-global ARRIVAL_DATE_PREFIX_LENGTH = 195;
-global ARRIVAL_DATE_POSTFIX_LENGTH = 5;
+global ARRIVAL_DATE_PREFIX_LENGTH: u32 = 195;
+global ARRIVAL_DATE_POSTFIX_LENGTH: u32 = 5;
 global ARRIVAL_DATE_HTML_PREFIX: [u8; ARRIVAL_DATE_PREFIX_LENGTH] = comptime { "2nd bag weight and dimensions</td></tr><tr><td style=3D\"font-family: &#39;Open Sans&#39;, sans-serif; text-align: left; font-size: 12px; padding-bottom:5px; padding-top: 5px; padding-left:10px;\">".as_bytes() };
 global ARRIVAL_DATE_HTML_POSTFIX: [u8; ARRIVAL_DATE_POSTFIX_LENGTH] = comptime { "<br/>".as_bytes() };
 
-global DEST_AIRPORT_PREFIX_LENGTH = 5;
-global DEST_AIPORT_POSTFIX_LENGTH = 5;
+global DEST_AIRPORT_PREFIX_LENGTH: u32 = 5;
+global DEST_AIPORT_POSTFIX_LENGTH: u32 = 5;
 global DEST_AIRPORT_HTML_PREFIX: [u8; DEST_AIRPORT_PREFIX_LENGTH] = comptime { "<br/>".as_bytes() };
 global DEST_AIRPORT_HTML_POSTFIX: [u8; DEST_AIPORT_POSTFIX_LENGTH] = comptime { "</td>".as_bytes() };
 
-global MAX_AMOUNT_SEQUENCE_LENGTH = MAX_BILLED_AMOUNT + TOTAL_BILLED_POSTFIX_LENGTH + TOTAL_BILLED_PREFIX_LENGTH;
-global MAX_DATETIME_SEQUENCE_LENGTH = DATE_LENGTH + ARRIVAL_DATE_PREFIX_LENGTH + ARRIVAL_DATE_POSTFIX_LENGTH + 1;// todo: where is the +1 from
-global MAX_DEST_SEQUENCE_LENGTH = MAX_DEST_AIRPORT_LENGTH + DEST_AIPORT_POSTFIX_LENGTH + DEST_AIRPORT_PREFIX_LENGTH;
+global MAX_AMOUNT_SEQUENCE_LENGTH: u32 = MAX_BILLED_AMOUNT + TOTAL_BILLED_POSTFIX_LENGTH + TOTAL_BILLED_PREFIX_LENGTH;
+global MAX_DATETIME_SEQUENCE_LENGTH: u32 = DATE_LENGTH + ARRIVAL_DATE_PREFIX_LENGTH + ARRIVAL_DATE_POSTFIX_LENGTH + 1;// todo: where is the +1 from
+global MAX_DEST_SEQUENCE_LENGTH: u32 = MAX_DEST_AIRPORT_LENGTH + DEST_AIPORT_POSTFIX_LENGTH + DEST_AIRPORT_PREFIX_LENGTH;
 
 global AMOUNT_SELECTION_LENGTH: u32 = 256;
 global DATE_AIRPORT_SELECTION_LENGTH: u32 = 320;
@@ -108,6 +108,12 @@ impl UnitedBillingParamsContract {
 	}
 
 	fn marshal(self) -> UnitedBillingParams {
+
+		// check that header sequence falls within specified length
+		for i in 0..MAX_UNITED_EMAIL_HEADER_LENGTH {
+			assert((i < self.header_length) | (self.header[i] == 0), "Header exceeds specified length");
+		}
+
 		UnitedBillingParams {
 			header: BoundedVec { storage: self.header, len: self.header_length },
 			pubkey: RSAPubkey { modulus: self.pubkey_modulus, redc: self.pubkey_redc },

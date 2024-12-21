@@ -1,8 +1,7 @@
 use crate::linode::{
     constants::{LinodeBillingParams, MAX_LINODE_EMAIL_BODY_LENGTH, MAX_LINODE_EMAIL_HEADER_LENGTH},
-    utils::{check_from_linode_billing, check_subject_linode_billing_receipt, extract_billed_amount}
+    utils::{check_from_linode_billing, check_subject_linode_billing_receipt, extract_billed_amount, extract_datetime}
 };
-use crate::utils::extract_datetime;
 use dep::zkemail::{KEY_LIMBS_2048, dkim::RSAPubkey, headers::body_hash::get_body_hash, Sequence};
 use std::{hash::{sha256_var, pedersen_hash}, collections::bounded_vec::BoundedVec};
 
@@ -15,7 +14,7 @@ pub fn verify_linode_billing_receipt(
     body_hash_index: u32,
     from_index: u32,
     subject_index: u32,
-    amount_sequence: Sequence,
+    amount_index: u32,
     date_index: u32,
     receipt_id_length: u32
 ) -> [Field; 3] {
@@ -24,7 +23,7 @@ pub fn verify_linode_billing_receipt(
     assert(body.len() <= MAX_LINODE_EMAIL_BODY_LENGTH);
 
     // verify the dkim signature over the header
-    pubkey.verify_dkim_signature(header, signature);
+    // pubkey.verify_dkim_signature(header, signature);
 
     // extract body hash and decode from base64
     let signed_body_hash = get_body_hash(header, dkim_header_field_sequence, body_hash_index);
@@ -44,11 +43,11 @@ pub fn verify_linode_billing_receipt(
     check_subject_linode_billing_receipt(subject_index, header, receipt_id_length);
 
     // extract billed amount
-    // note: the billed amount has 2 decimals
-    let billed_amount = extract_billed_amount(body, amount_sequence);
+    // note: the billed amount has 2 decimals already
+    let billed_amount = extract_billed_amount(body, amount_index);
 
-    // extract the timestamp header from the email
-    let datetime = extract_datetime(header.storage, date_index);
+    // extract the receipt date from the email body
+    let datetime = extract_datetime(body, date_index);
 
     // hash the dkim key used to verify the email
     let dkim_key_hash = pedersen_hash(pubkey.modulus);

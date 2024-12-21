@@ -7,7 +7,6 @@ import {
   computeSecretHash,
 } from "@aztec/aztec.js";
 import { getEscrowContractClassID } from "../../src/contract_drivers";
-import { addPendingShieldNoteToPXE } from "../../src/contract_drivers/notes";
 import { USDC_TOKEN } from "../../src/constants";
 import {
   MultiCallEntrypointContract,
@@ -162,41 +161,16 @@ export async function mintToAdminThenEscrow(
   amount: bigint,
   verbose = true
 ) {
-  // mint shielded tokens to the z-imburse escrow admin
-  const secret = Fr.random();
-  let secretHash = computeSecretHash(secret);
-  const receipt = await usdc
+  // mint tokens private to the z-imburse escrow admin
+  await usdc
     .withWallet(minter)
-    .methods.mint_private(amount, secretHash)
+    .methods.mint_to_private(minter.getAddress(), escrowAdmin.getAddress(), amount)
     .send()
     .wait();
-  // claim the shielded tokens as the z-imburse escrow admin
-  await addPendingShieldNoteToPXE(
-    escrowAdmin,
-    usdc.address,
-    amount,
-    secretHash,
-    receipt.txHash
-  );
   if (verbose)
     console.log(
       `Privately minted ${amount} USDC to the Z-Imburse admin account`
     );
-  // claim the shielded tokens to the z-imburse escrow admin's private balance
-  await usdc
-    .withWallet(escrowAdmin)
-    .methods.redeem_shield(escrowAdmin.getAddress(), amount, secret)
-    .send()
-    .wait();
-  if (verbose)
-    console.log(`Redeemed ${amount} USDC to the Z-Imburse admin account`);
-  // unshield the tokens to the z-imburse escrow
-  await usdc
-    .withWallet(escrowAdmin)
-    .methods.unshield(escrowAdmin.getAddress(), escrow.address, amount, 0)
-    .send()
-    .wait();
-  if (verbose) console.log(`Unshielded ${amount} USDC to the Z-Imburse escrow`);
 }
 
 /**
@@ -218,7 +192,7 @@ export async function mintToEscrow(
   // mint tokens publicly to the escrow contract
   await usdc
     .withWallet(minter)
-    .methods.mint_public(escrowAddress, amount)
+    .methods.mint_to_public(escrowAddress, amount)
     .send()
     .wait();
   if (verbose) console.log(`Minted ${amount} USDC to the escrow contract`);

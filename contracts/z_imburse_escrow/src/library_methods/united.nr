@@ -1,26 +1,30 @@
 use aztec::prelude::{AztecAddress, PrivateContext};
 use zimburse_verifiers::{
+    constants::verifier_ids,
     united::constants::UnitedBillingParamsContract,
     zkemail::KEY_LIMBS_2048
 };
 use crate::{
     types::entitlement_note::EntitlementNote,
     contract_interfaces::{check_dkim_key_hash_private, shield_to_claimant},
-    verifiers::{verifier_ids, verify_united_deferred},
+    verifiers::verify_united_deferred,
     ZImburseEscrow::Storage, ZImburseEscrow
 };
 use std::hash::pedersen_hash;
 
-// /**
-//  * Handles verification of united email receipt with hashing split into recursive calls
-//  *
-//  * @param email_inputs - the inputs from the email verifier, in a contract-serializable format
-//  * @param amount_to_date_length - the length of the body between the amount and date selection
-//  * @param remaining_length - the length of the body after all selections have been made
-//  * @param actual_length - the actual length of the entire email body
-//  * @param context - the contract context
-//  * @return - []
-//  */
+/**
+ *
+ * WIP
+ *
+ * Handles verification of united email receipt with hashing split into recursive calls
+ *
+ * @param email_inputs - the inputs from the email verifier, in a contract-serializable format
+ * @param amount_to_date_length - the length of the body between the amount and date selection
+ * @param remaining_length - the length of the body after all selections have been made
+ * @param actual_length - the actual length of the entire email body
+ * @param context - the contract context
+ * @return - []
+ */
 // #[contract_library_method]
 // fn united_deferred(
 //     // general email inputs
@@ -53,6 +57,9 @@ use std::hash::pedersen_hash;
 // }
 
 /**
+ *
+ * WIP
+ *
  * Claim a spot reimbursement for a United Airlines receipt
  * 
  * @param email_inputs - the inputs from the email verifier in a contract-serializable format

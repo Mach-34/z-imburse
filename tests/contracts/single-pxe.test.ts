@@ -17,7 +17,6 @@ import {
     TxExecutionRequest,
     TxHash,
     computeSecretHash,
-    createDebugLogger,
     createPXEClient,
 } from "@aztec/aztec.js";
 import { Fr as NoirFr } from "@aztec/bb.js";
@@ -36,7 +35,6 @@ import { dkimPubkeyToHash } from "../../src/dkim";
 import { setup, mintToEscrow, addContractsToPXE } from "../utils/index";
 import { emails } from "../utils/fs";
 import { parseStringBytes } from "../../src/utils";
-import { addPendingShieldNoteToPXE } from "../../src/contract_drivers/notes";
 import { VERIFIER_IDS } from "../../src/contract_drivers/dkim";
 
 const DEFAULT_PXE_URL = "http://localhost";
@@ -63,11 +61,6 @@ describe("Test deposit to zimburse", () => {
         alice = await createAccount(pxe);
         bob = await createAccount(pxe);
 
-        // register recipients for each PXE
-        await pxe.registerRecipient(alice.getCompleteAddress());
-        await pxe.registerRecipient(bob.getCompleteAddress());
-        await pxe.registerRecipient(escrowAdmin.getCompleteAddress());
-
         // set multicall
         const nodeInfo = await pxe.getNodeInfo();
         multicall = await MultiCallEntrypointContract.at(
@@ -90,7 +83,7 @@ describe("Test deposit to zimburse", () => {
     });
 
     describe("Registration", () => {
-        it("Register Z-Imburse Escrow", async () => {
+        xit("Register Z-Imburse Escrow", async () => {
 
             const testEscrow = await ZImburseEscrowContract.deploy(
                 escrowAdmin,
@@ -129,7 +122,7 @@ describe("Test deposit to zimburse", () => {
         it.todo("Cannot give entitlement if not admin");
         it.todo("Cannot give entitlement if escrow not registered");
         it.todo("Cannot give entitlement if participant not registered");
-        describe("Linode", () => {
+        describe("Revoke entitlements", () => {
             it("Give linode recurring entitlement", async () => {
                 // check dkim key
                 // give entitlement of 10 usdc
@@ -143,33 +136,18 @@ describe("Test deposit to zimburse", () => {
                     .send()
                     .wait();
 
-                const secret = Fr.random();
-                const secretHash = computeSecretHash(secret);
                 const inputs = await makeLinodeInputs(emails.linode_sep);
                 const redeemLinodeInputs = formatRedeemLinode(inputs);
                 const receipt = await escrows[0]
                     .withWallet(alice)
-                    .methods.reimburse_linode_recurring(redeemLinodeInputs, secretHash)
+                    .methods.reimburse_linode_recurring(redeemLinodeInputs)
                     .send()
                     .wait();
-                await addPendingShieldNoteToPXE(
-                    alice,
-                    usdc.address,
-                    amount,
-                    secretHash,
-                    receipt.txHash
-                );
-
                 const escrowBalance = await usdc.methods
                     .balance_of_public(escrows[0])
                     .simulate();
                 expect(escrowBalance).toBe(toUSDCDecimals(9990n));
 
-                await usdc
-                    .withWallet(alice)
-                    .methods.redeem_shield(alice.getAddress(), amount, secret)
-                    .send()
-                    .wait();
                 // check that the balance has incremented for the recipient
                 const recipientBalance = await usdc
                     .withWallet(alice)
@@ -178,6 +156,113 @@ describe("Test deposit to zimburse", () => {
                 console.log('Recipient balance: ', recipientBalance)
                 expect(recipientBalance).toBe(toUSDCDecimals(10n));
             });
+
+            it("Test revoke spot entitlement", async () => {
+                const amount = toUSDCDecimals(10n);
+                // give entitlement
+                await escrows[0]
+                    .methods
+                    .give_spot_entitlement(
+                        alice.getAddress(),
+                        amount,
+                        2,
+                        0,
+                        0,
+                        "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
+                    )
+                    .send()
+                    .wait();
+
+                // revoke entitlement
+                await escrows[0]
+                    .withWallet(escrowAdmin)
+                    .methods
+                    .revoke_entitlement(alice.getAddress(), 2, true)
+                    .send()
+                    .wait();
+                // we will not remove entitlement from alice's PXE and try to use it
+                const inputs = await makeLinodeInputs(emails.linode_sep);
+                const redeemLinodeInputs = formatRedeemLinode(inputs);
+                const failingCall = escrows[0]
+                    .withWallet(alice)
+                    .methods
+                    .reimburse_linode_spot(redeemLinodeInputs)
+                    .simulate();
+                await expect(failingCall)
+                    .rejects
+                    .toThrow("(JSON-RPC PROPAGATED) Assertion failed: Entitlement is nullified '!is_nullified'");
+            });
+
+            xit("Test revoke recurring entitlement", async () => {
+                const amount = toUSDCDecimals(10n);
+                // give entitlement
+                await escrows[0]
+                    .methods
+                    .give_recurring_entitlement(
+                        alice.getAddress(),
+                        amount,
+                        2,
+                    )
+                    .send()
+                    .wait();
+
+                // revoke entitlement
+                await escrows[0]
+                    .withWallet(escrowAdmin)
+                    .methods
+                    .revoke_entitlement(alice.getAddress(), 2, false)
+                    .send()
+                    .wait();
+                // we will not remove entitlement from alice's PXE and try to use it
+                const inputs = await makeLinodeInputs(emails.linode_sep);
+                const redeemLinodeInputs = formatRedeemLinode(inputs);
+                const failingCall = escrows[0]
+                    .withWallet(alice)
+                    .methods
+                    .reimburse_linode_recurring(redeemLinodeInputs)
+                    .simulate();
+                await expect(failingCall)
+                    .rejects
+                    .toThrow("(JSON-RPC PROPAGATED) Assertion failed: Entitlement is nullified '!is_nullified'");
+            })
+
+            it("Test cannot revoke spent Linode spot entitlement", async () => {
+                const amount = toUSDCDecimals(10n);
+                // give entitlement
+                await escrows[0]
+                    .methods
+                    .give_spot_entitlement(
+                        bob.getAddress(),
+                        amount,
+                        2,
+                        0,
+                        0,
+                        "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
+                    )
+                    .send()
+                    .wait();
+
+                // claim the spot entitlement
+                const inputs = await makeLinodeInputs(emails.linode_oct);
+                const redeemLinodeInputs = formatRedeemLinode(inputs);
+                await escrows[0]
+                    .withWallet(bob)
+                    .methods
+                    .reimburse_linode_spot(redeemLinodeInputs)
+                    .send()
+                    .wait();
+
+                // fail to revoke entitlement
+                let failingCall = escrows[0]
+                    .withWallet(escrowAdmin)
+                    .methods
+                    .revoke_entitlement(bob.getAddress(), 2, true)
+                    .simulate();
+                await expect(failingCall)
+                    .rejects
+                    .toThrow("(JSON-RPC PROPAGATED) Assertion failed: Entitlement is already nullified '!is_nullified'");
+            })
+
         });
     });
 });

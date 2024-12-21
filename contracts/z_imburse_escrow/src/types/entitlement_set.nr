@@ -59,27 +59,27 @@ impl<T> EntitlementSet<T, UnconstrainedContext> {
             .set_status(NoteStatus.ACTIVE);
         // optionally select by recipient
         if recipient.is_some() {
-            options.select(
+            options = options.select(
                 EntitlementNote::properties().recipient,
                 Comparator.EQ,
                 recipient.unwrap()
-            )
+            );
         }
         // optionally select by verifier_id
         if verifier_id.is_some() {
-            options.select(
+            options = options.select(
                 EntitlementNote::properties().verifier_id,
                 Comparator.EQ,
                 verifier_id.unwrap()
-            )
+            );
         }
         // optionally select by spot
         if spot.is_some() {
-            options.select(
+            options = options.select(
                 EntitlementNote::properties().spot,
                 Comparator.EQ,
                 spot.unwrap()
-            )
+            );
         }
         // retrieve notes
         let notes = self.set.at(scope).view_notes(options);

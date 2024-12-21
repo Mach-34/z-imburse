@@ -15,7 +15,7 @@
     "@jridgewell/gen-mapping" "^0.3.5"
     "@jridgewell/trace-mapping" "^0.3.24"
 
-"@aztec/accounts@^0.67.1":
+"@aztec/accounts@^0.67.0":
   version "0.67.1"
   resolved "https://registry.yarnpkg.com/@aztec/accounts/-/accounts-0.67.1.tgz#fd8c79a31745e53715e77001f40869c616ffc6d4"
   integrity sha512-tvC8OzZ825actncmuCgnmrwUXMqGkfsXAiMaTNerkFoUT/xNQ9VcerZBogdNSsqXvzut88mMEDITJhtq4qxV+w==
@@ -29,7 +29,7 @@
     "@aztec/types" "0.67.1"
     tslib "^2.4.0"
 
-"@aztec/aztec.js@0.67.1", "@aztec/aztec.js@^0.67.1":
+"@aztec/aztec.js@0.67.1", "@aztec/aztec.js@^0.67.0":
   version "0.67.1"
   resolved "https://registry.yarnpkg.com/@aztec/aztec.js/-/aztec.js-0.67.1.tgz#0c577c0f1a5446427a139cf128d792b6b0527841"
   integrity sha512-fmVWpIAgMS1TH+9L8W7g+YPlIVuk6WfmgQ9k59XCeHXuH1Au7l9PcP+94qgwR/A1Y9SiRRMjE+8szmW2Dco2oQ==
@@ -55,7 +55,7 @@
     debug "^4.3.4"
     tslib "^2.4.0"
 
-"@aztec/bb.js@0.67.1", "@aztec/bb.js@^0.67.1":
+"@aztec/bb.js@0.67.1", "@aztec/bb.js@^0.67.0":
   version "0.67.1"
   resolved "https://registry.yarnpkg.com/@aztec/bb.js/-/bb.js-0.67.1.tgz#5331b6648d5d921ae71669368851d70d7d1f20a5"
   integrity sha512-Ieb+JPCLfIYDw78/calOG1mw/i7i1CF2YT8lcl+yp4oiw0+NaAACWgLc9n7MtDEAa2Oyahw4W7bN2AEDJ0usgg==
@@ -83,7 +83,7 @@
     tslib "^2.5.0"
     zod "^3.23.8"
 
-"@aztec/circuits.js@0.67.1", "@aztec/circuits.js@^0.67.1":
+"@aztec/circuits.js@0.67.1", "@aztec/circuits.js@^0.67.0":
   version "0.67.1"
   resolved "https://registry.yarnpkg.com/@aztec/circuits.js/-/circuits.js-0.67.1.tgz#ebb293054e55f187c9348fc845c2576b90aef900"
   integrity sha512-9630TP0Lwag9tQC2C+IEj1oPbDQ78ZLkEIJ2HDqSot/4oqQcyQkIRvfObNxrH420CIJE1V1M3UqkC8igF6zjgQ==
@@ -158,7 +158,7 @@
   dependencies:
     tslib "^2.4.0"
 
-"@aztec/noir-contracts.js@^0.67.1":
+"@aztec/noir-contracts.js@^0.67.0":
   version "0.67.1"
   resolved "https://registry.yarnpkg.com/@aztec/noir-contracts.js/-/noir-contracts.js-0.67.1.tgz#9e69631ea49369e586bad87ef6aea68bc7b1201a"
   integrity sha512-bRB07+c9eoHQrLy2qdznnwHG4OIyQhyhhN0h7nWjNO2Mf+9yoD+npPe5mR6f8lx2WNCa+fSQu63h1Sg3N5VgHA==

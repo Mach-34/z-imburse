@@ -44,6 +44,7 @@ pub fn verify_linode(inputs: LinodeBillingParams) -> LinodeReceiptOutput {
         inputs.date_index,
         inputs.receipt_id_length
     );
+    
     // extract outputs
     let dkim_key_hash = linode_receipt_result[0];
     let timestamp = linode_receipt_result[1];

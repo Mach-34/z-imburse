@@ -17,7 +17,6 @@ import {
     TxExecutionRequest,
     TxHash,
     computeSecretHash,
-    createDebugLogger,
     createPXEClient,
 } from "@aztec/aztec.js";
 import { Fr as NoirFr } from "@aztec/bb.js";
@@ -36,7 +35,6 @@ import { dkimPubkeyToHash } from "../../src/dkim";
 import { setup, mintToEscrow, addContractsToPXE } from "../utils/index";
 import { emails } from "../utils/fs";
 import { parseStringBytes } from "../../src/utils";
-import { addPendingShieldNoteToPXE } from "../../src/contract_drivers/notes";
 import { VERIFIER_IDS } from "../../src/contract_drivers/dkim";
 
 const DEFAULT_PXE_URL = "http://localhost";
@@ -62,11 +60,6 @@ describe("Test deposit to zimburse", () => {
         escrowAdmin = await createAccount(pxe);
         alice = await createAccount(pxe);
         bob = await createAccount(pxe);
-
-        // register recipients for each PXE
-        await pxe.registerRecipient(alice.getCompleteAddress());
-        await pxe.registerRecipient(bob.getCompleteAddress());
-        await pxe.registerRecipient(escrowAdmin.getCompleteAddress());
 
         // set multicall
         const nodeInfo = await pxe.getNodeInfo();
@@ -143,33 +136,18 @@ describe("Test deposit to zimburse", () => {
                     .send()
                     .wait();
 
-                const secret = Fr.random();
-                const secretHash = computeSecretHash(secret);
                 const inputs = await makeLinodeInputs(emails.linode_sep);
                 const redeemLinodeInputs = formatRedeemLinode(inputs);
                 const receipt = await escrows[0]
                     .withWallet(alice)
-                    .methods.reimburse_linode_recurring(redeemLinodeInputs, secretHash)
+                    .methods.reimburse_linode_recurring(redeemLinodeInputs)
                     .send()
                     .wait();
-                await addPendingShieldNoteToPXE(
-                    alice,
-                    usdc.address,
-                    amount,
-                    secretHash,
-                    receipt.txHash
-                );
-
                 const escrowBalance = await usdc.methods
                     .balance_of_public(escrows[0])
                     .simulate();
                 expect(escrowBalance).toBe(toUSDCDecimals(9990n));
 
-                await usdc
-                    .withWallet(alice)
-                    .methods.redeem_shield(alice.getAddress(), amount, secret)
-                    .send()
-                    .wait();
                 // check that the balance has incremented for the recipient
                 const recipientBalance = await usdc
                     .withWallet(alice)
@@ -189,7 +167,7 @@ describe("Test deposit to zimburse", () => {
                         amount,
                         2,
                         0,
-                        Math.floor(new Date().getTime() / 1000),
+                        0,
                         "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
                     )
                     .send()
@@ -203,14 +181,12 @@ describe("Test deposit to zimburse", () => {
                     .send()
                     .wait();
                 // we will not remove entitlement from alice's PXE and try to use it
-                const secret = Fr.random();
-                const secretHash = computeSecretHash(secret);
                 const inputs = await makeLinodeInputs(emails.linode_sep);
                 const redeemLinodeInputs = formatRedeemLinode(inputs);
                 const failingCall = escrows[0]
                     .withWallet(alice)
                     .methods
-                    .reimburse_linode_spot(redeemLinodeInputs, secretHash)
+                    .reimburse_linode_spot(redeemLinodeInputs)
                     .simulate();
                 await expect(failingCall)
                     .rejects
@@ -238,14 +214,12 @@ describe("Test deposit to zimburse", () => {
                     .send()
                     .wait();
                 // we will not remove entitlement from alice's PXE and try to use it
-                const secret = Fr.random();
-                const secretHash = computeSecretHash(secret);
                 const inputs = await makeLinodeInputs(emails.linode_sep);
                 const redeemLinodeInputs = formatRedeemLinode(inputs);
                 const failingCall = escrows[0]
                     .withWallet(alice)
                     .methods
-                    .reimburse_linode_recurring(redeemLinodeInputs, secretHash)
+                    .reimburse_linode_recurring(redeemLinodeInputs)
                     .simulate();
                 await expect(failingCall)
                     .rejects
@@ -262,21 +236,19 @@ describe("Test deposit to zimburse", () => {
                         amount,
                         2,
                         0,
-                        Math.floor(new Date().getTime() / 1000),
+                        0,
                         "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
                     )
                     .send()
                     .wait();
 
                 // claim the spot entitlement
-                const secret = Fr.random();
-                const secretHash = computeSecretHash(secret);
                 const inputs = await makeLinodeInputs(emails.linode_oct);
                 const redeemLinodeInputs = formatRedeemLinode(inputs);
                 await escrows[0]
                     .withWallet(bob)
                     .methods
-                    .reimburse_linode_spot(redeemLinodeInputs, secretHash)
+                    .reimburse_linode_spot(redeemLinodeInputs)
                     .send()
                     .wait();
 

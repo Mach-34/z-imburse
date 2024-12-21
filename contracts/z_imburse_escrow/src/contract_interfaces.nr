@@ -31,9 +31,12 @@ pub fn check_dkim_key_hash_private(
  * @param amount - the amount of tokens to shield
  */
 pub fn reimburse_to_claimant(
+    context: &mut PrivateContext,
     token_address: AztecAddress,
     to: AztecAddress,
     amount: Field,
 ) { 
-    let _ = Token::at(token_address).transfer_to_private(to, amount);
+    let token = Token::at(token_address);
+    let hiding_point_slot = token.prepare_private_balance_increase(to, context.msg_sender()).call(context);
+    let _ = token.finalize_transfer_to_private(amount, hiding_point_slot).enqueue(context);
 }

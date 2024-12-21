@@ -273,7 +273,7 @@ contract ZImburseEscrow {
         );
         entitlement.check_date_range(timestamp as u32);
         let amount_to_reimburse = entitlement.amount_to_reimburse(billed_amount);
-        reimburse_to_claimant(definition.usdc, context.msg_sender(), amount_to_reimburse);
+        reimburse_to_claimant(&mut context, definition.usdc, context.msg_sender(), amount_to_reimburse);
         let email_nullifier = pedersen_hash(email_inputs.signature);
         context.push_nullifier(email_nullifier);
 

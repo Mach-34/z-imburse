@@ -61,7 +61,7 @@ fn linode(
     let amount_to_reimburse = entitlement.amount_to_reimburse(linode_outputs.billed_amount);
 
     // tranfer funds from escrow public balance to claimant private balance
-    reimburse_to_claimant(definition.usdc, context.msg_sender(), amount_to_reimburse);
+    reimburse_to_claimant(context, definition.usdc, sender, amount_to_reimburse);
         
     // return the amount reimbursed
     (entitlement, definition.admin, amount_to_reimburse, linode_outputs.timestamp)

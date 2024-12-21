@@ -28,6 +28,7 @@ import {
 } from "../../src/artifacts/contracts/index";
 import { toUSDCDecimals, toBigIntBE } from "../../src/utils";
 import {
+  formatRedeemLinode,
   makeLinodeInputs,
 } from "../../src/email_inputs/linode";
 import { dkimPubkeyToHash } from "../../src/dkim";
@@ -67,18 +68,18 @@ describe("Test deposit to zimburse", () => {
     bob = await createAccount(pxe3);
 
     // register recipients for each PXE
-    // await sandboxPXE.registerRecipient(alice.getCompleteAddress());
-    // await sandboxPXE.registerRecipient(bob.getCompleteAddress());
-    // await sandboxPXE.registerRecipient(escrowAdmin.getCompleteAddress());
-    // await pxe1.registerRecipient(superuser.getCompleteAddress());
-    // await pxe1.registerRecipient(alice.getCompleteAddress());
-    // await pxe1.registerRecipient(bob.getCompleteAddress());
-    // await pxe2.registerRecipient(superuser.getCompleteAddress());
-    // await pxe2.registerRecipient(escrowAdmin.getCompleteAddress());
-    // await pxe2.registerRecipient(bob.getCompleteAddress());
-    // await pxe3.registerRecipient(superuser.getCompleteAddress());
-    // await pxe3.registerRecipient(escrowAdmin.getCompleteAddress());
-    // await pxe3.registerRecipient(alice.getCompleteAddress());
+    await sandboxPXE.registerAccount(alice.getSecretKey(), alice.getCompleteAddress().partialAddress);
+    await sandboxPXE.registerAccount(bob.getSecretKey(), bob.getCompleteAddress().partialAddress);
+    await sandboxPXE.registerAccount(escrowAdmin.getSecretKey(), escrowAdmin.getCompleteAddress().partialAddress);
+    await pxe1.registerAccount(superuser.getSecretKey(), superuser.getCompleteAddress().partialAddress);
+    await pxe1.registerAccount(alice.getSecretKey(), alice.getCompleteAddress().partialAddress);
+    await pxe1.registerAccount(bob.getSecretKey(), bob.getCompleteAddress().partialAddress);
+    await pxe2.registerAccount(superuser.getSecretKey(), superuser.getCompleteAddress().partialAddress);
+    await pxe2.registerAccount(escrowAdmin.getSecretKey(), escrowAdmin.getCompleteAddress().partialAddress);
+    await pxe2.registerAccount(bob.getSecretKey(), bob.getCompleteAddress().partialAddress);
+    await pxe3.registerAccount(superuser.getSecretKey(), superuser.getCompleteAddress().partialAddress);
+    await pxe3.registerAccount(escrowAdmin.getSecretKey(), escrowAdmin.getCompleteAddress().partialAddress);
+    await pxe3.registerAccount(alice.getSecretKey(), alice.getCompleteAddress().partialAddress);
 
     // set multicall
     const nodeInfo = await sandboxPXE.getNodeInfo();
@@ -138,8 +139,6 @@ describe("Test deposit to zimburse", () => {
         )
         .send()
         .wait();
-
-      console.log('Receipt 1: ', receipt1)
 
       // // todo: FIX
       // // expect(managedEscrows[0][0]).toEqual(escrows[0].address);
@@ -230,7 +229,7 @@ describe("Test deposit to zimburse", () => {
     );
   });
 
-  xdescribe("Hosting entitlements", () => {
+  describe("Hosting entitlements", () => {
     it.todo("Cannot give entitlement if not admin");
     it.todo("Cannot give entitlement if escrow not registered");
     it.todo("Cannot give entitlement if participant not registered");
@@ -248,8 +247,6 @@ describe("Test deposit to zimburse", () => {
           .send()
           .wait();
 
-        console.log('Receipt 1: ', receipt1)
-
         // const listedEntitlements = await escrows[0].withWallet(escrowAdmin).methods.view_entitlements(
         //   0,
         //   escrowAdmin.getAddress(),
@@ -260,18 +257,18 @@ describe("Test deposit to zimburse", () => {
 
         // console.log('Listed entitlements: ', listedEntitlements)
 
-        // // generate email inputs
-        // const inputs = await makeLinodeInputs(emails.linode_sep);
+        // generate email inputs
+        const inputs = await makeLinodeInputs(emails.linode_sep);
         // transform inputs to contract friendly format
-        // const redeemLinodeInputs = formatRedeemLinode(inputs);
-        // // redeem entitlement
-        const secret = Fr.random();
-        const secretHash = computeSecretHash(secret);
-        // const receipt = await escrows[0]
-        //   .withWallet(alice)
-        //   .methods.reimburse_linode(...redeemLinodeInputs, secretHash)
-        //   .send()
-        //   .wait();
+        const redeemLinodeInputs = formatRedeemLinode(inputs);
+        // redeem entitlement
+        // const registered = await alice.getRegisteredAccounts();
+        // console.log('Registereed accounts: ', registered);
+        await escrows[0]
+          .withWallet(alice)
+          .methods.reimburse_linode_recurring(redeemLinodeInputs)
+          .send()
+          .wait();
         // await addPendingShieldNoteToPXE(
         //   alice,
         //   usdc.address,
@@ -279,23 +276,23 @@ describe("Test deposit to zimburse", () => {
         //   secretHash,
         //   receipt.txHash
         // );
-        // // check that the balance has decremented from zimburse
-        // const escrowBalance = await usdc.methods
-        //   .balance_of_public(escrows[0])
-        //   .simulate();
-        // expect(escrowBalance).toBe(toUSDCDecimals(9990n));
+        // check that the balance has decremented from zimburse
+        const escrowBalance = await usdc.methods
+          .balance_of_public(escrows[0])
+          .simulate();
+        expect(escrowBalance).toBe(toUSDCDecimals(9990n));
         // // redeem the shielded USDC note
         // await usdc
         //   .withWallet(alice)
         //   .methods.redeem_shield(alice.getAddress(), amount, secret)
         //   .send()
         //   .wait();
-        // // check that the balance has incremented for the recipient
-        // const recipientBalance = await usdc
-        //   .withWallet(alice)
-        //   .methods.balance_of_private(alice.getAddress())
-        //   .simulate();
-        // expect(recipientBalance).toBe(toUSDCDecimals(10n));
+        // check that the balance has incremented for the recipient
+        const recipientBalance = await usdc
+          .withWallet(alice)
+          .methods.balance_of_private(alice.getAddress())
+          .simulate();
+        expect(recipientBalance).toBe(toUSDCDecimals(10n));
       });
       // xit("Can't use the same email (same month)", async () => {
       //   // generate email inputs

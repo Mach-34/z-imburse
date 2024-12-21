@@ -149,9 +149,6 @@ impl<T> EntitlementSet<T, &mut PrivateContext> {
         admin_note: &mut T,
         recipient_note: &mut T
     ) where T: NoteInterface<T_SERIALIZED_LEN> + NullifiableNote + Eq {
-        // encryption/ nullifier keys keys for admin and recipient
-        let recipient_keys = get_public_keys(recipient);
-        let admin_keys = get_public_keys(admin);
         // add note to recipient set and receipt to admin set
         // admin really has little reason to lie here- technically they could but it would destroy their own reimbursement platform
         self.set.at(admin).insert(admin_note).emit(encode_and_encrypt_note_unconstrained(context, admin, admin));

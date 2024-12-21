@@ -1,4 +1,8 @@
-use aztec::{test::helpers::cheatcodes, hash::compute_secret_hash, oracle::debug_log::{debug_log, debug_log_format}};
+use aztec::{
+    hash::compute_secret_hash, 
+    oracle::debug_log::{debug_log, debug_log_format},
+    test::helpers::cheatcodes
+};
 use z_imburse_escrow::ZImburseEscrow;
 use crate::{
     test::utils::{
@@ -14,90 +18,92 @@ use crate::{
 use zimburse_verifiers::constants::verifier_ids;
 use std::option::Option;
 
-#[test]
-unconstrained fn view_entitlements_perspectives() {
-    // setup test env
-    let (env, accounts, contracts) = setup::<1>();
-    // give entitlement to reimburse linode receipt to alice
-    give_recurring_entitlement(
-        env,
-        contracts.escrows[0],
-        accounts.escrow_admin,
-        accounts.alice,
-        10000,
-        verifier_ids::LINODE
-    );
-    // view entitlements as admin
-    // let (entitlements_admin, continue_admin) = view_entitlements(
-    //     contracts.escrows[0],
-    //     0,
-    //     accounts.escrow_admin,
-    //     Option::none(),
-    //     Option::none(),
-    //     Option::none()
-    // );
-    // assert(entitlements_admin.len() == 1);
-    // let admin_entitlement = entitlements_admin.get_unchecked(0);
-
-    // let (entitlements_alice, continue_admin) = view_entitlements(
-    //     contracts.escrows[0],
-    //     0,
-    //     accounts.alice,
-    //     Option::none(),
-    //     Option::none(),
-    //     Option::none()
-    // );
-    // assert(entitlements_alice.len() == 1);
-    // let alice_entitlement = entitlements_alice.get_unchecked(0);
-    // // check entitlements match
-    // assert(admin_entitlement.recipient == accounts.alice);
-    // assert(admin_entitlement.recipient == alice_entitlement.recipient);
-    // assert(admin_entitlement.verifier_id == verifier_ids::LINODE);
-    // assert(admin_entitlement.verifier_id == alice_entitlement.verifier_id);
-    // assert(admin_entitlement.max_value.to_integer() == 10000);
-    // assert(admin_entitlement.max_value == alice_entitlement.max_value);
-    // assert(admin_entitlement.spot == false);
-    // assert(admin_entitlement.spot == alice_entitlement.spot);
-    // assert(admin_entitlement.randomness == alice_entitlement.randomness);
-}
-
 // #[test]
-// unconstrained fn claim_linode_recurring_success() {
-//     // CLAIM IS > ENTITLEMENT, CHECK GIVES MAX ENTITLEMENT
+// unconstrained fn view_entitlements_perspectives() {
 //     // setup test env
 //     let (env, accounts, contracts) = setup::<1>();
-//     // mint tokens to the escrow
-//     let amount = to_usdc_decimals(10);
-//     mint_public(
-//         env,
-//         contracts.usdc,
-//         accounts.superuser,
-//         contracts.escrows[0],
-//         amount
-//     );
 //     // give entitlement to reimburse linode receipt to alice
 //     give_recurring_entitlement(
 //         env,
 //         contracts.escrows[0],
 //         accounts.escrow_admin,
 //         accounts.alice,
-//         amount,
+//         10000,
 //         verifier_ids::LINODE
 //     );
-
-//     // reimburse linode with the entitlement
-//     let _ = reimburse_linode(
-//         env,
+//     // view entitlements as admin
+//     let (entitlements_admin, continue_admin) = view_entitlements(
 //         contracts.escrows[0],
-//         accounts.alice,
-//         LINODE_SEP,
-//         false
+//         0,
+//         accounts.escrow_admin,
+//         Option::none(),
+//         Option::none(),
+//         Option::none()
 //     );
-//     // check the balance of the escrow has decremented
-//     // check_public_balance(contracts.usdc, contracts.escrows[0], 0);
-//     // // check the balance of alice has incremented
-//     check_private_balance(contracts.usdc, accounts.alice, amount);
+//     assert(entitlements_admin.len() == 1);
+//     let admin_entitlement = entitlements_admin.get_unchecked(0);
+
+//     let (entitlements_alice, continue_admin) = view_entitlements(
+//         contracts.escrows[0],
+//         0,
+//         accounts.alice,
+//         Option::none(),
+//         Option::none(),
+//         Option::none()
+//     );
+//     assert(entitlements_alice.len() == 1);
+//     let alice_entitlement = entitlements_alice.get_unchecked(0);
+//     // check entitlements match
+//     assert(admin_entitlement.recipient == accounts.alice);
+//     assert(admin_entitlement.recipient == alice_entitlement.recipient);
+//     assert(admin_entitlement.verifier_id == verifier_ids::LINODE);
+//     assert(admin_entitlement.verifier_id == alice_entitlement.verifier_id);
+//     assert(admin_entitlement.max_value.to_integer() == 10000);
+//     assert(admin_entitlement.max_value == alice_entitlement.max_value);
+//     assert(admin_entitlement.spot == false);
+//     assert(admin_entitlement.spot == alice_entitlement.spot);
+//     assert(admin_entitlement.randomness == alice_entitlement.randomness);
 // }
+
+#[test]
+unconstrained fn claim_linode_recurring_success() {
+    // CLAIM IS > ENTITLEMENT, CHECK GIVES MAX ENTITLEMENT
+    // setup test env
+    let (env, accounts, contracts) = setup::<1>();
+    // mint tokens to the escrow
+    let amount = to_usdc_decimals(10);
+    mint_public(
+        env,
+        contracts.usdc,
+        accounts.superuser,
+        contracts.escrows[0],
+        amount
+    );
+
+    // give entitlement to reimburse linode receipt to alice
+    give_recurring_entitlement(
+        env,
+        contracts.escrows[0],
+        accounts.escrow_admin,
+        accounts.alice,
+        amount,
+        verifier_ids::LINODE
+    );
+
+    // reimburse linode with the entitlement
+    let _ = reimburse_linode(
+        env,
+        contracts.escrows[0],
+        accounts.alice,
+        LINODE_SEP,
+        false
+    );
+
+    // check the balance of the escrow has decremented
+    check_public_balance(contracts.usdc, contracts.escrows[0], 0);
+    // check the balance of alice has incremented
+    check_private_balance(contracts.usdc, accounts.alice, amount);
+}
 
 // #[test]
 // unconstrained fn claim_linode_recurring_max_value_success() {

@@ -179,8 +179,8 @@ ParticipantNote: {
     /** get_escrow_registry_status(escrow_contract: struct) */
     get_escrow_registry_status: ((escrow_contract: AztecAddressLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
-    /** get_managed_escrows(offset: integer) */
-    get_managed_escrows: ((offset: (bigint | number)) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+    /** get_managed_escrows(admin: struct, offset: integer) */
+    get_managed_escrows: ((admin: AztecAddressLike, offset: (bigint | number)) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
     /** get_participant_escrows(participant: struct, offset: integer) */
     get_participant_escrows: ((participant: AztecAddressLike, offset: (bigint | number)) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;

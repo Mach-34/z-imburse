@@ -12,8 +12,8 @@ describe("Deploy", () => {
 
         const schnorr = getSchnorrAccount(
             pxe,
-            Fr.fromString('0x06ef861b5853f12549a8d7e3e67083ae680123dcbb12cedb6d3060075f9d0b3c'),
-            Fq.fromString('0x082e6d118b06b9fb3bf5bcaa5328f6f742c86dad8df04d5601c3508c827d3c38'),
+            Fr.fromHexString('0x06ef861b5853f12549a8d7e3e67083ae680123dcbb12cedb6d3060075f9d0b3c'),
+            Fq.fromHexString('0x082e6d118b06b9fb3bf5bcaa5328f6f742c86dad8df04d5601c3508c827d3c38'),
             0
         );
         await schnorr.deploy().wait();

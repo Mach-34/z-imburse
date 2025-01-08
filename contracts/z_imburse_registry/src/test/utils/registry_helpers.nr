@@ -55,7 +55,7 @@ unconstrained pub fn get_managed_escrows(
 ) -> (BoundedVec<AztecAddress, MAX_NOTES_PER_PAGE>, bool) {
     let current_contract_address = get_contract_address();
     cheatcodes::set_contract_address(registry_address);
-    let (escrows, results_end) = ZImburseRegistry::get_managed_escrows(offset);
+    let (escrows, results_end) = ZImburseRegistry::get_managed_escrows(admin, offset);
     cheatcodes::set_contract_address(current_contract_address);
     (escrows, results_end)
 }

@@ -314,7 +314,7 @@ impl EntitlementNote {
             encode_and_encrypt_event(
                 context,
                 admin,
-                admin
+                self.recipient
             )
         );
     }
@@ -335,7 +335,7 @@ impl EntitlementNote {
             encode_and_encrypt_event(
                 context,
                 admin,
-                admin
+                self.recipient
             )
         );
     }
@@ -354,7 +354,7 @@ impl EntitlementNote {
             encode_and_encrypt_event(
                 context,
                 to,
-                to
+                from
             )
         );
     }

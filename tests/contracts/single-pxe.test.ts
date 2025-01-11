@@ -82,7 +82,7 @@ describe("Test deposit to zimburse", () => {
         }
     });
 
-    describe("Registration", () => {
+    xdescribe("Registration", () => {
         xit("Register Z-Imburse Escrow", async () => {
 
             const testEscrow = await ZImburseEscrowContract.deploy(
@@ -119,10 +119,7 @@ describe("Test deposit to zimburse", () => {
     });
 
     describe("Hosting entitlements", () => {
-        it.todo("Cannot give entitlement if not admin");
-        it.todo("Cannot give entitlement if escrow not registered");
-        it.todo("Cannot give entitlement if participant not registered");
-        describe("Revoke entitlements", () => {
+        xdescribe("Revoke entitlements", () => {
             it("Give linode recurring entitlement", async () => {
                 // check dkim key
                 // give entitlement of 10 usdc
@@ -264,5 +261,11 @@ describe("Test deposit to zimburse", () => {
             })
 
         });
+
+        xdescribe("Nullify entitlements", () => {
+            it("Test nullify counterpart to revoked entitlement", async () => {
+                
+            });
+        })
     });
 });

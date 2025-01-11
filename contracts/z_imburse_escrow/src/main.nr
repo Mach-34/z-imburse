@@ -217,7 +217,7 @@ contract ZImburseEscrow {
             .enqueue(&mut context);
 
         // emit event to notify admin of spot entitlement consumption
-        entitlement.emit_nullified(&mut context, entitlement.recipient, sender);
+        entitlement.emit_nullified(&mut context, admin, sender);
 
         // notify admin of reimbursement
         entitlement.emit_spot_claim(
@@ -282,7 +282,7 @@ contract ZImburseEscrow {
         assert(!is_nullified, "Entitlement is nullified");
         ZImburseEscrow::at(context.this_address()).init_nullifier(shared_nullifier).enqueue(&mut context);
         
-        entitlement.emit_nullified(&mut context, entitlement.recipient, sender);
+        entitlement.emit_nullified(&mut context, definition.admin, sender);
         entitlement.emit_spot_claim(
             &mut context,
             definition.admin,

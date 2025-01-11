@@ -187,15 +187,15 @@ contract ZImburseRegistry {
         assert(is_registered, "Escrow contract is not registered");
         // check if the participant has already been registered
         let options = NoteGetterOptions::new().select(AddressNote::properties().address, Comparator.EQ, participant).set_limit(1);
-        let participant_registered = storage.participants.at(escrow).get_notes(options).len() != 0;
+        let not_registered = storage.participants.at(escrow).get_notes(options).len() == 0;
         // if the participant has not been registered, enqueue a private call to register the participant
         // do this instead of if statement here to make adding first time expensive but cheap if already registered
-        if !participant_registered {
+        if not_registered {
             ZImburseRegistry::at(context.this_address()).register_participant(participant, participant_name, admin, escrow).call(&mut context);
         }
         // add escrow to participants private set
         ZImburseRegistry::at(context.this_address()).register_participant_escrow(participant, escrow).call(&mut context);
-        participant_registered
+        not_registered
     }
 
     #[private]

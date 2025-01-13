@@ -421,7 +421,7 @@ contract ZImburseEscrow {
                 // ensure counterparty note has been nullfied
                 let shared_nullifier = entitlement.derive_shared_nullifier();
                 let is_nullified = storage.nullifiers.at(shared_nullifier).read();
-                assert(!is_nullified, "Counterparty entitlement already nullified");
+                assert(is_nullified, "Counterparty entitlement has not been nullified!");
             }
         }
     }

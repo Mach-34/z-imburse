@@ -397,6 +397,37 @@ contract ZImburseEscrow {
     }
 
     /**
+     * Emit the nullifiers for entitlements for which counterpart note has already been nullified
+     * @dev will fail @ kernel if already emitted
+     *
+     * @param entropy_values - an BoundeVec containing entropy values to filter notes by
+     */
+    #[private]
+    pub fn nullify_entitlement(entropy_values: [Field; 10]) {
+        // check is escrow admin
+        let sender = context.msg_sender();
+
+        for i in 0..entropy_values.len() {
+            if entropy_values[i] != 0 {
+                // pop note for sender
+                let entitlement = storage.entitlements.pop_entitlement(
+                    sender,
+                    Option::none(),
+                    Option::none(),
+                    Option::none(),
+                    Option::some(entropy_values[i])
+                );
+
+                // ensure counterparty note has been nullfied
+                let shared_nullifier = entitlement.derive_shared_nullifier();
+                let is_nullified = storage.nullifiers.at(shared_nullifier).read();
+                assert(!is_nullified, "Counterparty entitlement already nullified");
+            }
+        }
+    }
+
+
+    /**
      * Emit the nullifier for an entitlement
      * @dev will fail @ kernel if already emitted
      *
@@ -408,15 +439,16 @@ contract ZImburseEscrow {
     pub fn revoke_entitlement(recipient: AztecAddress, verifier_type: u8, spot: bool) {
         // check is escrow admin
         let sender = context.msg_sender();
-        let defintion = storage.definition.read();
-        assert(sender == defintion.admin, "Only the escrow admin can revoke entitlements");
+        let definition = storage.definition.read();
+        assert(sender == definition.admin, "Only the escrow admin can revoke entitlements");
 
         // try to pop a note for this recipient
         let entitlement = storage.entitlements.pop_entitlement(
             sender,
-            recipient,
-            verifier_type,
-            spot
+            Option::some(recipient),
+            Option::some(verifier_type),
+            Option::some(spot),
+            Option::none()
         );
         // ensure the note is to/ from correctly
         assert(entitlement.recipient == recipient, "Entitlement does not belong to the recipient");

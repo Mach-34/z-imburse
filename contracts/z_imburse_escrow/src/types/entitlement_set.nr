@@ -161,33 +161,55 @@ impl<T> EntitlementSet<T, &mut PrivateContext> {
      * @dev does not emit event here as would require an if statement that can be avoided
      *
      * @param scope - the storage scope of the entitlements to check
-     * @param recipient - the address of the recipient to check
-     * @param verifier_id - the verifier id to check for
-     * @param spot - if true, check for spot entitlements. If false, check for recurring entitlements
+     * @param recipient - if included, the address of the recipient to check
+     * @param verifier_id - if included, the verifier id to check for
+     * @param spot - if included, if true, check for spot entitlements. If false, check for recurring entitlements
+     * @param randomness - if included, the entropy value unique to an admin / recipient note pair
      * @return - the entitlement note that was popped
      */
     pub fn pop_entitlement<let T_SERIALIZED_LEN: u32>(
         self,
         scope: AztecAddress,
-        recipient: AztecAddress,
-        verifier_id: u8,
-        spot: bool
+        recipient: Option<AztecAddress>,
+        verifier_id: Option<u8>,
+        spot: Option<bool>,
+        randomness: Option<Field>
     ) -> T where T: NoteInterface<T_SERIALIZED_LEN> + NullifiableNote + Eq {
         // get note matching criteria
-        let options = NoteGetterOptions::new()
-            .select(
+        let mut options = NoteGetterOptions::new().set_limit(1).set_status(NoteStatus.ACTIVE);
+
+        if recipient.is_some() {
+            options = options.select(
                 EntitlementNote::properties().recipient,
                 Comparator.EQ,
-                recipient
-            ).select(
+                recipient.unwrap()
+            );
+        }
+
+        if verifier_id.is_some() {
+            options = options.select(
                 EntitlementNote::properties().verifier_id,
                 Comparator.EQ,
-                verifier_id
-            ).select(
+                verifier_id.unwrap()
+            );
+        }
+
+        if spot.is_some() {
+            options = options.select(
                 EntitlementNote::properties().spot,
                 Comparator.EQ,
-                spot
-            ).set_limit(1).set_status(NoteStatus.ACTIVE);
+                spot.unwrap()
+            );
+        }
+
+        if randomness.is_some() {
+            options = options.select(
+                EntitlementNote::properties().randomness,
+                Comparator.EQ,
+                randomness.unwrap()
+            );
+        }
+
         let notes = self.set.at(scope).pop_notes(options);
         assert(notes.len() > 0, "No matching entitlement found");
         notes.get_unchecked(0)

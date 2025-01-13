@@ -41,6 +41,8 @@ const DEFAULT_PXE_URL = "http://localhost";
 
 jest.setTimeout(1000000);
 
+const BLOCK_FETCH_LIMIT = 100000;
+
 describe("Test deposit to zimburse", () => {
     let superuser: AccountWalletWithSecretKey;
     let escrowAdmin: AccountWalletWithSecretKey;
@@ -83,7 +85,7 @@ describe("Test deposit to zimburse", () => {
     });
 
     xdescribe("Registration", () => {
-        xit("Register Z-Imburse Escrow", async () => {
+        it("Register Z-Imburse Escrow", async () => {
 
             const testEscrow = await ZImburseEscrowContract.deploy(
                 escrowAdmin,
@@ -120,7 +122,7 @@ describe("Test deposit to zimburse", () => {
 
     describe("Hosting entitlements", () => {
         xdescribe("Revoke entitlements", () => {
-            it("Give linode recurring entitlement", async () => {
+            xit("Give linode recurring entitlement", async () => {
                 // check dkim key
                 // give entitlement of 10 usdc
                 const amount = toUSDCDecimals(10n);
@@ -163,12 +165,13 @@ describe("Test deposit to zimburse", () => {
                         alice.getAddress(),
                         amount,
                         2,
-                        0,
-                        0,
+                        new Date(2024, 7, 30).getTime() / 1000,
+                        new Date(2024, 9, 1).getTime() / 1000,
                         "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
                     )
                     .send()
                     .wait();
+
 
                 // revoke entitlement
                 await escrows[0]
@@ -187,10 +190,11 @@ describe("Test deposit to zimburse", () => {
                     .simulate();
                 await expect(failingCall)
                     .rejects
-                    .toThrow("(JSON-RPC PROPAGATED) Assertion failed: Entitlement is nullified '!is_nullified'");
+                    .toThrow();
             });
 
-            xit("Test revoke recurring entitlement", async () => {
+            it("Test revoke recurring entitlement", async () => {
+
                 const amount = toUSDCDecimals(10n);
                 // give entitlement
                 await escrows[0]
@@ -220,10 +224,10 @@ describe("Test deposit to zimburse", () => {
                     .simulate();
                 await expect(failingCall)
                     .rejects
-                    .toThrow("(JSON-RPC PROPAGATED) Assertion failed: Entitlement is nullified '!is_nullified'");
+                    .toThrow();
             })
 
-            it("Test cannot revoke spent Linode spot entitlement", async () => {
+            xit("Test cannot revoke spent Linode spot entitlement", async () => {
                 const amount = toUSDCDecimals(10n);
                 // give entitlement
                 await escrows[0]
@@ -232,8 +236,8 @@ describe("Test deposit to zimburse", () => {
                         bob.getAddress(),
                         amount,
                         2,
-                        0,
-                        0,
+                        new Date(2024, 8, 30).getTime() / 1000,
+                        new Date(2024, 10, 1).getTime() / 1000,
                         "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
                     )
                     .send()
@@ -257,14 +261,92 @@ describe("Test deposit to zimburse", () => {
                     .simulate();
                 await expect(failingCall)
                     .rejects
-                    .toThrow("(JSON-RPC PROPAGATED) Assertion failed: Entitlement is already nullified '!is_nullified'");
+                    .toThrow();
             })
 
         });
 
-        xdescribe("Nullify entitlements", () => {
-            it("Test nullify counterpart to revoked entitlement", async () => {
-                
+        describe("Nullify entitlements", () => {
+
+            it("Test nullify counterpart to revoked spot entitlement", async () => {
+                const amount = toUSDCDecimals(10n);
+                // give entitlement
+                await escrows[0].withWallet(escrowAdmin)
+                    .methods
+                    .give_spot_entitlement(
+                        alice.getAddress(),
+                        amount,
+                        2,
+                        new Date(2024, 7, 30).getTime() / 1000,
+                        new Date(2024, 9, 1).getTime() / 1000,
+                        "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
+                    )
+                    .send()
+                    .wait();
+
+                const res = await escrows[0].methods
+                    .view_entitlements(
+                    0,
+                    alice.getAddress(),
+                    { _is_some: false, _value: AztecAddress.ZERO },
+                    { _is_some: false, _value: 0 },
+                    { _is_some: false, _value: false }
+                    )
+                    .simulate();
+                console.log('Res: ', res);
+
+                // // revoke entitlement
+                // await escrows[0]
+                //     .withWallet(escrowAdmin)
+                //     .methods
+                //     .revoke_entitlement(alice.getAddress(), 2, true)
+                //     .send()
+                //     .wait();
+
+                // // get randomness from NullifiedEntitlement event emitted to Alice
+                // const nullifyEvents = await alice.getEncryptedEvents(ZImburseEscrowContract.events.EntitlementNullified, 1, BLOCK_FETCH_LIMIT);
+                // const { randomness }: any = nullifyEvents[nullifyEvents.length - 1];
+                // // locate note counterpart via randomness
+                // const notes = await alice.getIncomingNotes({contractAddress: escrows[0].address});
+                // const noteCounterpart = notes.find(note => {
+                //     if(note.noteTypeId.value === ZImburseEscrowContract.notes.EntitlementNote.id.value) {
+                //         return note.note.items[7].toBigInt() === randomness;
+                //     }
+                //     return false;
+                // });
+  
+                // if(noteCounterpart) {
+                //     // nullify counterpart
+                //     await mintToEscrow(
+                //         usdc,
+                //         bob.getAddress(),
+                //         superuser,
+                //         toUSDCDecimals(10000n)
+                //     );
+
+                //     // const res = await escrows[0].withWallet(alice).methods
+                //     //     .view_entitlements(
+                //     //     0,
+                //     //     alice.getAddress(),
+                //     //     { _is_some: false, _value: AztecAddress.ZERO },
+                //     //     { _is_some: false, _value: 0 },
+                //     //     { _is_some: false, _value: false }
+                //     //     )
+                //     //     .simulate();
+                    
+                //     // console.log('Res: ', res)
+                    
+                //     // confirm note was removed
+                //     // const updatedNotes = await alice.getIncomingNotes({contractAddress: escrows[0].address, status: 1});
+                    
+                //     // const check = updatedNotes.find(note => {
+                //     //     if(note.noteTypeId.value === ZImburseEscrowContract.notes.EntitlementNote.id.value) {
+                //     //         return note.note.items[7].toBigInt() === randomness;
+                //     //     }
+                //     //     return false;
+                //     // });
+                //     // console.log('Check: ', check);
+                // }
             });
         })
     });

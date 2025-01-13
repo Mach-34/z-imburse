@@ -403,7 +403,7 @@ contract ZImburseEscrow {
      * @param entropy_values - an BoundeVec containing entropy values to filter notes by
      */
     #[private]
-    pub fn nullify_entitlement(entropy_values: [Field; 10]) {
+    pub fn nullify_entitlements(entropy_values: [Field; 10]) {
         // check is escrow admin
         let sender = context.msg_sender();
 

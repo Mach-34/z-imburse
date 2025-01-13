@@ -333,7 +333,7 @@ describe("Test deposit to zimburse", () => {
                 await escrows[0]
                     .withWallet(escrowAdmin)
                     .methods
-                    .nullify_entitlement(entropyValues)
+                    .nullify_entitlements(entropyValues)
                     .send()
                     .wait();
 
@@ -393,7 +393,7 @@ describe("Test deposit to zimburse", () => {
                 await escrows[0]
                     .withWallet(alice)
                     .methods
-                    .nullify_entitlement(entropyValues)
+                    .nullify_entitlements(entropyValues)
                     .send()
                     .wait();
 
@@ -456,7 +456,7 @@ describe("Test deposit to zimburse", () => {
                 await escrows[0]
                     .withWallet(alice)
                     .methods
-                    .nullify_entitlement(entropyValues)
+                    .nullify_entitlements(entropyValues)
                     .send()
                     .wait();
 
@@ -556,7 +556,7 @@ describe("Test deposit to zimburse", () => {
                     await escrows[0]
                         .withWallet(alice)
                         .methods
-                        .nullify_entitlement(entropyVals)
+                        .nullify_entitlements(entropyVals)
                         .send()
                         .wait();
 

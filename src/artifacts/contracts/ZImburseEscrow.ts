@@ -184,8 +184,8 @@ EntitlementNote: {
     /** give_spot_entitlement(recipient: struct, amount: field, verifier_id: integer, date_start: integer, date_end: integer, destination: string) */
     give_spot_entitlement: ((recipient: AztecAddressLike, amount: FieldLike, verifier_id: (bigint | number), date_start: (bigint | number), date_end: (bigint | number), destination: string) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
-    /** nullify_entitlement(entropy_values: array) */
-    nullify_entitlement: ((entropy_values: FieldLike[]) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+    /** nullify_entitlements(entropy_values: array) */
+    nullify_entitlements: ((entropy_values: FieldLike[]) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
     /** public_dispatch(selector: field) */
     public_dispatch: ((selector: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;

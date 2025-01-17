@@ -59,27 +59,27 @@ impl<T> EntitlementSet<T, UnconstrainedContext> {
             .set_status(NoteStatus.ACTIVE);
         // optionally select by recipient
         if recipient.is_some() {
-            options = options.select(
+            options.select(
                 EntitlementNote::properties().recipient,
                 Comparator.EQ,
                 recipient.unwrap()
-            );
+            )
         }
         // optionally select by verifier_id
         if verifier_id.is_some() {
-            options = options.select(
+            options.select(
                 EntitlementNote::properties().verifier_id,
                 Comparator.EQ,
                 verifier_id.unwrap()
-            );
+            )
         }
         // optionally select by spot
         if spot.is_some() {
-            options = options.select(
+            options.select(
                 EntitlementNote::properties().spot,
                 Comparator.EQ,
                 spot.unwrap()
-            );
+            )
         }
         // retrieve notes
         let notes = self.set.at(scope).view_notes(options);
@@ -119,13 +119,8 @@ impl<T> EntitlementSet<T, &mut PrivateContext> {
                 EntitlementNote::properties().spot,
                 Comparator.EQ,
                 spot
-            ).set_limit(1).set_status(NoteStatus.ACTIVE);
-        let mut notes: BoundedVec<T, 16> = BoundedVec::new();
-        if spot {
-            notes = self.set.at(scope).pop_notes(options);
-        } else {
-            notes = self.set.at(scope).get_notes(options);
-        }
+            ).set_limit(1);
+        let notes = self.set.at(scope).get_notes(options);
         // return note if found
         if notes.len() > 0 {
             Option::some(notes.get_unchecked(0))
@@ -146,13 +141,15 @@ impl<T> EntitlementSet<T, &mut PrivateContext> {
         context: &mut PrivateContext,
         admin: AztecAddress,
         recipient: AztecAddress,
-        admin_note: &mut T,
-        recipient_note: &mut T
+        note: &mut T
     ) where T: NoteInterface<T_SERIALIZED_LEN> + NullifiableNote + Eq {
+        // encryption/ nullifier keys keys for admin and recipient
+        let recipient_keys = get_public_keys(recipient);
+        let admin_keys = get_public_keys(admin);
         // add note to recipient set and receipt to admin set
         // admin really has little reason to lie here- technically they could but it would destroy their own reimbursement platform
-        self.set.at(admin).insert(admin_note).emit(encode_and_encrypt_note_unconstrained(context, admin, admin));
-        self.set.at(recipient).insert(recipient_note).emit(encode_and_encrypt_note_unconstrained(context, recipient, recipient));
+        self.set.at(admin).insert(note).emit(encode_and_encrypt_note_unconstrained(context, admin_keys.ovpk_m, admin_keys.ivpk_m, admin));
+        self.set.at(recipient).insert(note).emit(encode_and_encrypt_note_unconstrained(context, recipient_keys.ovpk_m, recipient_keys.ivpk_m, recipient));
     }
 
     /**
@@ -161,55 +158,33 @@ impl<T> EntitlementSet<T, &mut PrivateContext> {
      * @dev does not emit event here as would require an if statement that can be avoided
      *
      * @param scope - the storage scope of the entitlements to check
-     * @param recipient - if included, the address of the recipient to check
-     * @param verifier_id - if included, the verifier id to check for
-     * @param spot - if included, if true, check for spot entitlements. If false, check for recurring entitlements
-     * @param randomness - if included, the entropy value unique to an admin / recipient note pair
+     * @param recipient - the address of the recipient to check
+     * @param verifier_id - the verifier id to check for
+     * @param spot - if true, check for spot entitlements. If false, check for recurring entitlements
      * @return - the entitlement note that was popped
      */
-    pub fn pop_entitlement<let T_SERIALIZED_LEN: u32>(
+    pub fn nullify_entitlement<let T_SERIALIZED_LEN: u32>(
         self,
         scope: AztecAddress,
-        recipient: Option<AztecAddress>,
-        verifier_id: Option<u8>,
-        spot: Option<bool>,
-        randomness: Option<Field>
+        recipient: AztecAddress,
+        verifier_id: u8,
+        spot: bool
     ) -> T where T: NoteInterface<T_SERIALIZED_LEN> + NullifiableNote + Eq {
         // get note matching criteria
-        let mut options = NoteGetterOptions::new().set_limit(1).set_status(NoteStatus.ACTIVE);
-
-        if recipient.is_some() {
-            options = options.select(
+        let options = NoteGetterOptions::new()
+            .select(
                 EntitlementNote::properties().recipient,
                 Comparator.EQ,
-                recipient.unwrap()
-            );
-        }
-
-        if verifier_id.is_some() {
-            options = options.select(
+                recipient
+            ).select(
                 EntitlementNote::properties().verifier_id,
                 Comparator.EQ,
-                verifier_id.unwrap()
-            );
-        }
-
-        if spot.is_some() {
-            options = options.select(
+                verifier_id
+            ).select(
                 EntitlementNote::properties().spot,
                 Comparator.EQ,
-                spot.unwrap()
-            );
-        }
-
-        if randomness.is_some() {
-            options = options.select(
-                EntitlementNote::properties().randomness,
-                Comparator.EQ,
-                randomness.unwrap()
-            );
-        }
-
+                spot
+            ).set_limit(1);
         let notes = self.set.at(scope).pop_notes(options);
         assert(notes.len() > 0, "No matching entitlement found");
         notes.get_unchecked(0)

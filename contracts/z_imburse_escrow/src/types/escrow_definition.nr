@@ -1,9 +1,9 @@
 use aztec::protocol_types::{address::AztecAddress, traits::{Serialize, Deserialize}};
 use compressed_string::CompressedString;
 
+global ESCROW_DEFINITION_LENGTH: u32 = 5;
 global TITLE_LENGTH: u32 = 60;
-global TITLE_SERIALIZED_LENGTH: u32 = (TITLE_LENGTH + 30) / 31;
-global ESCROW_DEFINITION_LENGTH: u32 = TITLE_SERIALIZED_LENGTH + 3;
+global TITLE_SERIALIZED_LENGTH: u32 = 2;
 
 pub struct EscrowDefinition {
     registry: AztecAddress,

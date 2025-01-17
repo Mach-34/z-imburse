@@ -5,10 +5,9 @@ authors = ["Mach-34"]
 compiler_version = ">=0.35.0"
 
 [dependencies]
-aztec = { git="https://github.com/AztecProtocol/aztec-packages/", tag="aztec-packages-v0.67.0", directory="noir-projects/aztec-nr/aztec" }
-token = { git="https://github.com/AztecProtocol/aztec-packages/", tag="aztec-packages-v0.67.0", directory="noir-projects/noir-contracts/contracts/token_contract" }
+aztec = { git="https://github.com/AztecProtocol/aztec-packages/", tag="aztec-packages-v0.57.0", directory="noir-projects/aztec-nr/aztec" }
+token = { git="https://github.com/AztecProtocol/aztec-packages/", tag="aztec-packages-v0.57.0", directory="noir-projects/noir-contracts/contracts/token_contract" }
 address_note = { path = "../address_note" }
 compressed_string = { path = "../compressed_string" }
 generators = { path = "../generators" }
 zimburse_verifiers = { path = "../../circuits/zimburse_verifiers" }
-zkemail = { path = '../../../zkemail.nr/lib' }

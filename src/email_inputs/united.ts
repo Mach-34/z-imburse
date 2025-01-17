@@ -192,10 +192,6 @@ export const makeUnitedInputs = async (
 
     const inputs = {
         ...baseInputs,
-        header: {
-            storage: baseInputs.header.storage.fill('0', Number(baseInputs.header.len)),
-            len: baseInputs.header.len
-        },
         from_index: fromParams.index,
         subject_index: subjectParams.index,
         amount_sequence: pickedTotal.sequence,

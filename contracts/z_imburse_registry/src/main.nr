@@ -1,16 +1,16 @@
 use dep::aztec::macros::aztec;
 
-mod library_methods;
 mod test;
 mod types;
+mod verifiers;
 
 pub global BULK_KEY_LENGTH: u32 = 4;
 
 #[aztec]
 contract ZImburseRegistry {
     use dep::aztec::{
-        prelude::{AztecAddress, PrivateSet, PublicImmutable, Map},
-        macros::{storage::storage, events::event, functions::{private, public, view, initializer, internal}},
+        prelude::{AztecAddress, PrivateImmutable, PrivateSet, SharedImmutable, Map},
+        macros::{storage::storage, events::event, functions::{private, public, view, initializer}},
         note::{
             note_viewer_options::NoteViewerOptions, note_getter_options::NoteGetterOptions,
             note_getter::{get_notes, view_notes}, constants::MAX_NOTES_PER_PAGE
@@ -19,23 +19,21 @@ contract ZImburseRegistry {
             contract_instance::ContractInstance, address::partial_address::PartialAddress,
             contract_class_id::ContractClassId, abis::function_selector::FunctionSelector, traits::Serialize
         },
-        oracle::get_contract_instance::get_contract_instance,
+        oracle::{get_contract_instance::get_contract_instance, header::get_header_at_oracle},
         keys::getters::get_public_keys, utils::comparison::Comparator,
         encrypted_logs::encrypted_note_emission::{encode_and_encrypt_note_unconstrained, encode_and_encrypt_note},
         unencrypted_logs::unencrypted_event_emission::emit
     };
     use std::{meta::derive, collections::bounded_vec::BoundedVec};
     use dep::address_note::address_note::AddressNote;
-    use dep::zimburse_verifiers::constants::verifier_ids;
     use dep::z_imburse_escrow::ZImburseEscrow;
     use crate::{
-        library_methods::dkim::{register_dkim_key, register_dkim_keys_bulk},
         types::{registry_definition::RegistryDefinition, participant_note::{ParticipantNote, NAME_LENGTH}},
         BULK_KEY_LENGTH
     };
 
-    #[derive(Serialize)]
     #[event]
+    #[derive(Serialize)]
     struct DKIMKeyHashRegistered {
         dkim_key_hash: Field,
         verifier_id: Field,
@@ -43,12 +41,12 @@ contract ZImburseRegistry {
 
     #[storage]
     struct Storage<Context> {
-        definition: PublicImmutable<RegistryDefinition, Context>,
-        escrow_registry: Map<AztecAddress, PublicImmutable<bool, Context>, Context>,
-        dkim_registry: Map<Field, PublicImmutable<Field, Context>, Context>,
-        managed_escrows: Map<AztecAddress, PrivateSet<AddressNote, Context>, Context>,
+        definition: SharedImmutable<RegistryDefinition, Context>,
+        escrow_registry: Map<AztecAddress, SharedImmutable<bool, Context>, Context>,
+        dkim_registry: Map<Field, SharedImmutable<Field, Context>, Context>,
+        managed_escrows: PrivateSet<AddressNote, Context>,
         participants: Map<AztecAddress, PrivateSet<ParticipantNote, Context>, Context>,
-        participant_escrows: Map<AztecAddress, PrivateSet<AddressNote, Context>, Context>,
+        participant_escrows: PrivateSet<AddressNote, Context>,
     }
 
     /**
@@ -71,7 +69,18 @@ contract ZImburseRegistry {
         let definition = RegistryDefinition::new(context.msg_sender(), usdc, escrow_contract_id);
         storage.definition.initialize(definition);
         // add any DKIM key hashes that were passed in at initialization
-        register_dkim_keys_bulk(&mut context, storage, dkim_key_hashes, verifier_ids);
+        for i in 0..BULK_KEY_LENGTH {
+            if (verifier_ids[i] != 0) {
+                // ensure that the dkim key has not already been registered
+                let stored_id = storage.dkim_registry.at(dkim_key_hashes[i]).read_public();
+                assert(stored_id == 0, "DKIM key has already been registered");
+                storage.dkim_registry.at(dkim_key_hashes[i]).initialize(verifier_ids[i]);
+                emit(
+                    &mut context,
+                    DKIMKeyHashRegistered { dkim_key_hash: dkim_key_hashes[i], verifier_id: verifier_ids[i] }
+                );
+            }
+        }
     }
 
     /**
@@ -86,10 +95,21 @@ contract ZImburseRegistry {
         dkim_key_hashes: [Field; BULK_KEY_LENGTH]
     ) {
         // check that the sender is the admin
-        let admin = storage.definition.read().admin;
-        assert(admin == context.msg_sender(), "Sender is not the registry admin");
+        let admin = storage.definition.read_public().admin;
+        assert(admin == context.msg_sender(), "Sender is not the registry contract");
         // bulk insert up to 50 dkim key hashes
-        register_dkim_keys_bulk(&mut context, storage, dkim_key_hashes, verifier_ids);
+        for i in 0..BULK_KEY_LENGTH {
+            if (verifier_ids[i] != 0) {
+                // ensure that the dkim key has not already been registered
+                let stored_id = storage.dkim_registry.at(dkim_key_hashes[i]).read_public();
+                assert(stored_id == 0, "DKIM key has already been registered");
+                storage.dkim_registry.at(dkim_key_hashes[i]).initialize(verifier_ids[i]);
+                emit(
+                    &mut context,
+                    DKIMKeyHashRegistered { dkim_key_hash: dkim_key_hashes[i], verifier_id: verifier_ids[i] }
+                );
+            }
+        }
     }
 
     /**
@@ -101,10 +121,16 @@ contract ZImburseRegistry {
     #[public]
     fn register_dkim(verifier_id: Field, dkim_key_hash: Field) {
         // check that the sender is the admin
-        let admin = storage.definition.read().admin;
-        assert(admin == context.msg_sender(), "Sender is not registry admin");
+        let admin = storage.definition.read_public().admin;
+        assert(admin == context.msg_sender(), "Sender is not the registry contract");
         // ensure that the dkim key has not already been registered
-        register_dkim_key(&mut context, storage, dkim_key_hash, verifier_id);
+        let stored_id = storage.dkim_registry.at(dkim_key_hash).read_public();
+        assert(stored_id == 0, "DKIM key has already been registered");
+        storage.dkim_registry.at(dkim_key_hash).initialize(verifier_id);
+        emit(
+            &mut context,
+            DKIMKeyHashRegistered { dkim_key_hash, verifier_id }
+        );
     }
 
     /**
@@ -116,12 +142,12 @@ contract ZImburseRegistry {
     #[private]
     fn register_escrow(escrow_contract: AztecAddress) {
         // check the contract class ID by recomputing the contract address
-        let definition = storage.definition.read();
+        let definition = storage.definition.read_private();
         let contract_instance: ContractInstance = unsafe {
             get_contract_instance(escrow_contract)
         };
-        let computed_escrow_address = AztecAddress::compute(
-            contract_instance.public_keys,
+        let exected_escrow_address = AztecAddress::compute(
+            contract_instance.public_keys_hash,
             PartialAddress::compute(
                 ContractClassId::from_field(definition.escrow_contract_id), // constrained here
                 contract_instance.salt,
@@ -130,14 +156,14 @@ contract ZImburseRegistry {
             )
         );
         assert(
-            computed_escrow_address == escrow_contract, "Escrow contract class ID does not match expected class ID"
+            exected_escrow_address == escrow_contract, "Escrow contract class ID does not match expected class ID"
         );
         // check that the contract has been deployed
         // annoying that we can't use this in the deploy tx
         context.historical_header.prove_contract_initialization(escrow_contract);
 
         // check that the contract has not already been registered
-        let registration_status = storage.escrow_registry.at(escrow_contract).read();
+        let registration_status = storage.escrow_registry.at(escrow_contract).read_private();
         assert(!registration_status, "Escrow contract has already been registered");
 
         let escrow_params = ZImburseEscrow::at(escrow_contract).get_registration_params().view(&mut context);
@@ -154,10 +180,11 @@ contract ZImburseRegistry {
         let mut escrow_note = AddressNote::new(escrow_contract, admin_keys.npk_m.hash());
 
         // use unconstrained - why would you lie here
-        storage.managed_escrows.at(context.msg_sender()).insert(&mut escrow_note).emit(
+        storage.managed_escrows.insert(&mut escrow_note).emit(
             encode_and_encrypt_note_unconstrained(
                 &mut context,
-                context.msg_sender(),
+                admin_keys.ovpk_m,
+                admin_keys.ivpk_m,
                 context.msg_sender()
             )
         );
@@ -181,46 +208,42 @@ contract ZImburseRegistry {
     fn check_and_register_participant(participant: AztecAddress, participant_name: str<60>, escrow: AztecAddress) -> bool {
         // todo: switch to check that the sender is an escrow
         // check that sender is admin
-        let admin = storage.definition.read().admin;
-        assert(admin == context.msg_sender(), "Sender is not the registry admin");
-        let is_registered = storage.escrow_registry.at(escrow).read();
+        let admin = storage.definition.read_private().admin;
+        assert(admin == context.msg_sender(), "Sender is not the registry contract");
+        let is_registered = storage.escrow_registry.at(escrow).read_private();
         assert(is_registered, "Escrow contract is not registered");
         // check if the participant has already been registered
         let options = NoteGetterOptions::new().select(AddressNote::properties().address, Comparator.EQ, participant).set_limit(1);
-        let not_registered = storage.participants.at(escrow).get_notes(options).len() == 0;
+        let participant_exists = storage.participants.at(escrow).get_notes(options).len() == 0;
         // if the participant has not been registered, enqueue a private call to register the participant
         // do this instead of if statement here to make adding first time expensive but cheap if already registered
-        if not_registered {
+        let mut added = false;
+        if participant_exists {
+            added = true;
             ZImburseRegistry::at(context.this_address()).register_participant(participant, participant_name, admin, escrow).call(&mut context);
         }
-        // add escrow to participants private set
-        ZImburseRegistry::at(context.this_address()).register_participant_escrow(participant, escrow).call(&mut context);
-        not_registered
+        added
     }
 
     #[private]
     #[internal]
     fn register_participant(participant: AztecAddress, participant_name: str<60>, admin: AztecAddress, escrow: AztecAddress) {
         let admin_keys = get_public_keys(admin);
-        // add the participant to the admin set of participants
-        let mut participant_note = ParticipantNote::new(participant, participant_name, admin_keys.npk_m.hash());
-        storage.participants.at(escrow).insert(&mut participant_note).emit(
-            encode_and_encrypt_note_unconstrained(&mut context, admin, admin)
-        );
-    }
-
-    #[private]
-    #[internal]
-    fn register_participant_escrow(participant: AztecAddress, escrow: AztecAddress) {
         let participant_keys = get_public_keys(participant);
         // add escrow to the participant's set of escrows
         let mut escrow_note = AddressNote::new(escrow, participant_keys.npk_m.hash());
-        storage.participant_escrows.at(participant).insert(&mut escrow_note).emit(
+        storage.participant_escrows.insert(&mut escrow_note).emit(
             encode_and_encrypt_note(
                 &mut context,
-                participant,
+                admin_keys.ovpk_m,
+                participant_keys.ivpk_m,
                 participant
             )
+        );
+        // add the participant to the admin set of participants
+        let mut participant_note = ParticipantNote::new(participant, participant_name, admin_keys.npk_m.hash());
+        storage.participants.at(escrow).insert(&mut participant_note).emit(
+            encode_and_encrypt_note_unconstrained(&mut context, admin_keys.ovpk_m, admin_keys.ivpk_m, admin)
         );
     }
 
@@ -237,7 +260,7 @@ contract ZImburseRegistry {
     #[public]
     #[view]
     fn check_dkim_key_hash_public(dkim_key_hash: Field) -> Field {
-        storage.dkim_registry.at(dkim_key_hash).read()
+        storage.dkim_registry.at(dkim_key_hash).read_public()
     }
 
     /**
@@ -250,37 +273,39 @@ contract ZImburseRegistry {
     #[private]
     #[view]
     fn check_dkim_key_hash_private(dkim_key_hash: Field) -> Field {
-        storage.dkim_registry.at(dkim_key_hash).read()
+        storage.dkim_registry.at(dkim_key_hash).read_private()
     }
 
     /** Get the class ID that all escrow contracts must match */
     #[public]
     #[view]
     fn get_escrow_class_id() -> Field {
-        storage.definition.read().escrow_contract_id
+        storage.definition.read_public().escrow_contract_id
     }
 
     /** Get the registration status of an escrow contract */
     #[public]
     #[view]
     fn get_escrow_registry_status(escrow_contract: AztecAddress) -> bool {
-        storage.escrow_registry.at(escrow_contract).read()
+        storage.escrow_registry.at(escrow_contract).read_public()
     }
 
     /**
      * Get a page of the list of escrows administrated by a given address (private)
      *
      * @param admin - the address of the admin
-     * @param offset - the index of the page to retrieve
+     * @param page_index - the index of the page to retrieve
      * @return managed_escrows - the list of managed escrows
      * @return page_limit_reached - whether the page limit has been reached (keep calling until this is true)
      */
-    unconstrained pub fn get_managed_escrows(admin: AztecAddress, offset: u32) -> pub (BoundedVec<AztecAddress, MAX_NOTES_PER_PAGE>, bool) {
+    unconstrained pub fn get_managed_escrows(offset: u32) -> pub (BoundedVec<AztecAddress, MAX_NOTES_PER_PAGE>, bool) {
         let mut options = NoteViewerOptions::new().set_offset(offset);
-        let notes = storage.managed_escrows.at(admin).view_notes(options);
+        let notes = storage.managed_escrows.view_notes(options);
         let mut managed_escrows = BoundedVec::new();
         for i in 0..notes.len() {
-            managed_escrows.push(notes.get_unchecked(i).address);
+            if i < notes.len() {
+                managed_escrows.push(notes.get_unchecked(i).address);
+            }
         }
         (managed_escrows, notes.len() == MAX_NOTES_PER_PAGE)
     }
@@ -288,8 +313,8 @@ contract ZImburseRegistry {
     /**
      * Get a page of the list of escrows participated in by a given address (private)
      *
-     * @param participant - the address of the participant
-     * @param offset - the index of the page to retrieve
+     * @param admin - the address of the participant
+     * @param page_index - the index of the page to retrieve
      * @return participant_escrows - the list of enrolled escrows
      * @return page_limit_reached - whether the page limit has been reached (keep calling until this is true)
      */
@@ -298,10 +323,12 @@ contract ZImburseRegistry {
         offset: u32
     ) -> pub (BoundedVec<AztecAddress, MAX_NOTES_PER_PAGE>, bool) {
         let mut options = NoteViewerOptions::new().set_offset(offset);
-        let notes = storage.participant_escrows.at(participant).view_notes(options);
+        let notes = storage.participant_escrows.view_notes(options);
         let mut participant_escrows: BoundedVec<AztecAddress, MAX_NOTES_PER_PAGE> = BoundedVec::new();
         for i in 0..notes.len() {
-            participant_escrows.push(notes.get_unchecked(i).address);
+            if i < notes.len() {
+                participant_escrows.push(notes.get_unchecked(i).address);
+            }
         }
         (participant_escrows, notes.len() == MAX_NOTES_PER_PAGE)
     }
@@ -310,7 +337,7 @@ contract ZImburseRegistry {
      * Get a page of the list of of participants in an escrow (private)
      *
      * @param admin - the address of the escrow
-     * @param offset - the index of the page to retrieve
+     * @param page_index - the index of the page to retrieve
      * @return participants - the list of participating addresses
      * @return page_limit_reached - whether the page limit has been reached (keep calling until this is true)
      */

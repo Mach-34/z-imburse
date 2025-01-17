@@ -13,7 +13,8 @@ use zkemail::{
     dkim::RSAPubkey, KEY_LIMBS_2048, headers::body_hash::get_body_hash,
     partial_hash::partial_sha256_var_interstitial, Sequence
 };
-use super::utils::{client_side_interstitial, server_side_interstitial};
+use super::utils::client_side_interstitial;
+use super::utils::server_side_interstitial;
 
 
 

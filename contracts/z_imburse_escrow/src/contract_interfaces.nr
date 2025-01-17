@@ -24,19 +24,23 @@ pub fn check_dkim_key_hash_private(
 }
 
 /**
- * Sends tokens from the escrow contract's public balance to the claimant's private balance
+ * Enqueue a public call to shield tokens so the claimant can claim them
  * 
  * @param context - the private execution context
  * @param token_address - the address of the usdc token to shield
  * @param amount - the amount of tokens to shield
+ * @param claim_secret_hash - the hash of the claim secret used to privately redeem the tokens
  */
-pub fn reimburse_to_claimant(
+pub fn shield_to_claimant(
     context: &mut PrivateContext,
     token_address: AztecAddress,
-    to: AztecAddress,
     amount: Field,
+    claim_secret_hash: Field
 ) { 
-    let token = Token::at(token_address);
-    let hiding_point_slot = token.prepare_private_balance_increase(to, context.msg_sender()).call(context);
-    let _ = token.finalize_transfer_to_private(amount, hiding_point_slot).enqueue(context);
+    Token::at(token_address).shield(
+        context.this_address(),
+        amount,
+        claim_secret_hash,
+        0
+    ).enqueue(context);
 }

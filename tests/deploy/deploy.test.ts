@@ -12,20 +12,11 @@ describe("Deploy", () => {
 
         const schnorr = getSchnorrAccount(
             pxe,
-            Fr.fromHexString('0x06ef861b5853f12549a8d7e3e67083ae680123dcbb12cedb6d3060075f9d0b3c'),
-            Fq.fromHexString('0x082e6d118b06b9fb3bf5bcaa5328f6f742c86dad8df04d5601c3508c827d3c38'),
+            Fr.fromString('0x06ef861b5853f12549a8d7e3e67083ae680123dcbb12cedb6d3060075f9d0b3c'),
+            Fq.fromString('0x082e6d118b06b9fb3bf5bcaa5328f6f742c86dad8df04d5601c3508c827d3c38'),
             0
         );
-        
-        // check if account is already registerd on pxe
-        const isRegistered = await pxe.getRegisteredAccount(
-            schnorr.getAddress()
-        );
-
-        // if account not already registered then deploy to pxe
-        if (!isRegistered) {
-            await schnorr.deploy().wait();
-        }
+        await schnorr.deploy().wait();
 
         const superuser = await schnorr.getWallet()
         const escrowAdmin = await createAccount(pxe);

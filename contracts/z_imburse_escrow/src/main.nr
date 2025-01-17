@@ -1,7 +1,7 @@
 use aztec::macros::aztec;
 
 global HASH_CHUNK_MAX_LENGTH: u32 = 2048;
-global ZERO_DESTINATION: str<31> = "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
+global ZERO_DESTINATION = "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
 
 mod capsule;
 mod contract_interfaces;
@@ -18,13 +18,15 @@ contract ZImburseEscrow {
         macros::{
             storage::storage, events::event,
             functions::{private, public, internal, view, initializer},
-        }, note::constants::MAX_NOTES_PER_PAGE, prelude::{AztecAddress, Map, PublicImmutable},
+        }, note::constants::MAX_NOTES_PER_PAGE, prelude::{AztecAddress, SharedImmutable},
         protocol_types::traits::Serialize,
     };
     use zimburse_verifiers::{
-        constants::{verifier_ids, USDC_DECIMALS},
         united::constants::UnitedBillingParamsContract,
-        linode::constants::LinodeBillingParamsContract,
+        zkemail::{
+            KEY_LIMBS_2048, Sequence, dkim::RSAPubkey,
+            partial_hash::{partial_sha256_var_interstitial, partial_sha256_var_end},
+        }, linode::constants::LinodeBillingParamsContract,
     };
     use crate::{
         capsule::{pop_capsule, arr_field_to_u8, remaining_chunks}, HASH_CHUNK_MAX_LENGTH,
@@ -32,20 +34,16 @@ contract ZImburseEscrow {
         library_methods::{
             linode::linode,
             entitlements::give_entitlement,
-        }, contract_interfaces::{check_dkim_key_hash_private, reimburse_to_claimant},
-        verifiers::verify_united_deferred,
+        }, contract_interfaces::{check_dkim_key_hash_private, shield_to_claimant},
+        verifiers::{verify_united_deferred, verifier_ids},
         types::{
             escrow_definition::{EscrowDefinition, TITLE_LENGTH}, entitlement_note::EntitlementNote,
             entitlement_set::EntitlementSet,
         },
     };
-    use zkemail::{
-        KEY_LIMBS_2048, Sequence, dkim::RSAPubkey,
-        partial_hash::{partial_sha256_var_interstitial, partial_sha256_var_end},
-    };
-    
-    #[derive(Serialize)]
+
     #[event]
+    #[derive(Serialize)]
     struct RecurringReimbursementClaimed {
         claimant: AztecAddress,
         amount: Field,
@@ -53,25 +51,24 @@ contract ZImburseEscrow {
         timestamp: Field,
     }
 
-    #[derive(Serialize)]
     #[event]
+    #[derive(Serialize)]
     struct SpotReimbursementClaimed {
         claimant: AztecAddress,
         amount: Field,
         verifier_id: u8,
     }
 
-    #[derive(Serialize)]
     #[event]
+    #[derive(Serialize)]
     struct EntitlementNullified {
         randomness: Field,
     }
 
     #[storage]
     struct Storage<Context> {
-        definition: PublicImmutable<EscrowDefinition, Context>,
+        definition: SharedImmutable<EscrowDefinition, Context>,
         entitlements: EntitlementSet<EntitlementNote, Context>,
-        nullifiers: Map<Field, PublicImmutable<bool, Context>, Context>
     }
 
     /**
@@ -143,35 +140,32 @@ contract ZImburseEscrow {
         );
     }
 
-    #[public]
-    #[internal]
-    pub fn init_nullifier(nullifier: Field) { 
-        storage.nullifiers.at(nullifier).initialize(true);
-    }
-
     /**
      * Claim a recurring reimbursement for a Linode hosting receipt
      * @dev use separate function from spot to optimize gates by avoiding if statements
      *
      * @param email_receipt_inputs - the inputs from the email verifier
+     * @param claim_secret_hash - the hash of the claim secret used to redeem the reimbursement
      * @return the amount reimbursed
      */
     #[private]
     pub fn reimburse_linode_recurring(
         email_receipt_inputs: LinodeBillingParamsContract,
+        // claim secret hash
+        claim_secret_hash: Field,
     ) -> Field {
         // common logic for claiming a Linode entitlement
         let (entitlement, admin, amount_to_reimburse, timestamp) = linode(
             email_receipt_inputs,
+            claim_secret_hash,
             false, // recurring
             &mut context,
             storage
         );
 
         // check that the entitlement has not been nullified by the admin
-        let shared_nullifier = entitlement.derive_shared_nullifier();
-        let is_nullified = storage.nullifiers.at(shared_nullifier).read();
-        assert(!is_nullified, "Entitlement is nullified");
+        // let _ = entitlement.check_nullifier(&mut context); // <-- cant be used in txe
+        let _ = entitlement.check_nullifier_txe(&mut context); // <-- doesn't actually constrain nullifier to exist
 
         // check and emit recurring nullification
         entitlement.check_and_emit_recurring_nullifier(&mut context, timestamp);
@@ -188,16 +182,19 @@ contract ZImburseEscrow {
      * @dev use separate function from recurring to optimize gates by avoiding if statements
      *
      * @param email_receipt_inputs - the inputs from the email verifier
+     * @param claim_secret_hash - the hash of the claim secret used to redeem the reimbursement
      * @return the amount reimbursed
      */
     #[private]
     fn reimburse_linode_spot(
         email_receipt_inputs: LinodeBillingParamsContract,
+        claim_secret_hash: Field,
     ) -> Field {
         let sender = context.msg_sender();
         // common logic for claiming a Linode entitlement
         let (entitlement, admin, amount_to_reimburse, timestamp) = linode(
             email_receipt_inputs,
+            claim_secret_hash,
             true, // spot
             &mut context,
             storage
@@ -207,23 +204,20 @@ contract ZImburseEscrow {
         entitlement.check_date_range(timestamp as u32);
 
         // check that the entitlement has not been nullified by the admin
-        let shared_nullifier = entitlement.derive_shared_nullifier();
-        let is_nullified = storage.nullifiers.at(shared_nullifier).read();
-        assert(!is_nullified, "Entitlement is nullified");
+        // let nullifier = entitlement.check_nullifier(&mut context); // <-- cant be used in txe
+        let nullifier = entitlement.check_nullifier_txe(&mut context); // <-- doesn't actually constrain nullifier to exist
 
         // broadcast the note nullifier
-        ZImburseEscrow::at(context.this_address())
-            .init_nullifier(shared_nullifier)
-            .enqueue(&mut context);
+        context.push_nullifier(nullifier);
 
         // emit event to notify admin of spot entitlement consumption
-        entitlement.emit_nullified(&mut context, admin, sender);
+        entitlement.emit_nullified(&mut context, entitlement.recipient, sender);
 
         // notify admin of reimbursement
         entitlement.emit_spot_claim(
             &mut context,
             admin,
-            amount_to_reimburse
+            amount_to_reimburse,
         );
 
         // return the amount reimbursed
@@ -245,9 +239,10 @@ contract ZImburseEscrow {
         amount_to_date_length: u32,
         remaining_length: u32,
         actual_length: u32,
+        claim_secret_hash: Field,
     ) -> Field {
         let extracted = [0, 0, 0];
-        let billed_amount = U128::from_integer(extracted[0] * USDC_DECIMALS);
+        let billed_amount = U128::from_integer(extracted[0] * 10000);
         let timestamp = extracted[1];
         let destination_airport = extracted[2];
         let sender = context.msg_sender();
@@ -260,7 +255,7 @@ contract ZImburseEscrow {
         assert(note_wrapped.is_some(), "No entitlements to redeem");
         let entitlement = note_wrapped.unwrap();
         assert(entitlement.recipient == sender, "Entitlement does not belong to the caller");
-        let definition = storage.definition.read();
+        let definition = storage.definition.read_private();
         let dkim_key_hash = pedersen_hash(email_inputs.pubkey_modulus);
         let registered_verifier_id = check_dkim_key_hash_private(
             &mut context,
@@ -273,16 +268,12 @@ contract ZImburseEscrow {
         );
         entitlement.check_date_range(timestamp as u32);
         let amount_to_reimburse = entitlement.amount_to_reimburse(billed_amount);
-        reimburse_to_claimant(&mut context, definition.usdc, context.msg_sender(), amount_to_reimburse);
+        shield_to_claimant(&mut context, definition.usdc, amount_to_reimburse, claim_secret_hash);
         let email_nullifier = pedersen_hash(email_inputs.signature);
         context.push_nullifier(email_nullifier);
-
-        let shared_nullifier = entitlement.derive_shared_nullifier();
-        let is_nullified = storage.nullifiers.at(shared_nullifier).read();
-        assert(!is_nullified, "Entitlement is nullified");
-        ZImburseEscrow::at(context.this_address()).init_nullifier(shared_nullifier).enqueue(&mut context);
-        
-        entitlement.emit_nullified(&mut context, definition.admin, sender);
+        let nullifier = entitlement.check_nullifier(&mut context);
+        context.push_nullifier(nullifier);
+        entitlement.emit_nullified(&mut context, entitlement.recipient, sender);
         entitlement.emit_spot_claim(
             &mut context,
             definition.admin,
@@ -397,37 +388,6 @@ contract ZImburseEscrow {
     }
 
     /**
-     * Emit the nullifiers for entitlements for which counterpart note has already been nullified
-     * @dev will fail @ kernel if already emitted
-     *
-     * @param entropy_values - an BoundeVec containing entropy values to filter notes by
-     */
-    #[private]
-    pub fn nullify_entitlements(entropy_values: [Field; 10]) {
-        // check is escrow admin
-        let sender = context.msg_sender();
-
-        for i in 0..entropy_values.len() {
-            if entropy_values[i] != 0 {
-                // pop note for sender
-                let entitlement = storage.entitlements.pop_entitlement(
-                    sender,
-                    Option::none(),
-                    Option::none(),
-                    Option::none(),
-                    Option::some(entropy_values[i])
-                );
-
-                // ensure counterparty note has been nullfied
-                let shared_nullifier = entitlement.derive_shared_nullifier();
-                let is_nullified = storage.nullifiers.at(shared_nullifier).read();
-                assert(is_nullified, "Counterparty entitlement has not been nullified!");
-            }
-        }
-    }
-
-
-    /**
      * Emit the nullifier for an entitlement
      * @dev will fail @ kernel if already emitted
      *
@@ -439,28 +399,23 @@ contract ZImburseEscrow {
     pub fn revoke_entitlement(recipient: AztecAddress, verifier_type: u8, spot: bool) {
         // check is escrow admin
         let sender = context.msg_sender();
-        let definition = storage.definition.read();
-        assert(sender == definition.admin, "Only the escrow admin can revoke entitlements");
+        let defintion = storage.definition.read_private();
+        assert(sender == defintion.admin, "Only the escrow admin can revoke entitlements");
 
         // try to pop a note for this recipient
-        let entitlement = storage.entitlements.pop_entitlement(
+        let entitlement = storage.entitlements.nullify_entitlement(
             sender,
-            Option::some(recipient),
-            Option::some(verifier_type),
-            Option::some(spot),
-            Option::none()
+            recipient,
+            verifier_type,
+            spot
         );
         // ensure the note is to/ from correctly
         assert(entitlement.recipient == recipient, "Entitlement does not belong to the recipient");
 
-        // nullify the entitlement
-        let shared_nullifier = entitlement.derive_shared_nullifier();
-        let is_nullified = storage.nullifiers.at(shared_nullifier).read();
-        assert(!is_nullified, "Entitlement is already nullified");
-        ZImburseEscrow::at(context.this_address())
-            .init_nullifier(shared_nullifier)
-            .enqueue(&mut context);
-        
+        // broadcast the note nullifier
+        let nullifier = entitlement.compute_nullifier_without_context();
+        context.push_nullifier(nullifier);
+
         // emit event to notify recipient of revocation
         entitlement.emit_nullified(&mut context, entitlement.recipient, sender);
     }
@@ -471,7 +426,7 @@ contract ZImburseEscrow {
     #[public]
     #[view]
     pub fn get_title() -> [u8; TITLE_LENGTH] {
-        storage.definition.read().title_as_string()
+        storage.definition.read_public().title_as_string()
     }
 
     /**
@@ -482,7 +437,7 @@ contract ZImburseEscrow {
     #[private]
     #[view]
     pub fn get_admin_private() -> AztecAddress {
-        storage.definition.read().admin
+        storage.definition.read_private().admin
     }
 
     /**
@@ -493,7 +448,7 @@ contract ZImburseEscrow {
     #[private]
     #[view]
     pub fn get_registration_params() -> [AztecAddress; 3] {
-        let definition = storage.definition.read();
+        let definition = storage.definition.read_private();
         [definition.registry, definition.usdc, definition.admin]
     }
 
@@ -521,28 +476,6 @@ contract ZImburseEscrow {
             verifier_id,
             spot
         )
-    }
-
-    unconstrained pub fn get_shared_nullifier(
-        offset: u32,
-        scope: AztecAddress,
-        recipient: AztecAddress,
-        verifier_id: u8,
-        spot: bool
-    ) -> Option<Field> {
-        let (entitlements, _) = storage.entitlements.view_entitlements(
-            offset,
-            scope,
-            Option::some(recipient),
-            Option::some(verifier_id),
-            Option::some(spot)
-        );
-        if entitlements.len() == 0 {
-            Option::none()
-        } else {
-            let entitlement = entitlements.get_unchecked(0);
-            Option::some(entitlement.derive_shared_nullifier())
-        }
     }
 }
 

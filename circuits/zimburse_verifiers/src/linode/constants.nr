@@ -7,24 +7,24 @@ global MAX_LINODE_EMAIL_HEADER_LENGTH: u32 = 640;
 // expected sequence for the sender in an email body for Linode billing receipt
 // "F/f" is omitted to facilitate case insensitivity
 // "rom:billing@linode.com"
-global LB_FROM_LEN: u32 = 22;
+global LB_FROM_LEN = 22;
 global LINODE_BILLING_FROM: str<LB_FROM_LEN> = "rom:billing@linode.com";
 
 // expected sequence in the subject of an email header for Linode billing receipt
 // "S/s" is omitted to facilitate case insensitivity
 // "ubject: Linode.com: Payment Receipt"
-global LB_SUBJECT_FIXED_START_LEN: u32 = 36;
-global LB_SUBJECT_FIXED_END_LEN: u32 = 3;
+global LB_SUBJECT_FIXED_START_LEN = 36;
+global LB_SUBJECT_FIXED_END_LEN = 3;
 global LINODE_BILLING_SUBJECT_FIXED_START: str<LB_SUBJECT_FIXED_START_LEN> = "ubject:Linode.com: Payment Receipt ["; 
 global LINODE_BILLING_SUBJECT_FIXED_END: str<LB_SUBJECT_FIXED_END_LEN> = "]\r\n";
 
 // expected sequence preceding the billed amount in a Linode billing receipt email
 // NOTE: Hardcoded to accept 'credit card' as only payment method for now although there may be variation
-global LB_PAYMENT_TEXT_LEN: u32 = 76;
+global LB_PAYMENT_TEXT_LEN = 76;
 global LINODE_BILLING_PAYMENT_TEXT: str<LB_PAYMENT_TEXT_LEN> = "This is your receipt of payment against your credit card in the \r\namount of ";
 
 // assuming a unlikely max billed amount of "$9,999,999.99"
-global MAX_BILLED_AMOUNT: u32 = 13;
+global MAX_BILLED_AMOUNT = 13;
 
 struct LinodeBillingParams {
     header: BoundedVec<u8, MAX_LINODE_EMAIL_HEADER_LENGTH>,
@@ -35,7 +35,7 @@ struct LinodeBillingParams {
     body_hash_index: u32,
     from_index: u32,
     subject_index: u32,
-    amount_index: u32,
+    amount_sequence: Sequence,
     date_index: u32,
     receipt_id_length: u32
 }
@@ -53,7 +53,7 @@ struct LinodeBillingParamsContract {
 	body_hash_index: u32,
 	from_index: u32,
 	subject_index: u32,
-	amount_index: u32,
+	amount_sequence: Sequence,
 	date_index: u32,
 	receipt_id_length: u32
 }
@@ -73,19 +73,13 @@ impl LinodeBillingParamsContract {
 			body_hash_index: params.body_hash_index,
 			from_index: params.from_index,
 			subject_index: params.subject_index,
-			amount_index: params.amount_index,
+			amount_sequence: params.amount_sequence,
 			date_index: params.date_index,
 			receipt_id_length: params.receipt_id_length
 		}
 	}
 
 	fn marshal(self) -> LinodeBillingParams {
-
-		// check that header sequence falls within specified length
-		for i in 0..MAX_LINODE_EMAIL_HEADER_LENGTH {
-			assert((i < self.header_length) | (self.header[i] == 0), "Header exceeds specified length");
-		}
-		
 		LinodeBillingParams {
 			header: BoundedVec { storage: self.header, len: self.header_length },
 			pubkey: RSAPubkey { modulus: self.pubkey_modulus, redc: self.pubkey_redc },
@@ -95,7 +89,7 @@ impl LinodeBillingParamsContract {
 			body_hash_index: self.body_hash_index,
 			from_index: self.from_index,
 			subject_index: self.subject_index,
-			amount_index: self.amount_index,
+			amount_sequence: self.amount_sequence,
 			date_index: self.date_index,
 			receipt_id_length: self.receipt_id_length
 		}

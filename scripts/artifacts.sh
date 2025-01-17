@@ -27,7 +27,7 @@ compile_artifact() {
     esac
 
     ### Generate typescript bindings
-    VERSION=0.67.0 aztec codegen ./target/$project-$contract_name.json -o ./target
+    VERSION=0.57.0 aztec codegen ./target/$project-$contract_name.json -o ./target
 
     echo "Compiled $contract_name bytecode and typescript bindings"
 
@@ -60,19 +60,15 @@ compile_artifact() {
 }
 
 ### MAIN
-# NOIR_BIGNUM_PATH="$HOME/nargo/github.com/noir-lang/noir-bignum/v0.4.1/src/tests/runtime_bignum_test.nr"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 CONTRACT_DIR="${SCRIPT_DIR}/../contracts"
 ### Check the versions of aztec dependencies
 
-### Comment out the test macro from noir-bignum
-# sed -i '' 's/^\(\s*#\[make_test.*\)/\/\/\1/' $NOIR_BIGNUM_PATH
-
 ### Compile the ZImburse workspace
 cd $CONTRACT_DIR
 
-# ### Compile the contract
-VERSION=0.67.0 aztec-nargo compile --silence-warnings
+### Compile the contract
+VERSION=0.57.0 aztec-nargo compile --silence-warnings
 
 ### Only run codegen if "true" is passed as an argument
 if [ "$1" == "true" ]; then

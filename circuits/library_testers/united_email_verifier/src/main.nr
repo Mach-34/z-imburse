@@ -1,10 +1,10 @@
 use dep::zimburse_verifiers::{
     united::{
-        constants::{MAX_EMAIL_BODY_LENGTH, MAX_UNITED_EMAIL_HEADER_LENGTH, PURCHASE_SUMMARY_INDICE_LEN},
-        main::{verify_united_deferred_hash, AMOUNT_SELECTION_LENGTH, DATE_AIRPORT_SELECTION_LENGTH},
-    },
+    constants::{MAX_EMAIL_BODY_LENGTH, MAX_UNITED_EMAIL_HEADER_LENGTH, PURCHASE_SUMMARY_INDICE_LEN},
+    main::{verify_united_deferred_hash, AMOUNT_SELECTION_LENGTH, DATE_AIRPORT_SELECTION_LENGTH},
+},
+    zkemail::{dkim::RSAPubkey, KEY_LIMBS_2048, Sequence}
 };
-use dep::zkemail::{dkim::RSAPubkey, KEY_LIMBS_2048, Sequence};
 
 fn main(
     header: BoundedVec<u8, MAX_UNITED_EMAIL_HEADER_LENGTH>,

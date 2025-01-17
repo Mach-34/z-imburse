@@ -12,7 +12,7 @@ struct Datetime {
 global DATETIME_LENGTH: u32 = 26;
 
 
-global MONTHS: [[u8; 3]; 12] = [
+global months = [
     "Jan".as_bytes(),
     "Feb".as_bytes(),
     "Mar".as_bytes(),
@@ -27,7 +27,7 @@ global MONTHS: [[u8; 3]; 12] = [
     "Dec".as_bytes()
 ];
 
-global DAYS_IN_MONTH: [u32; 12] = [
+global days_in_month = [
     31,
     28,
     31,
@@ -42,32 +42,17 @@ global DAYS_IN_MONTH: [u32; 12] = [
     31
 ];
 
-// determines how many chars to skip for long form of month from short
-// i.e Sep -> "tember" = 6
-global MONTH_LONG_OFFSET: [u32; 12] = [
-    4, // jan-uary
-    5, // feb-ruary
-    2, // mar-ch
-    2, // apr-il
-    0, // may
-    1, // jun-e
-    1, // jul-y
-    3, // aug-ust
-    6, // sep-tember
-    4, // oct-ober
-    5, // nov-ember
-    5, // dec-ember
-];
-
 pub fn parse_month(month: [u8; 3]) -> u8 {
     let mut index = 0;
     for i in 0..12 {
-        if month == MONTHS[i] {
+        if month == months[i] {
             index = i + 1;
         }
     }
     index
 }
+
+// todo: is leap year + is past feb 29th
 
 pub fn compute_leap_years(year: u16) -> u16 {
     year / 4 - year / 100 + year / 400
@@ -155,29 +140,6 @@ pub fn add_leap_day(year: u16, month: u8) -> bool {
     (leap_year * past_feb) as bool
 }
 
-/**
- * Parse from an existing month IDX and year bytes
- * @dev code smell i know but need quick fix. can refactor for prettiness in later pass
- * @dev assumes parse_month has already been run
- *
- * @param month_idx - the id of the month from parse_month
- * @param year_bytes - the 4 bytes representing the year
- */
-pub fn from_month_and_year(month_idx: u8, year_bytes: [u8; 4]) -> Datetime {
-    let year = parse_year(year_bytes);
-    let add_leap_day = add_leap_day(year.0, month_idx);
-    Datetime { 
-        year: year.0,
-        leap_years: year.1,
-        add_leap_day,
-        month: month_idx,
-        day: 0,
-        time: 0,
-        offset: 0,
-        subtract: false
-    }
-}
-
 pub fn parse_date_string(date_bytes: [u8; DATETIME_LENGTH]) -> Datetime {
     // check day shift and set day
     let day_shift = if date_bytes[1] == 0x20 {
@@ -238,7 +200,7 @@ pub fn to_unix_month(datetime: Datetime) -> u32 {
     let mut days_in_current_year = 0;
     for i in 0..12 {
         if i + 1 < datetime.month {
-            days_in_current_year += DAYS_IN_MONTH[i];
+            days_in_current_year += days_in_month[i];
         }
     }
     days_in_current_year += datetime.add_leap_day as u32;
@@ -253,7 +215,7 @@ pub fn to_unix(datetime: Datetime) -> u32 {
     let mut days_in_current_year = 0;
     for i in 0..12 {
         if i + 1 < datetime.month {
-            days_in_current_year += DAYS_IN_MONTH[i];
+            days_in_current_year += days_in_month[i];
         }
     }
     days_in_current_year += (datetime.day + datetime.add_leap_day as u8) as u32;
@@ -270,7 +232,7 @@ pub fn to_unix(datetime: Datetime) -> u32 {
 }
 
 #[test]
-fn test_email_timestamp() {
+fn test_main() {
     let date_string = "1 Sep 2024 23:22:12 +0400 ".as_bytes(); // padded 1
     // its off a lil bit
     // should be 1725247332

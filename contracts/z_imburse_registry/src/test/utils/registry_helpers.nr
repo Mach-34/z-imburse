@@ -22,9 +22,10 @@ unconstrained pub fn register_escrow(
 ) {
     let escrow_registry = ZImburseRegistry::at(escrow_registry_address);
     env.impersonate(escrow_admin);
-    let _ = escrow_registry.register_escrow(
+    let register_escrow_call_iface = escrow_registry.register_escrow(
         escrow_contract_address
-    ).call(&mut env.private());
+    );
+    env.call_private_void(register_escrow_call_iface);
     cheatcodes::advance_blocks_by(1);
 }
 
@@ -39,11 +40,12 @@ unconstrained pub fn check_and_register_participant(
 ) -> bool {
     let escrow_registry = ZImburseRegistry::at(registry_address);
     env.impersonate(escrow_admin);
-    let added_participant = escrow_registry.check_and_register_participant(
+    let check_and_register_participant_iface = escrow_registry.check_and_register_participant(
         participant,
         username,
         escrow_address
-    ).call(&mut env.private());
+    );
+    let added_participant = env.call_private(check_and_register_participant_iface);
     cheatcodes::advance_blocks_by(1);
     added_participant
 }
@@ -55,7 +57,7 @@ unconstrained pub fn get_managed_escrows(
 ) -> (BoundedVec<AztecAddress, MAX_NOTES_PER_PAGE>, bool) {
     let current_contract_address = get_contract_address();
     cheatcodes::set_contract_address(registry_address);
-    let (escrows, results_end) = ZImburseRegistry::get_managed_escrows(admin, offset);
+    let (escrows, results_end) = ZImburseRegistry::get_managed_escrows(offset);
     cheatcodes::set_contract_address(current_contract_address);
     (escrows, results_end)
 }

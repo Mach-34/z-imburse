@@ -1,5 +1,5 @@
 // assuming a unlikely max billed amount of "9,999,999.99"
-global MAX_BILLED_AMOUNT: u32 = 12;
+global MAX_BILLED_AMOUNT = 12;
 
 global MAX_AA_EMAIL_BODY_LENGTH = 81856;
 global MAX_AA_EMAIL_HEADER_LENGTH = 1024;

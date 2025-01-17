@@ -89,10 +89,6 @@ function buildConstStruct(name: string, inputs: LinodeInputs) {
     )},\n` +
     `\tbody: ${formatBoundedVec(inputs.body!.storage, inputs.body!.len)},\n` +
     `\tbody_hash_index: ${inputs.body_hash_index},\n` +
-    `\tamount_sequence: ${formatSequence(
-      inputs.amount_sequence.index,
-      inputs.amount_sequence.length
-    )},\n` +
     `\tfrom_index: ${inputs.from_index},\n` +
     `\tsubject_index: ${inputs.subject_index},\n` +
     `\tdate_index: ${inputs.date_index},\n` +

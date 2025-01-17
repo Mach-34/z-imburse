@@ -1,21 +1,21 @@
 use aztec::prelude::{AztecAddress, PrivateContext};
-use zimburse_verifiers::{
-    linode::constants::LinodeBillingParamsContract,
-    united::constants::UnitedBillingParamsContract,
-    zkemail::KEY_LIMBS_2048
-};
 use crate::{
     types::entitlement_note::EntitlementNote,
-    contract_interfaces::{check_dkim_key_hash_private, shield_to_claimant},
-    verifiers::{verifier_ids, verify_linode},
+    contract_interfaces::{check_dkim_key_hash_private, reimburse_to_claimant},
+    verifiers::verify_linode,
     ZImburseEscrow::Storage
 };
+use zimburse_verifiers::{
+    constants::verifier_ids,
+    linode::constants::LinodeBillingParamsContract,
+    united::constants::UnitedBillingParamsContract,
+};
+use zkemail::KEY_LIMBS_2048;
 
 /**
  * Shared logic for claiming Linode entitlement
  * 
  * @param email_receipt_inputs - the inputs from the email verifier, in a contract-serializable format
- * @param claim_secret_hash - the hash of the claim secret used to redeem the reimbursement
  * @param spot - if true, check for spot entitlements. If false, check for recurring entitlements
  * @param context - the contract context
  * @param storage - the contract storage
@@ -24,7 +24,6 @@ use crate::{
 #[contract_library_method]
 fn linode(
     email_receipt_inputs: LinodeBillingParamsContract,
-    claim_secret_hash: Field,
     spot: bool,
     context: &mut PrivateContext,
     storage: Storage<&mut PrivateContext>
@@ -48,7 +47,7 @@ fn linode(
     let linode_outputs = verify_linode(email_receipt_inputs.marshal());
         
     // read the escrow definition
-    let definition = storage.definition.read_private();
+    let definition = storage.definition.read();
 
     // check the dkim key hash matches the linode verifier id
     let registered_verifier_id = check_dkim_key_hash_private(
@@ -61,8 +60,8 @@ fn linode(
     // determine the amount to reimburse
     let amount_to_reimburse = entitlement.amount_to_reimburse(linode_outputs.billed_amount);
 
-    // release funds from escrow by shielding in public
-    shield_to_claimant(context, definition.usdc, amount_to_reimburse, claim_secret_hash);
+    // tranfer funds from escrow public balance to claimant private balance
+    reimburse_to_claimant(context, definition.usdc, sender, amount_to_reimburse);
         
     // return the amount reimbursed
     (entitlement, definition.admin, amount_to_reimburse, linode_outputs.timestamp)

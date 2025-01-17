@@ -1,7 +1,7 @@
 use aztec::macros::aztec;
 
 global HASH_CHUNK_MAX_LENGTH: u32 = 2048;
-global ZERO_DESTINATION = "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
+global ZERO_DESTINATION: str<31> = "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
 
 mod capsule;
 mod contract_interfaces;
@@ -12,76 +12,66 @@ mod verifiers;
 #[aztec]
 contract ZImburseEscrow {
     use std::{
-        meta::derive,
-        collections::bounded_vec::BoundedVec,
-        option::Option,
-        hash::pedersen_hash
+        meta::derive, collections::bounded_vec::BoundedVec, option::Option, hash::pedersen_hash,
     };
     use aztec::{
         macros::{
-            storage::storage,
-            events::event,
-            functions::{private, public, internal, view, initializer}
-        },
-        note::constants::MAX_NOTES_PER_PAGE,
-        prelude::{AztecAddress, SharedImmutable},
+            storage::storage, events::event,
+            functions::{private, public, internal, view, initializer},
+        }, note::constants::MAX_NOTES_PER_PAGE, prelude::{AztecAddress, Map, PublicImmutable},
         protocol_types::traits::Serialize,
     };
     use zimburse_verifiers::{
+        constants::{verifier_ids, USDC_DECIMALS},
         united::constants::UnitedBillingParamsContract,
-        zkemail::{
-            KEY_LIMBS_2048,
-            Sequence,
-            dkim::RSAPubkey,
-            partial_hash::{partial_sha256_var_interstitial, partial_sha256_var_end},
-        },
         linode::constants::LinodeBillingParamsContract,
     };
     use crate::{
-        capsule::{pop_capsule, arr_field_to_u8, remaining_chunks},
-        HASH_CHUNK_MAX_LENGTH, ZERO_DESTINATION,
+        capsule::{pop_capsule, arr_field_to_u8, remaining_chunks}, HASH_CHUNK_MAX_LENGTH,
+        ZERO_DESTINATION,
         library_methods::{
             linode::linode,
-            united::{united_deferred, reimburse_united},
-            hashing::{finish_hash, interstitial_hash},
-            entitlements::give_entitlement
-        },
-        contract_interfaces::{check_dkim_key_hash_private, shield_to_claimant},
-        verifiers::{verify_united_deferred, verifier_ids},
+            entitlements::give_entitlement,
+        }, contract_interfaces::{check_dkim_key_hash_private, reimburse_to_claimant},
+        verifiers::verify_united_deferred,
         types::{
-            escrow_definition::{EscrowDefinition, TITLE_LENGTH},
-            entitlement_note::EntitlementNote,
-            entitlement_set::EntitlementSet
+            escrow_definition::{EscrowDefinition, TITLE_LENGTH}, entitlement_note::EntitlementNote,
+            entitlement_set::EntitlementSet,
         },
     };
-
-    #[event]
+    use zkemail::{
+        KEY_LIMBS_2048, Sequence, dkim::RSAPubkey,
+        partial_hash::{partial_sha256_var_interstitial, partial_sha256_var_end},
+    };
+    
     #[derive(Serialize)]
+    #[event]
     struct RecurringReimbursementClaimed {
         claimant: AztecAddress,
         amount: Field,
         verifier_id: u8,
-        timestamp: Field
+        timestamp: Field,
     }
 
-    #[event]
     #[derive(Serialize)]
+    #[event]
     struct SpotReimbursementClaimed {
         claimant: AztecAddress,
         amount: Field,
-        verifier_id: u8
+        verifier_id: u8,
     }
 
-    #[event]
     #[derive(Serialize)]
+    #[event]
     struct EntitlementNullified {
-        randomness: Field   
+        randomness: Field,
     }
 
     #[storage]
     struct Storage<Context> {
-        definition: SharedImmutable<EscrowDefinition, Context>,
+        definition: PublicImmutable<EscrowDefinition, Context>,
         entitlements: EntitlementSet<EntitlementNote, Context>,
+        nullifiers: Map<Field, PublicImmutable<bool, Context>, Context>
     }
 
     /**
@@ -101,7 +91,7 @@ contract ZImburseEscrow {
     /**
      * Create a new spot entitlement for a user to reimburse themselves with
      * @dev spot = one-time use
-     * 
+     *
      * @param recipient - the address to give the entitlement to
      * @param amount - the maximum amount the recipient can claim in the reimbursement
      * @param verifier_id - the id of the email receipt type to verify
@@ -152,40 +142,43 @@ contract ZImburseEscrow {
             &mut context
         );
     }
-    
+
+    #[public]
+    #[internal]
+    pub fn init_nullifier(nullifier: Field) { 
+        storage.nullifiers.at(nullifier).initialize(true);
+    }
+
     /**
      * Claim a recurring reimbursement for a Linode hosting receipt
      * @dev use separate function from spot to optimize gates by avoiding if statements
-     * 
+     *
      * @param email_receipt_inputs - the inputs from the email verifier
-     * @param claim_secret_hash - the hash of the claim secret used to redeem the reimbursement
      * @return the amount reimbursed
      */
     #[private]
     pub fn reimburse_linode_recurring(
         email_receipt_inputs: LinodeBillingParamsContract,
-        // claim secret hash
-        claim_secret_hash: Field,
     ) -> Field {
         // common logic for claiming a Linode entitlement
         let (entitlement, admin, amount_to_reimburse, timestamp) = linode(
             email_receipt_inputs,
-            claim_secret_hash,
             false, // recurring
             &mut context,
             storage
         );
 
         // check that the entitlement has not been nullified by the admin
-        // let _ = entitlement.check_nullifier(&mut context); // <-- cant be used in txe
-        let _ = entitlement.check_nullifier_txe(&mut context); // <-- doesn't actually constrain nullifier to exist
+        let shared_nullifier = entitlement.derive_shared_nullifier();
+        let is_nullified = storage.nullifiers.at(shared_nullifier).read();
+        assert(!is_nullified, "Entitlement is nullified");
 
         // check and emit recurring nullification
         entitlement.check_and_emit_recurring_nullifier(&mut context, timestamp);
 
         // notify admin of reimbursement
         entitlement.emit_recurring_claim(&mut context, admin, amount_to_reimburse, timestamp);
-        
+
         // return the amount reimbursed
         amount_to_reimburse
     }
@@ -193,21 +186,18 @@ contract ZImburseEscrow {
     /**
      * Claim a spot reimbursement for a Linode hosting receipt
      * @dev use separate function from recurring to optimize gates by avoiding if statements
-     * 
+     *
      * @param email_receipt_inputs - the inputs from the email verifier
-     * @param claim_secret_hash - the hash of the claim secret used to redeem the reimbursement
      * @return the amount reimbursed
      */
     #[private]
     fn reimburse_linode_spot(
         email_receipt_inputs: LinodeBillingParamsContract,
-        claim_secret_hash: Field,
     ) -> Field {
         let sender = context.msg_sender();
         // common logic for claiming a Linode entitlement
         let (entitlement, admin, amount_to_reimburse, timestamp) = linode(
             email_receipt_inputs,
-            claim_secret_hash,
             true, // spot
             &mut context,
             storage
@@ -217,29 +207,32 @@ contract ZImburseEscrow {
         entitlement.check_date_range(timestamp as u32);
 
         // check that the entitlement has not been nullified by the admin
-        // let nullifier = entitlement.check_nullifier(&mut context); // <-- cant be used in txe
-        let nullifier = entitlement.check_nullifier_txe(&mut context); // <-- doesn't actually constrain nullifier to exist
+        let shared_nullifier = entitlement.derive_shared_nullifier();
+        let is_nullified = storage.nullifiers.at(shared_nullifier).read();
+        assert(!is_nullified, "Entitlement is nullified");
 
         // broadcast the note nullifier
-        context.push_nullifier(nullifier);
+        ZImburseEscrow::at(context.this_address())
+            .init_nullifier(shared_nullifier)
+            .enqueue(&mut context);
 
         // emit event to notify admin of spot entitlement consumption
-        entitlement.emit_nullified(&mut context, entitlement.recipient, sender);
-        
+        entitlement.emit_nullified(&mut context, admin, sender);
+
         // notify admin of reimbursement
         entitlement.emit_spot_claim(
             &mut context,
             admin,
-            amount_to_reimburse,
+            amount_to_reimburse
         );
-        
+
         // return the amount reimbursed
         amount_to_reimburse
     }
 
     /**
      * Claim a spot reimbursement for a United Airlines receipt
-     * 
+     *
      * @param email_inputs - the inputs from the email verifier in a contract-serializable format
      * @param amount_to_date_length - the length of the body between the amount and date selection
      * @param remaining_length - the length of the body after all selections have been made
@@ -252,18 +245,50 @@ contract ZImburseEscrow {
         amount_to_date_length: u32,
         remaining_length: u32,
         actual_length: u32,
-        claim_secret_hash: Field,
     ) -> Field {
-        // mainly segregated for code audit
-        reimburse_united(
-            email_inputs,
-            amount_to_date_length,
-            remaining_length,
-            actual_length,
-            claim_secret_hash,
-            storage,
-            &mut context
-        )
+        let extracted = [0, 0, 0];
+        let billed_amount = U128::from_integer(extracted[0] * USDC_DECIMALS);
+        let timestamp = extracted[1];
+        let destination_airport = extracted[2];
+        let sender = context.msg_sender();
+        let note_wrapped = storage.entitlements.get_matching_entitlement(
+            sender,
+            sender,
+            verifier_ids::UNITED_AIRLINES,
+            true
+        );
+        assert(note_wrapped.is_some(), "No entitlements to redeem");
+        let entitlement = note_wrapped.unwrap();
+        assert(entitlement.recipient == sender, "Entitlement does not belong to the caller");
+        let definition = storage.definition.read();
+        let dkim_key_hash = pedersen_hash(email_inputs.pubkey_modulus);
+        let registered_verifier_id = check_dkim_key_hash_private(
+            &mut context,
+            definition.registry,
+            dkim_key_hash
+        );
+        assert(
+            (registered_verifier_id as u8) == verifier_ids::UNITED_AIRLINES, 
+            "DKIM key is not registered for United Airlines"
+        );
+        entitlement.check_date_range(timestamp as u32);
+        let amount_to_reimburse = entitlement.amount_to_reimburse(billed_amount);
+        reimburse_to_claimant(&mut context, definition.usdc, context.msg_sender(), amount_to_reimburse);
+        let email_nullifier = pedersen_hash(email_inputs.signature);
+        context.push_nullifier(email_nullifier);
+
+        let shared_nullifier = entitlement.derive_shared_nullifier();
+        let is_nullified = storage.nullifiers.at(shared_nullifier).read();
+        assert(!is_nullified, "Entitlement is nullified");
+        ZImburseEscrow::at(context.this_address()).init_nullifier(shared_nullifier).enqueue(&mut context);
+        
+        entitlement.emit_nullified(&mut context, definition.admin, sender);
+        entitlement.emit_spot_claim(
+            &mut context,
+            definition.admin,
+            amount_to_reimburse,
+        );
+        amount_to_reimburse
     }
 
     #[private]
@@ -276,14 +301,25 @@ contract ZImburseEscrow {
         remaining_length: u32,
         actual_length: u32
     ) -> [Field; 3] {
-        // mainly segregated for code audit
-        united_deferred(
-            email_inputs,
-            amount_to_date_length,
-            remaining_length,
-            actual_length,
-            &mut context
-        )
+        // verify the email with deferred hashing
+        let deferred_results = verify_united_deferred(email_inputs.marshal());
+        ZImburseEscrow::at(context.this_address())
+            .finish_hashing(
+                deferred_results.hash_state_after_body,
+                email_inputs.partial_body_hash_date,
+                deferred_results.hash_state_after_destination,
+                deferred_results.signed_body_hash,
+                actual_length,
+                amount_to_date_length,
+                remaining_length
+            )
+            .call(&mut context);
+        // return extracted values
+        [ 
+            deferred_results.billed_amount,
+            deferred_results.timestamp,
+            deferred_results.destination_airport
+        ]
     }
 
     /**
@@ -306,30 +342,90 @@ contract ZImburseEscrow {
         signed_body_hash: [u8; 32],
         actual_length: u32,
         amount_to_date_length: u32,
-        remaining_length: u32
+        remaining_length: u32,
     ) {
-        // mainly segregated for code audit
-        finish_hash(
-            hash_state_after_body,
-            hash_state_before_date,
-            hash_state_after_destination,
-            signed_body_hash,
-            actual_length,
-            amount_to_date_length,
-            remaining_length,
-            &mut context
+        // hash from amount to date
+        let computed_hash_state_before_date = ZImburseEscrow::at(context.this_address())
+            .interstitial_hashing(hash_state_after_body, amount_to_date_length)
+            .call(&mut context);
+        // check the hashes match
+        // ensures provenance over body up to to hash_state_after_destination
+        assert(
+            computed_hash_state_before_date == hash_state_before_date,
+            "Could not verify body hash between amount and date/destination",
+        );
+        // hash the remaining data
+        let interstitial = ZImburseEscrow::at(context.this_address())
+            .interstitial_hashing(hash_state_after_destination, remaining_length)
+            .call(&mut context);
+        // finalize the hash
+        let data = unsafe { arr_field_to_u8(pop_capsule::<HASH_CHUNK_MAX_LENGTH>()) };
+        // complete the hash
+        let remaining = unsafe {
+            let mut size = HASH_CHUNK_MAX_LENGTH;
+            if remaining_length % HASH_CHUNK_MAX_LENGTH != 0 {
+                size = remaining_length % HASH_CHUNK_MAX_LENGTH;
+            }
+            size
+        };
+        let computed_body_hash =
+            partial_sha256_var_end(interstitial, data, remaining as u64, actual_length as u64);
+        // check the hashes match
+        assert(
+            computed_body_hash == signed_body_hash,
+            "SHA256 hash computed over body does not match body hash found in DKIM-signed header",
         );
     }
 
     #[private]
     #[internal]
-    pub fn interstitial_hashing(
-        state: [u32; 8],
-        length: u32,
-    ) -> [u32; 8] {
-        // mainly segregated for code audit
-        interstitial_hash(state, length, &mut context)
+    pub fn interstitial_hashing(state: [u32; 8], length: u32) -> [u32; 8] {
+        // get chunk from capsule oracle and convert to u8 (unconstrained, hash check will deal with it)
+        let data = unsafe { arr_field_to_u8(pop_capsule::<HASH_CHUNK_MAX_LENGTH>()) };
+        // determine length of data to hash
+        let (hash_length, resume) = unsafe { remaining_chunks(length) };
+        // hash the data
+        let mut interstitial = partial_sha256_var_interstitial(state, data, hash_length);
+        // if there is more data to hash, continue hashing
+        if resume {
+            interstitial = ZImburseEscrow::at(context.this_address())
+                .interstitial_hashing(interstitial, length - HASH_CHUNK_MAX_LENGTH)
+                .call(&mut context);
+        }
+        // return the interstitial hash
+        interstitial
     }
+
+    /**
+     * Emit the nullifiers for entitlements for which counterpart note has already been nullified
+     * @dev will fail @ kernel if already emitted
+     *
+     * @param entropy_values - an BoundeVec containing entropy values to filter notes by
+     */
+    #[private]
+    pub fn nullify_entitlements(entropy_values: [Field; 10]) {
+        // check is escrow admin
+        let sender = context.msg_sender();
+
+        for i in 0..entropy_values.len() {
+            if entropy_values[i] != 0 {
+                // pop note for sender
+                let entitlement = storage.entitlements.pop_entitlement(
+                    sender,
+                    Option::none(),
+                    Option::none(),
+                    Option::none(),
+                    Option::some(entropy_values[i])
+                );
+
+                // ensure counterparty note has been nullfied
+                let shared_nullifier = entitlement.derive_shared_nullifier();
+                let is_nullified = storage.nullifiers.at(shared_nullifier).read();
+                assert(is_nullified, "Counterparty entitlement has not been nullified!");
+            }
+        }
+    }
+
 
     /**
      * Emit the nullifier for an entitlement
@@ -343,23 +439,28 @@ contract ZImburseEscrow {
     pub fn revoke_entitlement(recipient: AztecAddress, verifier_type: u8, spot: bool) {
         // check is escrow admin
         let sender = context.msg_sender();
-        let defintion = storage.definition.read_private();
-        assert(sender == defintion.admin, "Only the escrow admin can revoke entitlements");
+        let definition = storage.definition.read();
+        assert(sender == definition.admin, "Only the escrow admin can revoke entitlements");
 
         // try to pop a note for this recipient
-        let entitlement = storage.entitlements.nullify_entitlement(
+        let entitlement = storage.entitlements.pop_entitlement(
             sender,
-            recipient,
-            verifier_type,
-            spot
+            Option::some(recipient),
+            Option::some(verifier_type),
+            Option::some(spot),
+            Option::none()
         );
         // ensure the note is to/ from correctly
         assert(entitlement.recipient == recipient, "Entitlement does not belong to the recipient");
 
-        // broadcast the note nullifier
-        let nullifier = entitlement.compute_nullifier_without_context();
-        context.push_nullifier(nullifier);
-
+        // nullify the entitlement
+        let shared_nullifier = entitlement.derive_shared_nullifier();
+        let is_nullified = storage.nullifiers.at(shared_nullifier).read();
+        assert(!is_nullified, "Entitlement is already nullified");
+        ZImburseEscrow::at(context.this_address())
+            .init_nullifier(shared_nullifier)
+            .enqueue(&mut context);
+        
         // emit event to notify recipient of revocation
         entitlement.emit_nullified(&mut context, entitlement.recipient, sender);
     }
@@ -370,7 +471,7 @@ contract ZImburseEscrow {
     #[public]
     #[view]
     pub fn get_title() -> [u8; TITLE_LENGTH] {
-        storage.definition.read_public().title_as_string()
+        storage.definition.read().title_as_string()
     }
 
     /**
@@ -381,18 +482,18 @@ contract ZImburseEscrow {
     #[private]
     #[view]
     pub fn get_admin_private() -> AztecAddress {
-        storage.definition.read_private().admin
+        storage.definition.read().admin
     }
 
     /**
      * Get the params needed to constrain the escrow registration process
-     * 
+     *
      * @return [registry, usdc, admin]
      */
     #[private]
     #[view]
     pub fn get_registration_params() -> [AztecAddress; 3] {
-        let definition = storage.definition.read_private();
+        let definition = storage.definition.read();
         [definition.registry, definition.usdc, definition.admin]
     }
 
@@ -420,6 +521,28 @@ contract ZImburseEscrow {
             verifier_id,
             spot
         )
+    }
+
+    unconstrained pub fn get_shared_nullifier(
+        offset: u32,
+        scope: AztecAddress,
+        recipient: AztecAddress,
+        verifier_id: u8,
+        spot: bool
+    ) -> Option<Field> {
+        let (entitlements, _) = storage.entitlements.view_entitlements(
+            offset,
+            scope,
+            Option::some(recipient),
+            Option::some(verifier_id),
+            Option::some(spot)
+        );
+        if entitlements.len() == 0 {
+            Option::none()
+        } else {
+            let entitlement = entitlements.get_unchecked(0);
+            Option::some(entitlement.derive_shared_nullifier())
+        }
     }
 }
 

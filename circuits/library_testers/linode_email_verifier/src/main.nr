@@ -10,7 +10,7 @@ fn main(params: LinodeBillingParams) -> pub [Field; 3] {
         body_hash_index,
         from_index,
         subject_index,
-        amount_sequence,
+        amount_index,
         date_index,
         receipt_id_length
     } = params;
@@ -24,7 +24,7 @@ fn main(params: LinodeBillingParams) -> pub [Field; 3] {
         body_hash_index,
         from_index,
         subject_index,
-        amount_sequence,
+        amount_index,
         date_index,
         receipt_id_length
     )

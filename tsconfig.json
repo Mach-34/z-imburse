@@ -11,8 +11,8 @@
             "es2017.object"
         ],
         "types": ["jest", "node"],
-        "module": "nodenext",
-        "moduleResolution": "nodenext",
+        "module": "ESNext",
+        "moduleResolution": "bundler",
         "strict": true,
         "declaration": true,
         "allowSyntheticDefaultImports": true,

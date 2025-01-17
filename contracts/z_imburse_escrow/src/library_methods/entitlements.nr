@@ -2,12 +2,12 @@ use aztec::{prelude::{AztecAddress, PrivateContext}, oracle::random::random};
 use zimburse_verifiers::{
     linode::constants::LinodeBillingParamsContract,
     united::constants::UnitedBillingParamsContract,
-    zkemail::KEY_LIMBS_2048
 };
 use crate::{
     types::entitlement_note::EntitlementNote,
     ZImburseEscrow::Storage
 };
+use zkemail::KEY_LIMBS_2048;
 
 #[contract_library_method]
 fn give_entitlement(
@@ -32,13 +32,23 @@ fn give_entitlement(
 
     // check is escrow admin
     let sender = context.msg_sender();
-    let admin = storage.definition.read_private().admin;
+    let admin = storage.definition.read().admin;
     assert(sender == admin, "Only the escrow admin can give entitlements");
 
     // create the entitlement note
     let amount = U128::from_integer(amount);
     let blinding_factor = unsafe { random() };
-    let mut entitlement = EntitlementNote::new(
+    let mut entitlement_admin = EntitlementNote::new(
+        recipient,
+        verifier_id,
+        amount,
+        date_start,
+        date_end,
+        destination,
+        spot,
+        blinding_factor
+    );
+    let mut entitlement_recipient = EntitlementNote::new(
         recipient,
         verifier_id,
         amount,
@@ -54,6 +64,7 @@ fn give_entitlement(
         context,
         sender,
         recipient,
-        &mut entitlement
+        &mut entitlement_admin,
+        &mut entitlement_recipient
     );
 }

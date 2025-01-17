@@ -1,12 +1,15 @@
-use dep::aztec::test::helpers::{cheatcodes, test_environment::TestEnvironment};
-use dep::aztec::prelude::AztecAddress;
-use dep::token::Token;
-use dep::aztec::oracle::get_contract_instance::get_contract_instance;
-use dep::z_imburse_escrow::ZImburseEscrow;
-use crate::{ZImburseRegistry, verifiers};
+use dep::aztec::{
+    oracle::get_contract_instance::get_contract_instance,
+    prelude::AztecAddress,
+    test::helpers::{cheatcodes, test_environment::TestEnvironment}
+};
+use token::Token;
+use zimburse_verifiers::constants::verifier_ids;
+use z_imburse_escrow::ZImburseEscrow;
+use crate::ZImburseRegistry;
 
 // todo: add to codegen script
-global LINODE_DKIM_KEY_HASHES = [
+global LINODE_DKIM_KEY_HASHES: [Field; 4] = [
     712519596095629255109872801235039358170201760830784122426677669165598881666,
     13237475223415264171236793537996660854520436521041792787101330803844432479710,
     20936064893934607784344562415788497975298742600910573935943087868729550721732,
@@ -14,7 +17,7 @@ global LINODE_DKIM_KEY_HASHES = [
 ];
 
 // todo: make a macro to generate this
-pub global ESCROW_NAMES = [
+pub global ESCROW_NAMES: [str<60>; 16] = [
     "Escrow0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0",
     "Escrow1\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0",
     "Escrow2\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0",
@@ -33,7 +36,7 @@ pub global ESCROW_NAMES = [
     "Escrow15\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0",
 ];
 
-pub global USERNAMES = [
+pub global USERNAMES: [str<60>; 16] = [
     "user0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0",
     "user1\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0",
     "user2\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0",
@@ -52,13 +55,13 @@ pub global USERNAMES = [
     "user15\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0",
 ];
 
-pub global ZERO_DESTINATION = "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
+pub global ZERO_DESTINATION: str<31> = "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
 
-global USERNAME_ALICE = "alice\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
-global USERNAME_BOB =   "bob\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
+global USERNAME_ALICE: str<31> = "alice\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
+global USERNAME_BOB: str<31> =   "bob\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
 
-global USDC_NAME = "Aztec USDC\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
-global USDC_SYMBOL = "USDC.e\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
+global USDC_NAME: str<31> = "Aztec USDC\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
+global USDC_SYMBOL: str<31> = "USDC.e\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
 global USDC_DECIMALS: u8 = 6;
 
 struct TestAccounts {
@@ -100,7 +103,7 @@ unconstrained pub fn setup<let N: u32>() -> (&mut TestEnvironment, TestAccounts,
     // deploy escrow registry contract
     let registry_address = deploy_registry_contract(&mut env, accounts.superuser, usdc_address);
     
-    // deploy as many escrow contracts as requested
+    // // deploy as many escrow contracts as requested
     let mut escrows: [AztecAddress; N] = [AztecAddress::zero(); N];
     for i in 0..N {
         escrows[i] = deploy_escrow_contract(&mut env, accounts.escrow_admin, registry_address, usdc_address, ESCROW_NAMES[i]);
@@ -139,7 +142,7 @@ unconstrained pub fn deploy_token_contract(
     );
     let token_contract = env
         .deploy("./@token_contract", "Token")
-        .with_public_initializer(token_init_call_iface);
+        .with_public_void_initializer(token_init_call_iface);
 
     cheatcodes::advance_blocks_by(1);
 
@@ -166,7 +169,7 @@ unconstrained pub fn deploy_registry_contract(
     let escrow_contract_class_id = get_escrow_contract_class_id(env);
 
     // deploy the registry contract with set hashes
-    let linode_id = verifiers::LINODE as Field;
+    let linode_id = verifier_ids::LINODE as Field;
     let escrow_registry_init_call_iface = ZImburseRegistry::interface().constructor(
         token_address,
         escrow_contract_class_id,
@@ -175,7 +178,7 @@ unconstrained pub fn deploy_registry_contract(
     );
     let escrow_registry_contract = env
         .deploy_self("ZImburseRegistry")
-        .with_public_initializer(escrow_registry_init_call_iface);
+        .with_public_void_initializer(escrow_registry_init_call_iface);
 
     cheatcodes::advance_blocks_by(1);
 
@@ -206,7 +209,7 @@ unconstrained pub fn deploy_escrow_contract(
     );
     let escrow_contract = env
         .deploy("./@z_imburse_escrow", "ZImburseEscrow")
-        .with_public_initializer(escrow_init_call_iface);
+        .with_public_void_initializer(escrow_init_call_iface);
     cheatcodes::advance_blocks_by(1);
     escrow_contract.to_address()
 }
@@ -220,7 +223,7 @@ unconstrained pub fn get_escrow_contract_class_id(env: &mut TestEnvironment) -> 
     );
     let escrow_contract = env
         .deploy("./@z_imburse_escrow", "ZImburseEscrow")
-        .with_public_initializer(escrow_init_call_iface);
+        .with_public_void_initializer(escrow_init_call_iface);
     cheatcodes::advance_blocks_by(1);    
     escrow_contract.contract_class_id.to_field()
 }

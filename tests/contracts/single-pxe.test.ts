@@ -85,7 +85,7 @@ describe("Test deposit to zimburse", () => {
         }
     });
 
-    xdescribe("Registration", () => {
+    describe("Registration", () => {
         it("Register Z-Imburse Escrow", async () => {
 
             const testEscrow = await ZImburseEscrowContract.deploy(
@@ -122,7 +122,7 @@ describe("Test deposit to zimburse", () => {
     });
 
     describe("Hosting entitlements", () => {
-        xdescribe("Revoke entitlements", () => {
+        describe("Revoke entitlements", () => {
             xit("Give linode recurring entitlement", async () => {
                 // check dkim key
                 // give entitlement of 10 usdc
@@ -267,23 +267,23 @@ describe("Test deposit to zimburse", () => {
 
         });
 
-        describe("Nullify entitlements", () => {
+        xdescribe("Nullify entitlements", () => {
 
-            xit("Test nullify counterpart on claimed spot entitlement", async () => {
+            it("Test nullify counterpart on claimed spot entitlement", async () => {
                 const amount = toUSDCDecimals(20n);
                 // give entitlement
                 await escrows[0].withWallet(escrowAdmin)
-                .methods
-                .give_spot_entitlement(
-                    alice.getAddress(),
-                    amount,
-                    2,
-                    new Date(2024, 7, 30).getTime() / 1000,
-                    new Date(2024, 9, 1).getTime() / 1000,
-                    "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
-                )
-                .send()
-                .wait();
+                    .methods
+                    .give_spot_entitlement(
+                        alice.getAddress(),
+                        amount,
+                        2,
+                        new Date(2024, 7, 30).getTime() / 1000,
+                        new Date(2024, 9, 1).getTime() / 1000,
+                        "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
+                    )
+                    .send()
+                    .wait();
 
                 const inputs = await makeLinodeInputs(emails.linode_sep);
                 const redeemLinodeInputs = formatRedeemLinode(inputs);
@@ -300,26 +300,26 @@ describe("Test deposit to zimburse", () => {
 
                 const entitlementsAlice = await escrows[0].methods
                     .view_entitlements(
-                    0,
-                    alice.getAddress(),
-                    { _is_some: false, _value: AztecAddress.ZERO },
-                    { _is_some: false, _value: 0 },
-                    { _is_some: false, _value: false }
+                        0,
+                        alice.getAddress(),
+                        { _is_some: false, _value: AztecAddress.ZERO },
+                        { _is_some: false, _value: 0 },
+                        { _is_some: false, _value: false }
                     )
-                    .simulate();    
+                    .simulate();
 
                 expect(entitlementsAlice[0].len).toEqual(0n);
 
 
                 const entitlementsEscrowAdmin = await escrows[0].methods
                     .view_entitlements(
-                    0,
-                    escrowAdmin.getAddress(),
-                    { _is_some: false, _value: AztecAddress.ZERO },
-                    { _is_some: false, _value: 0 },
-                    { _is_some: false, _value: false }
+                        0,
+                        escrowAdmin.getAddress(),
+                        { _is_some: false, _value: AztecAddress.ZERO },
+                        { _is_some: false, _value: 0 },
+                        { _is_some: false, _value: false }
                     )
-                    .simulate();    
+                    .simulate();
 
                 expect(entitlementsEscrowAdmin[0].len).toEqual(1n);
 
@@ -339,18 +339,18 @@ describe("Test deposit to zimburse", () => {
 
                 const entitlementsEscrowAdminAfter = await escrows[0].methods
                     .view_entitlements(
-                    0,
-                    escrowAdmin.getAddress(),
-                    { _is_some: false, _value: AztecAddress.ZERO },
-                    { _is_some: false, _value: 0 },
-                    { _is_some: false, _value: false }
+                        0,
+                        escrowAdmin.getAddress(),
+                        { _is_some: false, _value: AztecAddress.ZERO },
+                        { _is_some: false, _value: 0 },
+                        { _is_some: false, _value: false }
                     )
                     .simulate();
-                
+
                 expect(entitlementsEscrowAdminAfter[0].len).toEqual(0n);
             });
 
-            xit("Test nullify counterpart on revoked recurring entitlement", async () => {
+            it("Test nullify counterpart on revoked recurring entitlement", async () => {
                 const amount = toUSDCDecimals(35n);
                 // give entitlement
                 await escrows[0].withWallet(escrowAdmin)
@@ -373,13 +373,13 @@ describe("Test deposit to zimburse", () => {
 
                 const entitlementsBefore = await escrows[0].methods
                     .view_entitlements(
-                    0,
-                    alice.getAddress(),
-                    { _is_some: false, _value: AztecAddress.ZERO },
-                    { _is_some: false, _value: 0 },
-                    { _is_some: false, _value: false }
+                        0,
+                        alice.getAddress(),
+                        { _is_some: false, _value: AztecAddress.ZERO },
+                        { _is_some: false, _value: 0 },
+                        { _is_some: false, _value: false }
                     )
-                    .simulate();    
+                    .simulate();
 
                 expect(entitlementsBefore[0].len).toEqual(1n);
 
@@ -399,18 +399,18 @@ describe("Test deposit to zimburse", () => {
 
                 const entitlementsAfter = await escrows[0].methods
                     .view_entitlements(
-                    0,
-                    alice.getAddress(),
-                    { _is_some: false, _value: AztecAddress.ZERO },
-                    { _is_some: false, _value: 0 },
-                    { _is_some: false, _value: false }
+                        0,
+                        alice.getAddress(),
+                        { _is_some: false, _value: AztecAddress.ZERO },
+                        { _is_some: false, _value: 0 },
+                        { _is_some: false, _value: false }
                     )
                     .simulate();
-                
+
                 expect(entitlementsAfter[0].len).toEqual(0n);
             });
 
-            xit("Test nullify counterpart on revoked spot entitlement", async () => {
+            it("Test nullify counterpart on revoked spot entitlement", async () => {
                 const amount = toUSDCDecimals(10n);
                 // give entitlement
                 await escrows[0].withWallet(escrowAdmin)
@@ -436,14 +436,14 @@ describe("Test deposit to zimburse", () => {
 
                 const entitlementsBefore = await escrows[0].methods
                     .view_entitlements(
-                    0,
-                    alice.getAddress(),
-                    { _is_some: false, _value: AztecAddress.ZERO },
-                    { _is_some: false, _value: 0 },
-                    { _is_some: false, _value: false }
+                        0,
+                        alice.getAddress(),
+                        { _is_some: false, _value: AztecAddress.ZERO },
+                        { _is_some: false, _value: 0 },
+                        { _is_some: false, _value: false }
                     )
                     .simulate();
-                
+
                 expect(entitlementsBefore[0].len).toEqual(1n);
 
                 // get randomness from NullifiedEntitlement event emitted to Alice
@@ -462,14 +462,14 @@ describe("Test deposit to zimburse", () => {
 
                 const entitlementsAfter = await escrows[0].methods
                     .view_entitlements(
-                    0,
-                    alice.getAddress(),
-                    { _is_some: false, _value: AztecAddress.ZERO },
-                    { _is_some: false, _value: 0 },
-                    { _is_some: false, _value: false }
+                        0,
+                        alice.getAddress(),
+                        { _is_some: false, _value: AztecAddress.ZERO },
+                        { _is_some: false, _value: 0 },
+                        { _is_some: false, _value: false }
                     )
                     .simulate();
-                
+
                 expect(entitlementsAfter[0].len).toEqual(0n);
             });
 
@@ -488,89 +488,89 @@ describe("Test deposit to zimburse", () => {
                     .send()
                     .wait();
 
-                    // give linode recurring entitlement
-                    await escrows[0].withWallet(escrowAdmin)
-                        .methods
-                        .give_recurring_entitlement(
-                            alice.getAddress(),
-                            200n,
-                            2,
-                        )
-                        .send()
-                        .wait();
+                // give linode recurring entitlement
+                await escrows[0].withWallet(escrowAdmin)
+                    .methods
+                    .give_recurring_entitlement(
+                        alice.getAddress(),
+                        200n,
+                        2,
+                    )
+                    .send()
+                    .wait();
 
-                    // give united spot entitlement
-                    await escrows[0].withWallet(escrowAdmin)
-                        .methods
-                        .give_spot_entitlement(
-                            alice.getAddress(),
-                            4200n,
-                            5,
-                            new Date(2023, 0, 1).getTime() / 1000,
-                            new Date(2025, 0, 12).getTime() / 1000,
-                            "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
-                        )
-                        .send()
-                        .wait();
+                // give united spot entitlement
+                await escrows[0].withWallet(escrowAdmin)
+                    .methods
+                    .give_spot_entitlement(
+                        alice.getAddress(),
+                        4200n,
+                        5,
+                        new Date(2023, 0, 1).getTime() / 1000,
+                        new Date(2025, 0, 12).getTime() / 1000,
+                        "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
+                    )
+                    .send()
+                    .wait();
 
-                    const entitlements = [{spot: true, verifier: 2}, {spot: false, verifier: 2}, {spot: true, verifier: 5}];
+                const entitlements = [{ spot: true, verifier: 2 }, { spot: false, verifier: 2 }, { spot: true, verifier: 5 }];
 
-                    // revoke entitlements
-                    for (const entitlement of entitlements) {
-                        await escrows[0]
+                // revoke entitlements
+                for (const entitlement of entitlements) {
+                    await escrows[0]
                         .withWallet(escrowAdmin)
                         .methods
                         .revoke_entitlement(alice.getAddress(), entitlement.verifier, entitlement.spot)
                         .send()
                         .wait();
-                    }
+                }
 
-                    const entitlementsBefore = await escrows[0].methods
+                const entitlementsBefore = await escrows[0].methods
                     .view_entitlements(
-                    0,
-                    alice.getAddress(),
-                    { _is_some: false, _value: AztecAddress.ZERO },
-                    { _is_some: false, _value: 0 },
-                    { _is_some: false, _value: false }
-                    )
-                    .simulate();
-
-                    expect(entitlementsBefore[0].len).toEqual(3n);
-
-                    // get entropy values from NullifiedEntitlement events emitted to Alice
-                    const nullifyEvents = await alice.getEncryptedEvents(ZImburseEscrowContract.events.EntitlementNullified, 1, BLOCK_FETCH_LIMIT);
-                    const randomnessVals = nullifyEvents.map(({randomness}: any) => randomness);
-
-                    const {vals: entropyVals} = (await alice.getIncomingNotes({})).reduce((entropyVals: {len: number, vals: bigint[]}, note: UniqueNote) => {
-                        if (note.noteTypeId.value === ZImburseEscrowContract.notes.EntitlementNote.id.value) {
-                            const entropy = note.note.items[7].toBigInt();
-                            if(randomnessVals.includes(entropy)) {
-                                entropyVals.vals[entropyVals.len] = entropy;
-                                entropyVals.len += 1;
-                            }
-                        }
-                        return entropyVals;
-                    }, {len: 0, vals: new Array(10).fill(0)});
-                   
-                    // nullify entitlements
-                    await escrows[0]
-                        .withWallet(alice)
-                        .methods
-                        .nullify_entitlements(entropyVals)
-                        .send()
-                        .wait();
-
-                    const entitlementsAfter = await escrows[0].methods
-                        .view_entitlements(
                         0,
                         alice.getAddress(),
                         { _is_some: false, _value: AztecAddress.ZERO },
                         { _is_some: false, _value: 0 },
                         { _is_some: false, _value: false }
-                        )
-                        .simulate();
-                    
-                    expect(entitlementsAfter[0].len).toEqual(0n);
+                    )
+                    .simulate();
+
+                expect(entitlementsBefore[0].len).toEqual(3n);
+
+                // get entropy values from NullifiedEntitlement events emitted to Alice
+                const nullifyEvents = await alice.getEncryptedEvents(ZImburseEscrowContract.events.EntitlementNullified, 1, BLOCK_FETCH_LIMIT);
+                const randomnessVals = nullifyEvents.map(({ randomness }: any) => randomness);
+
+                const { vals: entropyVals } = (await alice.getIncomingNotes({})).reduce((entropyVals: { len: number, vals: bigint[] }, note: UniqueNote) => {
+                    if (note.noteTypeId.value === ZImburseEscrowContract.notes.EntitlementNote.id.value) {
+                        const entropy = note.note.items[7].toBigInt();
+                        if (randomnessVals.includes(entropy)) {
+                            entropyVals.vals[entropyVals.len] = entropy;
+                            entropyVals.len += 1;
+                        }
+                    }
+                    return entropyVals;
+                }, { len: 0, vals: new Array(10).fill(0) });
+
+                // nullify entitlements
+                await escrows[0]
+                    .withWallet(alice)
+                    .methods
+                    .nullify_entitlements(entropyVals)
+                    .send()
+                    .wait();
+
+                const entitlementsAfter = await escrows[0].methods
+                    .view_entitlements(
+                        0,
+                        alice.getAddress(),
+                        { _is_some: false, _value: AztecAddress.ZERO },
+                        { _is_some: false, _value: 0 },
+                        { _is_some: false, _value: false }
+                    )
+                    .simulate();
+
+                expect(entitlementsAfter[0].len).toEqual(0n);
             });
         })
     });

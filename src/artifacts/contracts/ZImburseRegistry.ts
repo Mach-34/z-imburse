@@ -38,26 +38,26 @@ import ZImburseRegistryContractArtifactJson from './ZImburseRegistry.json' asser
 export const ZImburseRegistryContractArtifact = loadContractArtifact(ZImburseRegistryContractArtifactJson as NoirCompiledContract);
 
 
-      export type DKIMKeyHashRegistered = {
-        dkim_key_hash: FieldLike
-verifier_id: FieldLike
-      }
-    
+export type DKIMKeyHashRegistered = {
+  dkim_key_hash: FieldLike
+  verifier_id: FieldLike
+}
+
 
 /**
  * Type-safe interface for contract ZImburseRegistry;
  */
 export class ZImburseRegistryContract extends ContractBase {
-  
+
   private constructor(
     instance: ContractInstanceWithAddress,
     wallet: Wallet,
   ) {
     super(instance, ZImburseRegistryContractArtifact, wallet);
   }
-  
 
-  
+
+
   /**
    * Creates a contract instance.
    * @param address - The deployed contract's address.
@@ -71,7 +71,7 @@ export class ZImburseRegistryContract extends ContractBase {
     return Contract.at(address, ZImburseRegistryContract.artifact, wallet) as Promise<ZImburseRegistryContract>;
   }
 
-  
+
   /**
    * Creates a tx to deploy a new instance of this contract.
    */
@@ -102,62 +102,62 @@ export class ZImburseRegistryContract extends ContractBase {
       opts.method ?? 'constructor',
     );
   }
-  
 
-  
+
+
   /**
    * Returns this contract's artifact.
    */
   public static get artifact(): ContractArtifact {
     return ZImburseRegistryContractArtifact;
   }
-  
+
 
   public static get storage(): ContractStorageLayout<'definition' | 'escrow_registry' | 'dkim_registry' | 'managed_escrows' | 'participants' | 'participant_escrows'> {
-      return {
-        definition: {
-      slot: new Fr(1n),
-    },
-escrow_registry: {
-      slot: new Fr(4n),
-    },
-dkim_registry: {
-      slot: new Fr(5n),
-    },
-managed_escrows: {
-      slot: new Fr(6n),
-    },
-participants: {
-      slot: new Fr(7n),
-    },
-participant_escrows: {
-      slot: new Fr(8n),
-    }
-      } as ContractStorageLayout<'definition' | 'escrow_registry' | 'dkim_registry' | 'managed_escrows' | 'participants' | 'participant_escrows'>;
-    }
-    
+    return {
+      definition: {
+        slot: new Fr(1n),
+      },
+      escrow_registry: {
+        slot: new Fr(4n),
+      },
+      dkim_registry: {
+        slot: new Fr(5n),
+      },
+      managed_escrows: {
+        slot: new Fr(6n),
+      },
+      participants: {
+        slot: new Fr(7n),
+      },
+      participant_escrows: {
+        slot: new Fr(8n),
+      }
+    } as ContractStorageLayout<'definition' | 'escrow_registry' | 'dkim_registry' | 'managed_escrows' | 'participants' | 'participant_escrows'>;
+  }
+
 
   public static get notes(): ContractNotes<'AddressNote' | 'UintNote' | 'EntitlementNote' | 'ParticipantNote'> {
     return {
       AddressNote: {
-          id: new NoteSelector(2232136525),
-        },
-UintNote: {
-          id: new NoteSelector(202136239),
-        },
-EntitlementNote: {
-          id: new NoteSelector(4112046478),
-        },
-ParticipantNote: {
-          id: new NoteSelector(3017618054),
-        }
+        id: new NoteSelector(2232136525),
+      },
+      UintNote: {
+        id: new NoteSelector(202136239),
+      },
+      EntitlementNote: {
+        id: new NoteSelector(4112046478),
+      },
+      ParticipantNote: {
+        id: new NoteSelector(3017618054),
+      }
     } as ContractNotes<'AddressNote' | 'UintNote' | 'EntitlementNote' | 'ParticipantNote'>;
   }
-  
+
 
   /** Type-safe wrappers for the public methods exposed by the contract. */
   public declare methods: {
-    
+
     /** check_and_register_participant(participant: struct, participant_name: string, escrow: struct) */
     check_and_register_participant: ((participant: AztecAddressLike, participant_name: string, escrow: AztecAddressLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
@@ -204,32 +204,32 @@ ParticipantNote: {
     sync_notes: (() => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
   };
 
-  
-    public static get events(): { DKIMKeyHashRegistered: {abiType: AbiType, eventSelector: EventSelector, fieldNames: string[] } } {
+
+  public static get events(): { DKIMKeyHashRegistered: { abiType: AbiType, eventSelector: EventSelector, fieldNames: string[] } } {
     return {
       DKIMKeyHashRegistered: {
         abiType: {
-    "kind": "struct",
-    "fields": [
-        {
-            "name": "dkim_key_hash",
-            "type": {
+          "kind": "struct",
+          "fields": [
+            {
+              "name": "dkim_key_hash",
+              "type": {
                 "kind": "field"
+              }
+            },
+            {
+              "name": "verifier_id",
+              "type": {
+                "kind": "field"
+              }
             }
+          ],
+          "path": "ZImburseRegistry::DKIMKeyHashRegistered"
         },
-        {
-            "name": "verifier_id",
-            "type": {
-                "kind": "field"
-            }
-        }
-    ],
-    "path": "ZImburseRegistry::DKIMKeyHashRegistered"
-},
         eventSelector: EventSelector.fromSignature('DKIMKeyHashRegistered(Field,Field)'),
-        fieldNames: ["dkim_key_hash","verifier_id"],
+        fieldNames: ["dkim_key_hash", "verifier_id"],
       }
     };
   }
-  
+
 }

@@ -38,40 +38,40 @@ import ZImburseEscrowContractArtifactJson from './ZImburseEscrow.json' assert { 
 export const ZImburseEscrowContractArtifact = loadContractArtifact(ZImburseEscrowContractArtifactJson as NoirCompiledContract);
 
 
-      export type SpotReimbursementClaimed = {
-        claimant: AztecAddressLike
-amount: FieldLike
-verifier_id: (bigint | number)
-      }
-    
+export type SpotReimbursementClaimed = {
+  claimant: AztecAddressLike
+  amount: FieldLike
+  verifier_id: (bigint | number)
+}
 
-      export type RecurringReimbursementClaimed = {
-        claimant: AztecAddressLike
-amount: FieldLike
-verifier_id: (bigint | number)
-timestamp: FieldLike
-      }
-    
 
-      export type EntitlementNullified = {
-        randomness: FieldLike
-      }
-    
+export type RecurringReimbursementClaimed = {
+  claimant: AztecAddressLike
+  amount: FieldLike
+  verifier_id: (bigint | number)
+  timestamp: FieldLike
+}
+
+
+export type EntitlementNullified = {
+  randomness: FieldLike
+}
+
 
 /**
  * Type-safe interface for contract ZImburseEscrow;
  */
 export class ZImburseEscrowContract extends ContractBase {
-  
+
   private constructor(
     instance: ContractInstanceWithAddress,
     wallet: Wallet,
   ) {
     super(instance, ZImburseEscrowContractArtifact, wallet);
   }
-  
 
-  
+
+
   /**
    * Creates a contract instance.
    * @param address - The deployed contract's address.
@@ -85,7 +85,7 @@ export class ZImburseEscrowContract extends ContractBase {
     return Contract.at(address, ZImburseEscrowContract.artifact, wallet) as Promise<ZImburseEscrowContract>;
   }
 
-  
+
   /**
    * Creates a tx to deploy a new instance of this contract.
    */
@@ -116,50 +116,50 @@ export class ZImburseEscrowContract extends ContractBase {
       opts.method ?? 'constructor',
     );
   }
-  
 
-  
+
+
   /**
    * Returns this contract's artifact.
    */
   public static get artifact(): ContractArtifact {
     return ZImburseEscrowContractArtifact;
   }
-  
+
 
   public static get storage(): ContractStorageLayout<'definition' | 'entitlements' | 'nullifiers'> {
-      return {
-        definition: {
-      slot: new Fr(1n),
-    },
-entitlements: {
-      slot: new Fr(6n),
-    },
-nullifiers: {
-      slot: new Fr(7n),
-    }
-      } as ContractStorageLayout<'definition' | 'entitlements' | 'nullifiers'>;
-    }
-    
+    return {
+      definition: {
+        slot: new Fr(1n),
+      },
+      entitlements: {
+        slot: new Fr(6n),
+      },
+      nullifiers: {
+        slot: new Fr(7n),
+      }
+    } as ContractStorageLayout<'definition' | 'entitlements' | 'nullifiers'>;
+  }
+
 
   public static get notes(): ContractNotes<'AddressNote' | 'UintNote' | 'EntitlementNote'> {
     return {
       AddressNote: {
-          id: new NoteSelector(2232136525),
-        },
-UintNote: {
-          id: new NoteSelector(202136239),
-        },
-EntitlementNote: {
-          id: new NoteSelector(4112046478),
-        }
+        id: new NoteSelector(2232136525),
+      },
+      UintNote: {
+        id: new NoteSelector(202136239),
+      },
+      EntitlementNote: {
+        id: new NoteSelector(4112046478),
+      }
     } as ContractNotes<'AddressNote' | 'UintNote' | 'EntitlementNote'>;
   }
-  
+
 
   /** Type-safe wrappers for the public methods exposed by the contract. */
   public declare methods: {
-    
+
     /** compute_note_hash_and_optionally_a_nullifier(contract_address: struct, nonce: field, storage_slot: field, note_type_id: field, compute_nullifier: boolean, serialized_note: array) */
     compute_note_hash_and_optionally_a_nullifier: ((contract_address: AztecAddressLike, nonce: FieldLike, storage_slot: FieldLike, note_type_id: FieldLike, compute_nullifier: boolean, serialized_note: FieldLike[]) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
@@ -209,110 +209,110 @@ EntitlementNote: {
     view_entitlements: ((offset: (bigint | number), scope: AztecAddressLike, recipient: { _is_some: boolean, _value: AztecAddressLike }, verifier_id: { _is_some: boolean, _value: (bigint | number) }, spot: { _is_some: boolean, _value: boolean }) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
   };
 
-  
-    public static get events(): { SpotReimbursementClaimed: {abiType: AbiType, eventSelector: EventSelector, fieldNames: string[] }, RecurringReimbursementClaimed: {abiType: AbiType, eventSelector: EventSelector, fieldNames: string[] }, EntitlementNullified: {abiType: AbiType, eventSelector: EventSelector, fieldNames: string[] } } {
+
+  public static get events(): { SpotReimbursementClaimed: { abiType: AbiType, eventSelector: EventSelector, fieldNames: string[] }, RecurringReimbursementClaimed: { abiType: AbiType, eventSelector: EventSelector, fieldNames: string[] }, EntitlementNullified: { abiType: AbiType, eventSelector: EventSelector, fieldNames: string[] } } {
     return {
       SpotReimbursementClaimed: {
         abiType: {
-    "kind": "struct",
-    "fields": [
-        {
-            "name": "claimant",
-            "type": {
+          "kind": "struct",
+          "fields": [
+            {
+              "name": "claimant",
+              "type": {
                 "kind": "struct",
                 "fields": [
-                    {
-                        "name": "inner",
-                        "type": {
-                            "kind": "field"
-                        }
+                  {
+                    "name": "inner",
+                    "type": {
+                      "kind": "field"
                     }
+                  }
                 ],
                 "path": "address_note::aztec::protocol_types::address::aztec_address::AztecAddress"
-            }
-        },
-        {
-            "name": "amount",
-            "type": {
+              }
+            },
+            {
+              "name": "amount",
+              "type": {
                 "kind": "field"
-            }
-        },
-        {
-            "name": "verifier_id",
-            "type": {
+              }
+            },
+            {
+              "name": "verifier_id",
+              "type": {
                 "kind": "integer",
                 "sign": "unsigned",
                 "width": 8
+              }
             }
-        }
-    ],
-    "path": "ZImburseEscrow::SpotReimbursementClaimed"
-},
+          ],
+          "path": "ZImburseEscrow::SpotReimbursementClaimed"
+        },
         eventSelector: EventSelector.fromSignature('SpotReimbursementClaimed((Field),Field,u8)'),
-        fieldNames: ["claimant","amount","verifier_id"],
+        fieldNames: ["claimant", "amount", "verifier_id"],
       },
-RecurringReimbursementClaimed: {
+      RecurringReimbursementClaimed: {
         abiType: {
-    "kind": "struct",
-    "fields": [
-        {
-            "name": "claimant",
-            "type": {
+          "kind": "struct",
+          "fields": [
+            {
+              "name": "claimant",
+              "type": {
                 "kind": "struct",
                 "fields": [
-                    {
-                        "name": "inner",
-                        "type": {
-                            "kind": "field"
-                        }
+                  {
+                    "name": "inner",
+                    "type": {
+                      "kind": "field"
                     }
+                  }
                 ],
                 "path": "address_note::aztec::protocol_types::address::aztec_address::AztecAddress"
-            }
-        },
-        {
-            "name": "amount",
-            "type": {
+              }
+            },
+            {
+              "name": "amount",
+              "type": {
                 "kind": "field"
-            }
-        },
-        {
-            "name": "verifier_id",
-            "type": {
+              }
+            },
+            {
+              "name": "verifier_id",
+              "type": {
                 "kind": "integer",
                 "sign": "unsigned",
                 "width": 8
+              }
+            },
+            {
+              "name": "timestamp",
+              "type": {
+                "kind": "field"
+              }
             }
+          ],
+          "path": "ZImburseEscrow::RecurringReimbursementClaimed"
         },
-        {
-            "name": "timestamp",
-            "type": {
-                "kind": "field"
-            }
-        }
-    ],
-    "path": "ZImburseEscrow::RecurringReimbursementClaimed"
-},
         eventSelector: EventSelector.fromSignature('RecurringReimbursementClaimed((Field),Field,u8,Field)'),
-        fieldNames: ["claimant","amount","verifier_id","timestamp"],
+        fieldNames: ["claimant", "amount", "verifier_id", "timestamp"],
       },
-EntitlementNullified: {
+      EntitlementNullified: {
         abiType: {
-    "kind": "struct",
-    "fields": [
-        {
-            "name": "randomness",
-            "type": {
+          "kind": "struct",
+          "fields": [
+            {
+              "name": "randomness",
+              "type": {
                 "kind": "field"
+              }
             }
-        }
-    ],
-    "path": "ZImburseEscrow::EntitlementNullified"
-},
+          ],
+          "path": "ZImburseEscrow::EntitlementNullified"
+        },
         eventSelector: EventSelector.fromSignature('EntitlementNullified(Field)'),
         fieldNames: ["randomness"],
       }
     };
   }
-  
+
 }

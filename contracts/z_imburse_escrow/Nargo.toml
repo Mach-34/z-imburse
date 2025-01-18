@@ -11,4 +11,4 @@ address_note = { path = "../address_note" }
 compressed_string = { path = "../compressed_string" }
 generators = { path = "../generators" }
 zimburse_verifiers = { path = "../../circuits/zimburse_verifiers" }
-zkemail = { path = '../../../zkemail.nr/lib' }
+zkemail = { tag = "v0.4.0", git = "https://github.com/zkemail/zkemail.nr", directory = "lib" }

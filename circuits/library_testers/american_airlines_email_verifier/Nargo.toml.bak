@@ -2,7 +2,7 @@
 name = "american_airlines_email_verifier"
 type = "bin"
 authors = [""]
-compiler_version = ">=0.35.0"
+compiler_version = ">=1.0.0"
 
 [dependencies]
 zimburse_verifiers = { path = "../../zimburse_verifiers" }
